@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>智能制造组管理平台 V10</title>
+<title>智能制造组管理平台 V11</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -212,7 +212,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
     <div class="login-logo">
       <div class="logo-icon">&#9881;</div>
       <h2>智能制造组管理平台</h2>
-      <p>V10 - 工号登录系统</p>
+      <p>V11 - 工号登录系统</p>
     </div>
     <div id="loginForm">
       <div class="login-fg">
@@ -241,13 +241,14 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
 </div>
 <div id="mainApp" class="app" style="display:none">
   <div id="sb" class="sb">
-    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V10</span></div>
+    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V11</span></div>
     <div class="sb-b" id="sbContent"></div>
   </div>
   <div class="mn">
     <div class="mn-h">
       <div class="bc" id="breadcrumb"></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span id="syncStatusBadge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f0f0;color:#8f959e;cursor:pointer" onclick="goToPage('feishu-config')">离线</span>
         <button class="btn-sm bo" onclick="exportAllData()" title="导出全部数据">&#128190; 导出</button>
         <button class="btn-sm bo" onclick="importAllData()" title="导入全部数据">&#128190; 导入</button>
         <span id="userLabel" style="font-size:12px;color:var(--t2)"></span>
@@ -756,6 +757,7 @@ var M = [
   {id:'member-apply',label:'人员申请'},
   {id:'home-config',label:'首页配置'},
   {id:'cfg-backup',label:'数据备份'},
+  {id:'feishu-config',label:'飞书配置'},
   {id:'cfg-theme',label:'主题配置'},
 ]},
 ];
@@ -771,6 +773,178 @@ var allLabels = {};
 var modalData = null;
 var pageState = {};
 var chartInstances = {};
+
+// =========================================
+// V11 - 后端API层（双模式运行）
+// =========================================
+var SERVER_CONFIG = {
+  url: localStorage.getItem('v11_server_url') || '',
+  enabled: localStorage.getItem('v11_server_enabled') === 'true',
+  mode: localStorage.getItem('v11_server_enabled') === 'true' ? 'online' : 'offline'
+};
+
+var API_BASE = '';
+
+function setServerUrl(url) {
+  SERVER_CONFIG.url = url;
+  SERVER_CONFIG.enabled = !!url;
+  SERVER_CONFIG.mode = !!url ? 'online' : 'offline';
+  API_BASE = url;
+  localStorage.setItem('v11_server_url', url || '');
+  localStorage.setItem('v11_server_enabled', (!!url).toString());
+  updateSyncStatusBadge();
+}
+
+function setServerEnabled(enabled) {
+  SERVER_CONFIG.enabled = enabled;
+  SERVER_CONFIG.mode = enabled ? 'online' : 'offline';
+  localStorage.setItem('v11_server_enabled', (enabled).toString());
+  updateSyncStatusBadge();
+}
+
+async function apiRequest(method, path, data) {
+  try {
+    var opts = {
+      method: method,
+      headers: {'Content-Type': 'application/json'},
+    };
+    if (data && method !== 'GET') opts.body = JSON.stringify(data);
+    var res = await fetch(API_BASE + path, opts);
+    var json = await res.json();
+    return json;
+  } catch(e) {
+    console.error('API request error:', e);
+    return {code: -1, msg: '网络错误: ' + e.message};
+  }
+}
+
+async function loadData(type) {
+  if (SERVER_CONFIG.mode === 'online') {
+    try {
+      var res = await apiRequest('GET', '/api/data/' + type);
+      if (res.code === 0) return res.data || [];
+      console.error('API load error:', res.msg);
+    } catch(e) {
+      console.error('loadData API error:', e);
+    }
+  }
+  return lsGet('local_' + type, []);
+}
+
+async function saveData(type, data) {
+  lsSet('local_' + type, data);
+  if (SERVER_CONFIG.mode === 'online') {
+    try {
+      var res = await apiRequest('POST', '/api/sync/write/' + type, {data: data});
+      if (res.code === 0) return true;
+      console.error('API save error:', res.msg);
+    } catch(e) {
+      console.error('saveData API error:', e);
+    }
+  }
+  return false;
+}
+
+// V11 - 同步状态管理
+var SYNC_STATE = {
+  status: 'offline',
+  lastSyncTime: '',
+  logs: []
+};
+
+function updateSyncStatusBadge() {
+  var badge = document.getElementById('syncStatusBadge');
+  if (!badge) return;
+  if (SERVER_CONFIG.mode === 'offline') {
+    badge.style.background = '#f0f0f0';
+    badge.style.color = '#8f959e';
+    badge.textContent = '离线';
+  } else if (SYNC_STATE.status === 'synced') {
+    badge.style.background = '#e8f8e8';
+    badge.style.color = '#34c724';
+    badge.textContent = '已同步' + (SYNC_STATE.lastSyncTime ? ' ' + SYNC_STATE.lastSyncTime : '');
+  } else if (SYNC_STATE.status === 'syncing') {
+    badge.style.background = '#fff4e0';
+    badge.style.color = '#ff9800';
+    badge.textContent = '同步中...';
+  } else if (SYNC_STATE.status === 'error') {
+    badge.style.background = '#ffe8e8';
+    badge.style.color = '#f54a45';
+    badge.textContent = '同步失败';
+  } else {
+    badge.style.background = '#e8f0ff';
+    badge.style.color = '#3370ff';
+    badge.textContent = '在线';
+  }
+}
+
+function addSyncLog(msg) {
+  SYNC_STATE.logs.unshift({time: new Date().toLocaleString(), msg: msg});
+  if (SYNC_STATE.logs.length > 20) SYNC_STATE.logs = SYNC_STATE.logs.slice(0, 20);
+}
+
+function setSyncStatus(status) {
+  SYNC_STATE.status = status;
+  if (status === 'synced') {
+    SYNC_STATE.lastSyncTime = new Date().toLocaleTimeString();
+  }
+  updateSyncStatusBadge();
+}
+
+// V11 - 定时同步
+var syncTimerId = null;
+
+function startAutoSync(intervalMinutes) {
+  stopAutoSync();
+  if (!SERVER_CONFIG.enabled) return;
+  syncTimerId = setInterval(function() {
+    doFullSync();
+  }, intervalMinutes * 60 * 1000);
+  addSyncLog('定时同步已启动，间隔 ' + intervalMinutes + ' 分钟');
+}
+
+function stopAutoSync() {
+  if (syncTimerId) {
+    clearInterval(syncTimerId);
+    syncTimerId = null;
+  }
+}
+
+async function doFullSync() {
+  if (SERVER_CONFIG.mode !== 'online') return;
+  setSyncStatus('syncing');
+  try {
+    var types = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
+    for (var i = 0; i < types.length; i++) {
+      var res = await apiRequest('POST', '/api/sync/read/' + types[i]);
+      if (res.code === 0 && res.data) {
+        lsSet('local_' + types[i], res.data);
+      }
+    }
+    setSyncStatus('synced');
+    addSyncLog('全量同步完成');
+  } catch(e) {
+    setSyncStatus('error');
+    addSyncLog('全量同步失败: ' + e.message);
+  }
+}
+
+async function doWriteAllToServer() {
+  if (SERVER_CONFIG.mode !== 'online') return;
+  setSyncStatus('syncing');
+  try {
+    var types = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
+    for (var i = 0; i < types.length; i++) {
+      var localData = lsGet('local_' + types[i], []);
+      await apiRequest('POST', '/api/sync/write/' + types[i], {data: localData});
+    }
+    setSyncStatus('synced');
+    addSyncLog('全部数据已写入服务器');
+  } catch(e) {
+    setSyncStatus('error');
+    addSyncLog('写入服务器失败: ' + e.message);
+  }
+}
 
 // =========================================
 // V10 - 数据存取函数 (v9_ 前缀)
@@ -929,8 +1103,8 @@ function initAuth() {
       var roles = {};
       PEOPLE_OBJ.forEach(function(p) {
         var eid = p.employeeId;
-        if (eid === '70163') roles[eid] = 'owner';
-        else if (eid === '60714' || eid === '64135') roles[eid] = 'admin';
+        if (eid === '64135') roles[eid] = 'owner';
+        else if (eid === '70163' || eid === '60714') roles[eid] = 'admin';
         else if (EDITOR_IDS.indexOf(eid) !== -1) roles[eid] = 'editor';
         else roles[eid] = 'viewer';
       });
@@ -1296,6 +1470,22 @@ function importAllData() {
   } catch(e) { alert('导入失败: ' + e.message); }
 }
 
+// V11 - 清除本地数据并从服务器恢复
+async function clearLocalAndRestore() {
+  if (!confirm('确定要清除本地所有数据并从服务器恢复吗？\n\n此操作不可撤销！')) return;
+  if (!confirm('再次确认：这将清除您本地的所有任务、日报、项目等数据！')) return;
+  try {
+    var keys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks'];
+    keys.forEach(function(key) { localStorage.removeItem('v9_' + key); });
+    addSyncLog('本地数据已清除');
+    if (SERVER_CONFIG.mode === 'online') {
+      await doFullSync();
+    }
+    alert('本地数据已清除' + (SERVER_CONFIG.mode === 'online' ? '，已从服务器恢复' : '。由于未连接服务器，数据将为内置默认值'));
+    refresh();
+  } catch(e) { alert('操作失败: ' + e.message); }
+}
+
 function renderPagination(total, page, pageSize, callback) {
   if (total <= pageSize) return '';
   var totalPages = Math.ceil(total / pageSize);
@@ -1601,6 +1791,7 @@ function createDaily() {
       var local = lsGet('local_daily', []);
       local.push(data);
       saveLocalDaily(local);
+      saveData('daily_reports', local);
     },
     onAfter: function() { refresh(); }
   });
@@ -1653,6 +1844,7 @@ function editDaily(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalDaily(local);
+      saveData('daily_reports', local);
     },
     onAfter: function() { refresh(); openDailyDetail(id); }
   });
@@ -1663,6 +1855,7 @@ function deleteDaily(id) {
   var local = lsGet('local_daily', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalDaily(local);
+  saveData('daily_reports', local);
   closeMo();
   refresh();
 }
@@ -1886,6 +2079,7 @@ function createTask() {
       var local = lsGet('local_tasks', []);
       local.push(data);
       saveLocalTasks(local);
+      saveData('tasks', local);
     },
     onAfter: function() { refresh(); }
   });
@@ -1944,6 +2138,7 @@ function editTask(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalTasks(local);
+      saveData('tasks', local);
     },
     onAfter: function() { refresh(); openTaskDetail(id); }
   });
@@ -1954,6 +2149,7 @@ function deleteTask(id) {
   var local = lsGet('local_tasks', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalTasks(local);
+  saveData('tasks', local);
   closeMo();
   refresh();
 }
@@ -2091,6 +2287,7 @@ function createProject() {
       var local = lsGet('local_projects', []);
       local.push(data);
       saveLocalProjects(local);
+      saveData('projects', local);
     },
     onAfter: function() { refresh(); }
   });
@@ -2145,6 +2342,7 @@ function editProject(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalProjects(local);
+      saveData('projects', local);
     },
     onAfter: function() { refresh(); openProjectDetail(id); }
   });
@@ -2155,6 +2353,7 @@ function deleteProject(id) {
   var local = lsGet('local_projects', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalProjects(local);
+  saveData('projects', local);
   closeMo();
   refresh();
 }
@@ -2305,6 +2504,7 @@ function createMaintain() {
         var local = lsGet('local_maintains', []);
         local.push(data);
         saveLocalMaintains(local);
+        saveData('maintains', local);
       },
       onAfter: function() { refresh(); }
     });
@@ -2362,6 +2562,7 @@ function editMaintain(id) {
         if (idx >= 0) local[idx] = data;
         else local.push(data);
         saveLocalMaintains(local);
+        saveData('maintains', local);
       },
       onAfter: function() { refresh(); openMaintainDetail(id); }
     });
@@ -2374,6 +2575,7 @@ function deleteMaintain(id) {
     var local = lsGet('local_maintains', []);
     local = local.filter(function(x){ return x.id !== id; });
     saveLocalMaintains(local);
+    saveData('maintains', local);
     closeMo();
     refresh();
   } catch(e) { alert('删除保养失败: ' + e.message); }
@@ -2494,6 +2696,7 @@ function createRepair() {
         var local = lsGet('local_repairs', []);
         local.push(data);
         saveLocalRepairs(local);
+        saveData('repairs', local);
       },
       onAfter: function() { refresh(); }
     });
@@ -2553,6 +2756,7 @@ function editRepair(id) {
         if (idx >= 0) local[idx] = data;
         else local.push(data);
         saveLocalRepairs(local);
+        saveData('repairs', local);
       },
       onAfter: function() { refresh(); openRepairDetail(id); }
     });
@@ -2565,6 +2769,7 @@ function deleteRepair(id) {
     var local = lsGet('local_repairs', []);
     local = local.filter(function(x){ return x.id !== id; });
     saveLocalRepairs(local);
+    saveData('repairs', local);
     closeMo();
     refresh();
   } catch(e) { alert('删除维修失败: ' + e.message); }
@@ -2915,6 +3120,7 @@ function createImprove() {
       var local = lsGet('local_improves', []);
       local.push(data);
       saveLocalImproves(local);
+      saveData('improvements', local);
     },
     onAfter: function() { refresh(); }
   });
@@ -2967,6 +3173,7 @@ function editImprove(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalImproves(local);
+      saveData('improvements', local);
     },
     onAfter: function() { refresh(); openImproveDetail(id); }
   });
@@ -2977,6 +3184,7 @@ function deleteImprove(id) {
   var local = lsGet('local_improves', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalImproves(local);
+  saveData('improvements', local);
   closeMo();
   refresh();
 }
@@ -3429,13 +3637,57 @@ function viewDocDetail(id) {
 
 function downloadDoc(id) {
   try {
-    alert('文档下载功能演示：ID=' + id);
+    var all = getAllDocs();
+    var d = all.find(function(x){ return x.id === id; });
+    if (!d) { alert('文档不存在'); return; }
+    var content = d.content || '';
+    if (!content) {
+      content = '文档名称: ' + d.name + '\n';
+      content += '类型: ' + d.type + '\n';
+      content += '分类: ' + d.category + '\n';
+      content += '日期: ' + d.date + '\n';
+      content += '标签: ' + (d.tags || '') + '\n';
+      content += '描述: ' + (d.desc || '') + '\n';
+      content += '\n（此为文档元数据，原文内容请通过飞书链接获取）';
+    }
+    var ext = 'txt';
+    if (d.type === 'PDF') ext = 'txt';
+    else if (d.type === 'DOCX' || d.type === 'DOC') ext = 'txt';
+    else if (d.type === 'XLSX' || d.type === 'XLS') ext = 'txt';
+    else if (d.type === 'PPTX' || d.type === 'PPT') ext = 'txt';
+    else if (d.type === 'Python') ext = 'py';
+    else if (d.type === 'LOG') ext = 'log';
+    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = d.name + '.' + ext;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   } catch(e) { alert('下载失败: ' + e.message); }
 }
 
 function downloadScript(id) {
   try {
-    alert('脚本下载功能演示：ID=' + id);
+    var all = getAllScripts();
+    var s = all.find(function(x){ return x.id === id; });
+    if (!s) { alert('脚本不存在'); return; }
+    var content = '#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n';
+    content += '# ' + s.name + '\n';
+    content += '# 功能: ' + s.desc + '\n';
+    content += '# 日期: ' + s.date + '\n';
+    content += '# 类型: ' + s.type + '\n\n';
+    content += '"""\n' + s.name + '\n' + s.desc + '\n"""\n\n';
+    content += 'print("Hello, World!")\n';
+    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = s.name + '.py';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   } catch(e) { alert('下载失败: ' + e.message); }
 }
 
@@ -4413,6 +4665,275 @@ function toggleQuickCard(id) {
 }
 
 // =========================================
+// V11 - 飞书配置页面
+// =========================================
+function renderFeishuConfig() {
+  var savedUrl = SERVER_CONFIG.url || 'http://localhost:3000';
+  var savedAppId = lsGet('feishu_app_id', '');
+  var savedAppSecret = lsGet('feishu_app_secret', '');
+  var tableMappings = lsGet('feishu_table_mappings', [
+    {type:'daily_reports', tableName:'智能制造-日报', appToken:'', tableId:''},
+    {type:'tasks', tableName:'智能制造-任务', appToken:'', tableId:''},
+    {type:'projects', tableName:'智能制造-项目', appToken:'', tableId:''},
+    {type:'equips', tableName:'智能制造-设备', appToken:'', tableId:''},
+    {type:'improvements', tableName:'智能制造-改善', appToken:'', tableId:''},
+    {type:'members', tableName:'智能制造-人员', appToken:'', tableId:''}
+  ]);
+  var autoSyncEnabled = lsGet('feishu_auto_sync', false);
+  var syncInterval = lsGet('feishu_sync_interval', '30');
+
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">飞书配置 <span class="bdg">多维表格同步</span></div>';
+
+  // 1. 服务器连接配置
+  h += '<div class="cd">';
+  h += '<div class="ct">服务器连接配置</div>';
+  h += '<div class="form-field"><label>后端服务器地址</label>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<input class="fi" id="feishuServerUrl" style="flex:1" value="' + savedUrl + '" placeholder="如 http://localhost:3000">';
+  h += '<button class="btn bp" onclick="testServerConnection()">测试连接</button>';
+  h += '</div></div>';
+  h += '<div id="serverConnResult" style="margin-top:8px;font-size:12px"></div>';
+  h += '</div>';
+
+  // 2. 飞书应用凭证
+  h += '<div class="cd">';
+  h += '<div class="ct">飞书应用凭证</div>';
+  h += '<div class="form-field"><label>App ID</label>';
+  h += '<input class="fi" id="feishuAppId" value="' + savedAppId + '" placeholder="请输入飞书应用 App ID">';
+  h += '</div>';
+  h += '<div class="form-field"><label>App Secret</label>';
+  h += '<input class="fi" type="password" id="feishuAppSecret" value="' + savedAppSecret + '" placeholder="请输入飞书应用 App Secret">';
+  h += '</div>';
+  h += '<button class="btn bp" onclick="saveFeishuCredentials()">保存凭证</button>';
+  h += '</div>';
+
+  // 3. 多维表格映射配置
+  h += '<div class="cd">';
+  h += '<div class="ct">多维表格映射配置</div>';
+  h += '<div style="font-size:12px;color:var(--t2);margin-bottom:12px">配置各数据类型与飞书多维表格的映射关系</div>';
+  h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
+  h += '<thead><tr><th>数据类型</th><th>表格名称</th><th>App Token</th><th>Table ID</th><th>操作</th></tr></thead><tbody>';
+  var typeLabels = {daily_reports:'日报', tasks:'任务', projects:'项目', equips:'设备', improvements:'改善', members:'成员'};
+  tableMappings.forEach(function(m, idx) {
+    h += '<tr>';
+    h += '<td><span class="t tb">' + (typeLabels[m.type] || m.type) + '</span></td>';
+    h += '<td><input class="fi" id="fm_name_' + idx + '" value="' + m.tableName + '" style="width:160px"></td>';
+    h += '<td><input class="fi" id="fm_app_' + idx + '" value="' + m.appToken + '" style="width:180px" placeholder="app_token"></td>';
+    h += '<td><input class="fi" id="fm_tbl_' + idx + '" value="' + m.tableId + '" style="width:140px" placeholder="table_id"></td>';
+    h += '<td><button class="btn-sm bp" onclick="testTableConnection(\'' + m.type + '\')">测试连接</button></td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  h += '<div style="margin-top:10px;display:flex;gap:8px">';
+  h += '<button class="btn bp" onclick="saveTableMappings()">保存配置</button>';
+  h += '<button class="btn bo" onclick="readAllFromFeishu()">一键读取全部</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // 4. 同步状态面板
+  h += '<div class="cd">';
+  h += '<div class="ct">同步状态面板</div>';
+  h += '<div class="kpi-row">';
+  var syncTypes = [
+    {key:'daily_reports', label:'日报', local: getAllDailyReports().length},
+    {key:'tasks', label:'任务', local: getAllTasks().length},
+    {key:'projects', label:'项目', local: getAllProjects().length},
+    {key:'equips', label:'设备', local: getAllEquips().length},
+    {key:'improvements', label:'改善', local: getAllImproves().length},
+    {key:'members', label:'成员', local: PEOPLE_OBJ.length}
+  ];
+  syncTypes.forEach(function(st) {
+    var lastTime = lsGet('sync_last_' + st.key, '-');
+    h += '<div class="kpi-card"><div class="kpi-value">' + st.local + '</div><div class="kpi-label">' + st.label + '</div><div class="kpi-sub">同步: ' + lastTime + '</div></div>';
+  });
+  h += '</div>';
+
+  // 同步日志
+  h += '<div class="ct" style="margin-top:12px;font-size:13px;font-weight:600">同步日志</div>';
+  h += '<div style="background:#f7f8fa;border-radius:6px;padding:10px;max-height:200px;overflow-y:auto;font-size:11px">';
+  if (SYNC_STATE.logs.length === 0) {
+    h += '<div style="color:var(--t3);text-align:center;padding:12px">暂无同步日志</div>';
+  } else {
+    SYNC_STATE.logs.forEach(function(log) {
+      h += '<div style="padding:3px 0;border-bottom:1px solid var(--br2)"><span style="color:var(--t3)">[' + log.time + ']</span> ' + log.msg + '</div>';
+    });
+  }
+  h += '</div>';
+  h += '</div>';
+
+  // 5. 定时同步配置
+  h += '<div class="cd">';
+  h += '<div class="ct">定时同步配置</div>';
+  h += '<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--br2)">';
+  h += '<div style="flex:1"><div style="font-weight:500;font-size:13px">开启定时同步</div><div style="font-size:11px;color:var(--t3);margin-top:2px">自动定时从飞书读取数据</div></div>';
+  h += '<label class="sw"><input type="checkbox" id="autoSyncSwitch"' + (autoSyncEnabled ? ' checked' : '') + ' onchange="toggleAutoSync()"><span class="sl"></span></label>';
+  h += '</div>';
+  h += '<div style="display:flex;align-items:center;padding:10px 0">';
+  h += '<div style="flex:1"><div style="font-weight:500;font-size:13px">同步间隔</div></div>';
+  h += '<select class="fi" style="width:140px" id="syncIntervalSelect" onchange="changeSyncInterval()">';
+  ['15','30','60','120'].forEach(function(v) {
+    var label = v === '15' ? '15分钟' : v === '30' ? '30分钟' : v === '60' ? '1小时' : '2小时';
+    h += '<option value="' + v + '"' + (syncInterval === v ? ' selected' : '') + '>' + label + '</option>';
+  });
+  h += '</select>';
+  h += '</div>';
+  h += '<div style="margin-top:10px">';
+  h += '<button class="btn bp" onclick="doFullSync();refresh()">立即同步</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // 6. 一键操作区
+  h += '<div class="cd">';
+  h += '<div class="ct">一键操作区</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">';
+  h += '<div style="text-align:center;padding:20px;background:#e8f0ff;border-radius:8px;cursor:pointer" onclick="readAllFromFeishu()">';
+  h += '<div style="font-size:32px;margin-bottom:6px">&#128229;</div>';
+  h += '<div style="font-size:13px;font-weight:600;color:var(--blue)">一键读取飞书数据</div>';
+  h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">从多维表格读取全部数据</div>';
+  h += '</div>';
+  h += '<div style="text-align:center;padding:20px;background:#e8f8e8;border-radius:8px;cursor:pointer" onclick="doWriteAllToServer();setTimeout(function(){refresh()},1000)">';
+  h += '<div style="font-size:32px;margin-bottom:6px">&#128228;</div>';
+  h += '<div style="font-size:13px;font-weight:600;color:var(--gn)">一键写入飞书数据</div>';
+  h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">将本地数据推送到服务器</div>';
+  h += '</div>';
+  h += '<div style="text-align:center;padding:20px;background:#fff4e0;border-radius:8px;cursor:pointer" onclick="doWriteAllToServer();setTimeout(function(){doFullSync();setTimeout(function(){refresh()},1500)},1000)">';
+  h += '<div style="font-size:32px;margin-bottom:6px">&#128260;</div>';
+  h += '<div style="font-size:13px;font-weight:600;color:var(--or)">一键反写（本地→飞书）</div>';
+  h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">先推送再拉取，双向同步</div>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+async function testServerConnection() {
+  var url = document.getElementById('feishuServerUrl').value.trim();
+  var resultDiv = document.getElementById('serverConnResult');
+  if (!url) {
+    resultDiv.innerHTML = '<span style="color:var(--rd)">请输入服务器地址</span>';
+    return;
+  }
+  resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在连接...</span>';
+  try {
+    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}});
+    var json = await res.json();
+    if (json.code === 0) {
+      setServerUrl(url);
+      resultDiv.innerHTML = '<span style="color:var(--gn)">&#10004; 连接成功!</span>' +
+        (json.data ? ' <span style="color:var(--t2)">版本: ' + (json.data.version || '-') + ' | 运行时间: ' + (json.data.uptime || '-') + '</span>' : '');
+      addSyncLog('服务器连接成功: ' + url);
+    } else {
+      resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + (json.msg || '未知错误') + '</span>';
+    }
+  } catch(e) {
+    resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + '</span>';
+  }
+}
+
+async function testTableConnection(type) {
+  if (SERVER_CONFIG.mode !== 'online') {
+    alert('请先连接服务器');
+    return;
+  }
+  alert('测试读取 ' + type + ' 的前3条记录...');
+  try {
+    var res = await apiRequest('POST', '/api/sync/read/' + type, {limit: 3});
+    if (res.code === 0) {
+      var count = res.data ? res.data.length : 0;
+      alert('测试成功! 读取到 ' + count + ' 条记录');
+      addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
+    } else {
+      alert('测试失败: ' + res.msg);
+      addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
+    }
+  } catch(e) {
+    alert('测试失败: ' + e.message);
+  }
+  refresh();
+}
+
+function saveFeishuCredentials() {
+  var appId = document.getElementById('feishuAppId').value.trim();
+  var appSecret = document.getElementById('feishuAppSecret').value.trim();
+  lsSet('feishu_app_id', appId);
+  lsSet('feishu_app_secret', appSecret);
+  if (SERVER_CONFIG.mode === 'online') {
+    apiRequest('POST', '/api/config', {appId: appId, appSecret: appSecret});
+  }
+  alert('凭证已保存');
+  addSyncLog('飞书凭证已保存');
+}
+
+function saveTableMappings() {
+  var typeKeys = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
+  var mappings = typeKeys.map(function(type, idx) {
+    return {
+      type: type,
+      tableName: document.getElementById('fm_name_' + idx).value,
+      appToken: document.getElementById('fm_app_' + idx).value,
+      tableId: document.getElementById('fm_tbl_' + idx).value
+    };
+  });
+  lsSet('feishu_table_mappings', mappings);
+  if (SERVER_CONFIG.mode === 'online') {
+    apiRequest('POST', '/api/config', {tableMappings: mappings});
+  }
+  alert('映射配置已保存');
+  addSyncLog('多维表格映射配置已保存');
+}
+
+async function readAllFromFeishu() {
+  if (SERVER_CONFIG.mode !== 'online') {
+    alert('请先连接服务器');
+    return;
+  }
+  setSyncStatus('syncing');
+  try {
+    var typeKeys = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
+    for (var i = 0; i < typeKeys.length; i++) {
+      var res = await apiRequest('POST', '/api/sync/read/' + typeKeys[i]);
+      if (res.code === 0 && res.data) {
+        lsSet('local_' + typeKeys[i], res.data);
+        lsSet('sync_last_' + typeKeys[i], new Date().toLocaleTimeString());
+        addSyncLog('读取 ' + typeKeys[i] + ' 成功，共 ' + res.data.length + ' 条');
+      } else {
+        addSyncLog('读取 ' + typeKeys[i] + ' 失败: ' + (res.msg || ''));
+      }
+    }
+    setSyncStatus('synced');
+    alert('全部数据读取完成!');
+  } catch(e) {
+    setSyncStatus('error');
+    addSyncLog('读取飞书数据失败: ' + e.message);
+    alert('读取失败: ' + e.message);
+  }
+  refresh();
+}
+
+function toggleAutoSync() {
+  var enabled = document.getElementById('autoSyncSwitch').checked;
+  lsSet('feishu_auto_sync', enabled);
+  if (enabled && SERVER_CONFIG.enabled) {
+    var interval = parseInt(document.getElementById('syncIntervalSelect').value) || 30;
+    startAutoSync(interval);
+  } else {
+    stopAutoSync();
+  }
+}
+
+function changeSyncInterval() {
+  var interval = parseInt(document.getElementById('syncIntervalSelect').value) || 30;
+  lsSet('feishu_sync_interval', String(interval));
+  var enabled = document.getElementById('autoSyncSwitch').checked;
+  if (enabled && SERVER_CONFIG.enabled) {
+    startAutoSync(interval);
+  }
+}
+
+// =========================================
 // V10 - 数据备份
 // =========================================
 function renderDataBackup() {
@@ -4444,6 +4965,33 @@ function renderDataBackup() {
   h += '</div>';
   h += '<button class="btn bo" onclick="importAllData()">选择文件导入</button>';
   h += '</div>';
+  h += '</div>';
+  
+  h += '</div>';
+  
+  // V11 - 服务器同步操作
+  h += '<div class="g2">';
+  h += '<div class="cd">';
+  h += '<div class="ct">从服务器同步全部数据</div>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">从后端服务器拉取飞书多维表格的最新数据到本地。</p>';
+  h += '<div class="status-bar info" style="margin-bottom:12px"><span>需要先在"飞书配置"页面连接服务器</span></div>';
+  h += '<button class="btn bp" onclick="doFullSync();setTimeout(function(){refresh()},2000)">从服务器同步全部数据</button>';
+  h += '</div>';
+  
+  h += '<div class="cd">';
+  h += '<div class="ct">上传到服务器</div>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">将本地全部数据推送到后端服务器，写入飞书多维表格。</p>';
+  h += '<button class="btn bp" onclick="doWriteAllToServer();setTimeout(function(){refresh()},2000)">上传到服务器</button>';
+  h += '</div>';
+  h += '</div>';
+  
+  h += '<div class="cd">';
+  h += '<div class="ct">危险操作</div>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">清除本地所有数据并从服务器重新同步。此操作不可撤销!</p>';
+  h += '<div style="background:#ffe8e8;padding:10px;border-radius:6px;margin-bottom:12px;font-size:11px;color:var(--rd)">';
+  h += '<b>警告：</b>此操作将清除本地所有数据，并从服务器重新同步。请确保服务器数据完整!';
+  h += '</div>';
+  h += '<button class="btn" style="background:var(--rd);color:#fff" onclick="clearLocalAndRestore()">清除本地数据并从服务器恢复</button>';
   h += '</div>';
   
   // 数据统计
@@ -5327,6 +5875,7 @@ function renderPage(id) {
     if (id === 'member-apply') return renderMemberApply();
     if (id === 'home-config') return renderHomeConfig();
     if (id === 'cfg-backup') return renderDataBackup();
+    if (id === 'feishu-config') return renderFeishuConfig();
     if (id === 'cfg-theme') return renderThemeConfig();
     
     // 默认返回
@@ -5421,6 +5970,9 @@ function refreshData(type) {
 document.addEventListener('DOMContentLoaded', function() {
   try {
     initAuth();
+    // V11 - 初始化同步状态
+    API_BASE = SERVER_CONFIG.url;
+    updateSyncStatusBadge();
   } catch(e) {
     console.error('Init error:', e);
     alert('初始化失败: ' + e.message);
