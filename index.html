@@ -1475,7 +1475,21 @@ function renderPage(id) {
   }
 
   // DEFAULT PARENT: items with children but no specific handler
-  if (item && item.children && item.children.length && !item.children[0].children) {
+  // Skip pages that have dedicated renderers below
+  var pagesWithRenderers = ['daily-today','daily-list','daily-history','daily-stats',
+    'task-all','task-all-list','task-pending','task-progress','task-done','task-stalled',
+    'task-personal','task-cycle','task-daily','task-weekly','task-monthly',
+    'project-all','project-track','project-milestone',
+    'equip-all','equip-auto','equip-expand','equip-accept','equip-spare',
+    'improve-today','improve-list','improve-stats','improve-by-dept',
+    'org-chart','org-member','org-perm','org-apply',
+    'doc-library','doc-script','doc-tool',
+    'dash-all','dash-task-rate','dash-attendance','dash-equip','dash-cost',
+    'wp-white','wp-ten-projects','wp-goal','wp-trace','wp-culture',
+    'cfg-menu','cfg-page','cfg-theme','cfg-advanced','cfg-member','cfg-perm','cfg-apply','cfg-sync','cfg-backup','cfg-deploy',
+    'auto-list','auto-new','auto-log','auto-tpl','msg-push',
+    'dash-weekly','dash-monthly'];
+  if (item && item.children && item.children.length && !item.children[0].children && pagesWithRenderers.indexOf(id) === -1) {
     // Level 3 parent (children are leaf nodes)
     return permTip() + '<div class="pt">' + label + '</div>' + renderParentPage();
   }
