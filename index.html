@@ -178,6 +178,19 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
 .ds-status-online{color:var(--gn);font-weight:500}
 .ds-status-offline{color:var(--rd);font-weight:500}
 .ds-status-test{color:var(--or);font-weight:500}
+/* 改造4: 父级页面卡片 + 飞书Webhook指引 */
+.parent-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-top:20px}
+.parent-card{background:#fff;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;border:1px solid #e5e6eb;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.parent-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1);border-color:#3370ff}
+.parent-card-icon{font-size:36px;margin-bottom:12px}
+.parent-card-name{font-size:15px;font-weight:500;color:#1d2129;margin-bottom:6px}
+.parent-card-count{font-size:12px;color:#86909c}
+.parent-card-desc{font-size:12px;color:#86909c;margin-top:4px;line-height:1.4}
+.webhook-help{background:#f7f8fa;border-radius:8px;padding:16px;margin-top:8px;font-size:13px;line-height:1.8}
+.webhook-help ol{margin:8px 0;padding-left:20px}
+.webhook-help code{background:#e8eaed;padding:2px 6px;border-radius:3px;font-size:12px}
+.parent-data-preview{margin-top:20px}
+.parent-data-preview .cd{margin-bottom:0}
 </style>
 </head>
 <body>
@@ -714,10 +727,14 @@ function buildMaps(items,path){
 }
 buildMaps(M,[]);
 
-// 获取面包屑
+// 获取面包屑（改造5: 修复层级处理，高亮当前项）
 function getBC(id){
   const p=pathMap[id]||[];
-  return p.map(x=>'<span>'+x.label+'</span>').join(' <span style="color:var(--t3)">/</span> ');
+  if(!p.length) return '<span class="cu">首页</span>';
+  return p.map(function(x,i){
+    if(i===p.length-1) return '<span class="cu">'+x.label+'</span>';
+    return '<span>'+x.label+'</span>';
+  }).join(' <span style="color:var(--t3)">/</span> ');
 }
 
 // 获取第一个叶子节点ID
@@ -783,9 +800,15 @@ function onMenuClick(id){
   }
   const m=find(M,id);
   if(!m) return;
+  // 改造1: 非叶子节点点击后显示父节点页面，而非跳转到第一个子节点
   if(m.children&&m.children.length){
-    const leafId=firstLeaf(m);
-    curPage=leafId;
+    // 如果当前已在同一父节点页面，则跳转到第一个子节点（实现折叠/展开切换）
+    if(curPage===id){
+      const leafId=firstLeaf(m);
+      curPage=leafId;
+    } else {
+      curPage=id;
+    }
   } else {
     curPage=id;
   }
@@ -860,6 +883,93 @@ function initCharts(id){
   if(id==='wp-cost-ctrl'){
     if(document.getElementById('ab1'))new Chart(document.getElementById('ab1'),{type:'doughnut',data:{labels:['A类70%','B类20%','C类10%'],datasets:[{data:[70,20,10],backgroundColor:['#f54a45','#ff9800','#ccc']}]},options:{responsive:true,maintainAspectRatio:false}});
   }
+}
+
+// ==========================================
+// 改造1: 父级页面通用渲染函数
+// ==========================================
+function renderParentPage(id){
+  function findNode(items,target){
+    for(var i=0;i<items.length;i++){
+      var it=items[i];
+      if(it.id===target) return it;
+      if(it.children){var r=findNode(it.children,target);if(r) return r;}
+    }
+    return null;
+  }
+  var node=findNode(M,id);
+  if(!node||!node.children) return '<div class="pt">页面建设中</div>';
+  
+  var html='<div class="pt">'+(node.icon||'')+' '+node.label+'</div>';
+  html+='<div class="parent-cards">';
+  node.children.forEach(function(child){
+    var childLeaf=child.children?firstLeaf(child):child.id;
+    var desc='';
+    // 根据子节点ID添加描述
+    var descMap={
+      'daily-report':'日报的提交、查看与统计分析','weekly-report':'周报的提交与查看记录','monthly-report':'月报的提交与历史记录',
+      'daily-list':'日报列表与详情查看','weekly-list':'周报列表与详情查看','monthly-list':'月报列表与详情查看',
+      'task-all':'全部任务总览与状态管理','task-personal':'各成员个人任务详情','task-cycle':'日/周/月周期任务管理',
+      'project-track':'项目进度追踪与状态管理','project-milestone':'项目里程碑管理',
+      'equip-auto':'自动化设备管理与清单','equip-expand':'扩建设备采购与计划','equip-accept':'设备验收进度管理','equip-spare':'备件库存与周期管理',
+      'equip-list':'自动化设备清单','spare-list':'贵重备件清单',
+      'improve-record':'每日改善记录管理','improve-stats':'改善数据统计分析',
+      'improve-list':'改善记录列表','org-chart':'组织架构与部门管理','org-people':'人员信息与技能管理','org-doc':'文档资料与工具脚本',
+      'org-dept':'部门架构详情','dash-overview':'综合数据概览看板','dash-equip':'设备状态与故障统计',
+      'dash-work':'工作概览','strategy-2025':'2025年度工作总结','strategy-2026':'2026年度目标与KPI','strategy-whitepaper':'白皮书重点内容','strategy-track':'目标追踪与KPI','strategy-culture':'部门文化建设',
+      'kpi-contract':'合同绩效KPI指标','cfg-menu':'菜单可见性与排序配置','cfg-page':'页面启用与模板管理','cfg-theme':'主题色与布局设置','cfg-advanced':'权限/通知/日志/备份/API/缓存/安全','cfg-deploy':'多平台部署指南',
+      'task-all-list':'全部任务列表详情','project-all':'全部项目列表详情'
+    };
+    desc=descMap[child.id]||'';
+    html+='<div class="parent-card" onclick="onMenuClick(\x27'+child.id+'\x27)" style="cursor:pointer">';
+    html+='<div class="parent-card-icon">'+(child.icon||'&#128196;')+'</div>';
+    html+='<div class="parent-card-name">'+child.label+'</div>';
+    if(desc) html+='<div class="parent-card-desc">'+desc+'</div>';
+    html+='<div class="parent-card-count">'+(child.children?child.children.length+'个子项':'查看详情')+'</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  
+  // 对于第3级节点（其子节点是第4级叶子），额外显示数据预览
+  var isLevel3=false;
+  for(var c=0;c<node.children.length;c++){
+    if(node.children[c].children&&node.children[c].children.length>0){
+      var gc=node.children[c].children[0];
+      if(!gc.children||!gc.children.length) isLevel3=true;
+    }
+  }
+  if(isLevel3&&REAL_TASKS&&(id==='task-all-list'||id.indexOf('task-')===0)){
+    html+='<div class="parent-data-preview"><div class="cd"><div class="ct">任务数据预览（前5条）</div>';
+    html+='<table class="dt"><thead><tr><th>编号</th><th>任务描述</th><th>负责人</th><th>状态</th><th>进度</th></tr></thead><tbody>';
+    var previewTasks=REAL_TASKS.slice(0,5);
+    previewTasks.forEach(function(t){
+      var sM={'待开始':'tb','进行中':'tg','已完成':'tx','已停滞':'tr'};
+      html+='<tr onclick="openTaskDetail(\x27'+t.id+'\x27)"><td>'+t.id+'</td><td>'+t.desc+'</td><td>'+t.owner+'</td><td><span class="t '+sM[t.status]+'">'+t.status+'</span></td><td><div class="pb" style="width:50px;display:inline-block;vertical-align:middle"><div class="pf pfb" style="width:'+t.progress+'%"></div></div> '+t.progress+'%</td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  }
+  if(isLevel3&&REAL_PROJECTS&&(id==='project-all'||id.indexOf('project-')===0)){
+    html+='<div class="parent-data-preview"><div class="cd"><div class="ct">项目数据预览（前5条）</div>';
+    html+='<table class="dt"><thead><tr><th>编号</th><th>名称</th><th>状态</th><th>经理</th><th>进度</th></tr></thead><tbody>';
+    var previewProjects=REAL_PROJECTS.slice(0,5);
+    previewProjects.forEach(function(p){
+      var ps=p.status==='进行中'?'tg':p.status==='已完成'?'tx':'tb';
+      html+='<tr onclick="openProjectDetail(\x27'+p.id+'\x27)"><td>'+p.id+'</td><td>'+p.name+'</td><td><span class="t '+ps+'">'+p.status+'</span></td><td>'+p.manager+'</td><td><div class="pb" style="width:60px;display:inline-block;vertical-align:middle"><div class="pf pfb" style="width:'+p.progress+'%"></div></div> '+p.progress+'%</td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  }
+  if(isLevel3&&REAL_DAILY_REPORTS&&(id==='daily-list'||id.indexOf('daily-')===0)){
+    html+='<div class="parent-data-preview"><div class="cd"><div class="ct">日报数据预览（前5条）</div>';
+    html+='<table class="dt"><thead><tr><th>编号</th><th>汇报人</th><th>日期</th><th>状态</th><th>工时</th></tr></thead><tbody>';
+    var previewDaily=REAL_DAILY_REPORTS.slice(0,5);
+    previewDaily.forEach(function(r){
+      var stCls=r.status==='正常'?'tg':'to';
+      html+='<tr onclick="openDailyDetail(\x27'+r.id+'\x27)"><td>'+r.id+'</td><td>'+r.reporter+'</td><td>'+r.date+'</td><td><span class="t '+stCls+'">'+r.status+'</span></td><td>'+(r.workHours||'-')+'</td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+  }
+  
+  return html;
 }
 
 // ==========================================
@@ -963,10 +1073,9 @@ return permTip + '<div class="pt">'+sn+'任务 <span class="bdg">真实数据</s
 '<table class="dt"><thead><tr><th>任务描述</th><th>负责人</th><th>状态</th><th>紧急程度</th><th>开始日期</th><th>预计完成</th><th>进度</th></tr></thead><tbody>'+tr2+'</tbody></table></div>';
 
 case 'task-all-list':
-// 全部任务列表（真实数据）
+// 全部任务列表（真实数据）+ 父页面卡片
 var allTr='';REAL_TASKS.forEach(function(t){var sM={'待开始':'tb','进行中':'tg','已完成':'tx','已停滞':'tr'};var uM={'重要紧急':'tr','紧急不重要':'to','重要不紧急':'tb','不紧急不重要':'tx'};allTr+='<tr onclick="openTaskDetail(\''+t.id+'\')"><td>'+t.id+'</td><td>'+t.desc+'</td><td>'+t.owner+'</td><td><span class="t '+sM[t.status]+'">'+t.status+'</span></td><td><span class="t '+uM[t.priority]+'">'+t.priority+'</span></td><td><div class="pb" style="width:50px;display:inline-block;vertical-align:middle"><div class="pf pfb" style="width:'+t.progress+'%"></div></div> '+t.progress+'%</td><td>'+t.start+'</td><td>'+t.end+'</td></tr>';});
-return permTip + '<div class="pt">全部任务 <span class="bdg">真实数据 - '+REAL_TASKS.length+'条</span></div><div class="sr"><div class="sc"><div class="sv">'+REAL_TASKS.filter(function(t){return t.status==='已完成';}).length+'</div><div class="sl">已完成</div></div><div class="sc"><div class="sv">'+REAL_TASKS.filter(function(t){return t.status==='进行中';}).length+'</div><div class="sl">进行中</div></div><div class="sc"><div class="sv">'+REAL_TASKS.filter(function(t){return t.status==='已停滞';}).length+'</div><div class="sl">已停滞</div></div></div>'+
-'<div class="cd"><div class="bg">'+(hasPermission('edit')?'<button class="btn bp">+ 新建</button>':'')+'<button class="btn bo" onclick="exportData(\'task\')">导出</button></div>'+
+return permTip + renderParentPage('task-all-list') + '<div class="cd"><div class="bg">'+(hasPermission('edit')?'<button class="btn bp">+ 新建</button>':'')+'<button class="btn bo" onclick="exportData(\'task\')">导出</button></div>'+
 '<div style="overflow-x:auto"><table class="dt"><thead><tr><th>编号</th><th>任务描述</th><th>负责人</th><th>状态</th><th>紧急程度</th><th>进度</th><th>开始</th><th>结束</th></tr></thead><tbody>'+allTr+'</tbody></table></div></div>';
 
 case 'task-liang':case 'task-zheng':case 'task-zhan':case 'task-ding':case 'task-huang':case 'task-xiao':case 'task-liu':
@@ -1015,10 +1124,9 @@ return permTip + '<div class="pt">'+ps+'项目 <span class="bdg">真实数据</s
 '<div style="overflow-x:auto"><table class="dt"><thead><tr><th>编号</th><th>名称</th><th>描述</th><th>状态</th><th>优先级</th><th>经理</th><th>进度</th></tr></thead><tbody>'+pr3+'</tbody></table></div></div>';
 
 case 'project-all':
-// 全部项目
+// 全部项目 + 父页面卡片
 var allPr='';REAL_PROJECTS.forEach(function(p){var sM={'进行中':'tg','已完成':'tx','规划中':'tb','':'tx'};var st=p.status||'-';allPr+='<tr onclick="openProjectDetail(\''+p.id+'\')"><td>'+p.id+'</td><td>'+p.name+'</td><td>'+(p.desc?p.desc.substring(0,25)+'...':'-')+'</td><td><span class="t '+(sM[st]||'tx')+'">'+st+'</span></td><td><span class="t tb">'+(p.priority||'-')+'</span></td><td>'+p.manager+'</td><td><div class="pb" style="width:60px;display:inline-block;vertical-align:middle"><div class="pf pfb" style="width:'+p.progress+'%"></div></div> '+p.progress+'%</td></tr>';});
-return permTip + '<div class="pt">全部项目 <span class="bdg">真实数据 - '+REAL_PROJECTS.length+'条</span></div><div class="sr"><div class="sc"><div class="sv">'+REAL_PROJECTS.filter(function(p){return p.status==='进行中';}).length+'</div><div class="sl">进行中</div></div><div class="sc"><div class="sv">'+REAL_PROJECTS.filter(function(p){return p.status==='已完成';}).length+'</div><div class="sl">已完成</div></div><div class="sc"><div class="sv">'+REAL_PROJECTS.filter(function(p){return p.status==='规划中';}).length+'</div><div class="sl">规划中</div></div></div>'+
-'<div class="cd"><div class="bg">'+(hasPermission('edit')?'<button class="btn bp">+ 新建</button>':'')+'<button class="btn bo" onclick="exportData(\'project\')">导出</button></div>'+
+return permTip + renderParentPage('project-all') + '<div class="cd"><div class="bg">'+(hasPermission('edit')?'<button class="btn bp">+ 新建</button>':'')+'<button class="btn bo" onclick="exportData(\'project\')">导出</button></div>'+
 '<div style="overflow-x:auto"><table class="dt"><thead><tr><th>编号</th><th>名称</th><th>描述</th><th>状态</th><th>优先级</th><th>经理</th><th>进度</th></tr></thead><tbody>'+allPr+'</tbody></table></div></div>';
 
 case 'milestone-current':
@@ -1124,13 +1232,13 @@ return permTip + '<div class="pt">按人员统计</div><div class="cd"><table cl
 case 'org-smart':case 'org-mech':case 'org-elec':case 'org-maint':
 var dm={'org-smart':'智能制造组','org-mech':'机电设备组','org-elec':'电子设备组','org-maint':'保养组'};
 var dn=dm[id];var dp=P.filter(p=>p[1]===dn);
-var dr='';dp.forEach(m=>{dr+='<tr onclick="openMo(\'person\')"><td>'+m[0]+'</td><td>'+m[2]+'</td><td>'+m[3]+'</td><td>'+m[4]+'</td><td>'+(m[5]||'-')+'</td><td>'+(m[6]||'-')+'</td><td>'+m[7]+'</td></tr>';});
+var dr='';dp.forEach(function(m){var idx=P.indexOf(m);dr+='<tr onclick="openPersonDetail('+idx+')"><td>'+m[0]+'</td><td>'+m[2]+'</td><td>'+m[3]+'</td><td>'+m[4]+'</td><td>'+(m[5]||'-')+'</td><td>'+(m[6]||'-')+'</td><td>'+m[7]+'</td></tr>';});
 return permTip + '<div class="pt">'+dn+' <span class="bdg">'+dp.length+'人</span></div>'+
 '<div class="cd"><div class="bg"><button class="btn bo" onclick="exportData(\'people\')">导出</button></div>'+
 '<div style="overflow-x:auto"><table class="dt"><thead><tr><th>姓名</th><th>岗位</th><th>小组</th><th>负责范围</th><th>上级</th><th>电话</th><th>工号</th></tr></thead><tbody>'+dr+'</tbody></table></div></div>';
 
 case 'people-list':
-var ptr2='';P.forEach(p=>{ptr2+='<tr onclick="openMo(\'person\')"><td>'+p[0]+'</td><td>'+p[1]+'</td><td>'+p[2]+'</td><td>'+p[3]+'</td><td>'+p[4]+'</td><td>'+(p[5]||'-')+'</td><td>'+(p[6]||'-')+'</td><td>'+p[7]+'</td></tr>';});
+var ptr2='';P.forEach(function(p,i){ptr2+='<tr onclick="openPersonDetail('+i+')"><td>'+p[0]+'</td><td>'+p[1]+'</td><td>'+p[2]+'</td><td>'+p[3]+'</td><td>'+p[4]+'</td><td>'+(p[5]||'-')+'</td><td>'+(p[6]||'-')+'</td><td>'+p[7]+'</td></tr>';});
 return permTip + '<div class="pt">人员列表 <span class="bdg">'+P.length+'人</span></div>'+
 '<div class="bg"><select class="fi" style="width:130px"><option value="">全部部门</option><option>本部</option><option>智能制造组</option><option>机电设备组</option><option>电子设备组</option><option>保养组</option></select>'+
 '<input type="text" class="fi" style="width:180px" placeholder="搜索姓名/工号...">'+
@@ -1145,7 +1253,7 @@ return permTip + '<div class="pt">技能矩阵</div><div class="cd"><div class="
 '<div style="margin-top:10px;display:flex;gap:10px;align-items:center;font-size:11px;color:var(--t3)"><span>技能等级:</span><span class="hc h0" style="width:14px;height:14px">-</span>无<span class="hc h1" style="width:14px;height:14px">1</span>初级<span class="hc h2" style="width:14px;height:14px">2</span>中级<span class="hc h3" style="width:14px;height:14px">3</span>高级<span class="hc h4" style="width:14px;height:14px">4</span>专家</div></div>';
 
 case 'doc-library':
-var dtr='';D.forEach(d=>{var tt=d[3]==='PDF'?'tb':d[3]==='PPTX'?'tg':d[3]==='XLSX'?'to':'tp';dtr+='<tr onclick="openMo(\'doc\')"><td>'+d[0]+'</td><td>'+d[1]+'</td><td><span class="t '+tt+'">'+d[3]+'</span></td><td><span class="t tb">'+d[2]+'</span></td><td>'+(d[4]||'-')+'</td><td>'+d[5].substring(0,25)+'...</td></tr>';});
+var dtr='';D.forEach(function(d,i){var tt=d[3]==='PDF'?'tb':d[3]==='PPTX'?'tg':d[3]==='XLSX'?'to':'tp';dtr+='<tr onclick="openDocDetail('+i+')"><td>'+d[0]+'</td><td>'+d[1]+'</td><td><span class="t '+tt+'">'+d[3]+'</span></td><td><span class="t tb">'+d[2]+'</span></td><td>'+(d[4]||'-')+'</td><td>'+d[5].substring(0,25)+'...</td></tr>';});
 return permTip + '<div class="pt">文档库 <span class="bdg">'+D.length+'条</span></div>'+
 '<div class="bg"><select class="fi" style="width:130px"><option>全部分类</option><option>方法论工具</option><option>报告总结</option><option>制度规范</option><option>技术协议</option><option>参考资料</option></select>'+
 '<input type="text" class="fi" style="width:180px" placeholder="搜索文档..."><button class="btn bp">搜索</button>'+(hasPermission('edit')?'<button class="btn bp">+ 上传</button>':'')+'</div>'+
@@ -1354,6 +1462,22 @@ return renderAtLogs();
 case 'at-templates':
 return renderAtTemplates();
 
+// ===== 改造1: 非叶子节点父页面 =====
+case 'work':case 'daily-report':case 'weekly-report':case 'monthly-report':
+case 'daily-list':case 'weekly-list':case 'monthly-list':
+case 'task':case 'task-all':case 'task-personal':case 'task-cycle':
+case 'project':case 'project-track':case 'project-milestone':
+case 'equipment':case 'equip-auto':case 'equip-expand':case 'equip-accept':case 'equip-spare':
+case 'equip-list':case 'spare-list':
+case 'improve':case 'improve-record':case 'improve-stats':case 'improve-list':
+case 'org':case 'org-chart':case 'org-people':case 'org-doc':case 'org-dept':
+case 'dashboard':case 'dash-overview':case 'dash-equip':case 'dash-work':
+case 'strategy':case 'strategy-2025':case 'strategy-2026':case 'strategy-whitepaper':case 'strategy-track':case 'strategy-culture':
+case 'kpi-contract':
+case 'config':case 'cfg-menu':case 'cfg-page':case 'cfg-theme':case 'cfg-advanced':case 'cfg-deploy':
+case 'auto-task':
+return permTip + renderParentPage(id);
+
 default:
 return permTip + '<div class="pt">页面建设中</div><div class="cd"><p style="text-align:center;color:var(--t3);padding:40px">该页面内容正在建设中，请稍后再试。</p></div>';
 }}
@@ -1362,12 +1486,35 @@ return permTip + '<div class="pt">页面建设中</div><div class="cd"><p style=
 // 弹窗与详情操作
 // ==========================================
 
-function openMo(type){
+function openMo(type, data){
   if (!hasPermission('edit')) {
     // viewer只能查看，不能打开编辑弹窗，但可以查看详情
   }
   document.getElementById('mo').classList.add('sh');
   var title='详情',body='';
+  
+  // 改造3: 如果传入了数据参数，优先使用数据生成弹窗
+  if(data){
+    title = data.title || '详情';
+    if(data.fields){
+      body = '';
+      data.fields.forEach(function(f){
+        body += '<div class="fg"><label class="fl">'+f.label+'</label>';
+        if(f.multiline){
+          body += '<textarea class="fi" rows="'+f.rows+'" '+(hasPermission('edit')?'':'readonly')+'>'+f.value+'</textarea>';
+        } else {
+          body += '<input class="fi" value="'+f.value+'" '+(hasPermission('edit')?'':'readonly')+'>';
+        }
+        body += '</div>';
+      });
+    }
+    document.getElementById('mt').textContent=title;
+    document.getElementById('mb').innerHTML=body;
+    modalData = data;
+    return;
+  }
+  
+  // 回退到DOM读取模式
   var tr=document.querySelector('tr[onclick]');
   if(tr){
     var cells=tr.querySelectorAll('td');
@@ -1379,6 +1526,7 @@ function openMo(type){
   }
   document.getElementById('mt').textContent=title;
   document.getElementById('mb').innerHTML=body;
+  modalData = {type: type, title: title};
 }
 
 function closeMo(){document.getElementById('mo').classList.remove('sh');}
@@ -1470,6 +1618,38 @@ function openProjectDetail(projId){
   body += '<div class="fg"><label class="fl">进度</label><input class="fi" value="'+p.progress+'%" '+(hasPermission('edit')?'':'readonly')+'></div>';
   if(p.milestone) body += '<div class="fg"><label class="fl">里程碑</label><textarea class="fi" rows="2" '+(hasPermission('edit')?'':'readonly')+'>'+p.milestone+'</textarea></div>';
   if(p.risks) body += '<div class="fg"><label class="fl">风险</label><textarea class="fi" rows="3" '+(hasPermission('edit')?'':'readonly')+'>'+p.risks+'</textarea></div>';
+  document.getElementById('mb').innerHTML = body;
+}
+
+// 文档详情弹窗（改造3）
+function openDocDetail(docIdx){
+  var d = D[docIdx];
+  if(!d) return;
+  document.getElementById('mo').classList.add('sh');
+  document.getElementById('mt').textContent = '文档详情 - '+d[0];
+  var body = '<div class="fg"><label class="fl">文档名称</label><input class="fi" value="'+d[0]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">上传日期</label><input class="fi" value="'+d[1]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">分类</label><input class="fi" value="'+d[2]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">文件类型</label><input class="fi" value="'+d[3]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">关联项目</label><input class="fi" value="'+(d[4]||'-')+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">摘要</label><textarea class="fi" rows="4" '+(hasPermission('edit')?'':'readonly')+'>'+d[5]+'</textarea></div>';
+  document.getElementById('mb').innerHTML = body;
+}
+
+// 人员详情弹窗（改造3）
+function openPersonDetail(personIdx){
+  var p = P[personIdx];
+  if(!p) return;
+  document.getElementById('mo').classList.add('sh');
+  document.getElementById('mt').textContent = '人员详情 - '+p[0];
+  var body = '<div class="fg"><label class="fl">姓名</label><input class="fi" value="'+p[0]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">部门</label><input class="fi" value="'+p[1]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">岗位</label><input class="fi" value="'+p[2]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">小组</label><input class="fi" value="'+p[3]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">负责范围</label><input class="fi" value="'+p[4]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">上级</label><input class="fi" value="'+(p[5]||'-')+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">电话</label><input class="fi" value="'+(p[6]||'-')+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
+  body += '<div class="fg"><label class="fl">工号</label><input class="fi" value="'+p[7]+'" '+(hasPermission('edit')?'':'readonly')+'></div>';
   document.getElementById('mb').innerHTML = body;
 }
 
@@ -1900,10 +2080,19 @@ function renderCfgNotify(){
   var n=cfg.notify||{};
   var h='<div class="pt">通知配置</div>';
   h+='<div class="cd"><div class="ct">飞书通知设置</div>';
-  h+='<div class="fg"><label class="fl">飞书 Webhook URL</label><input class="fi" id="notify-webhook" value="'+(n.webhook||'')+'" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"></div>';
+  h+='<div class="fg"><label class="fl">飞书 Webhook URL（默认）</label><input class="fi" id="notify-webhook" value="'+(n.webhook||'')+'" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"></div>';
   h+='<div class="fg"><label class="fl">默认通知群组</label><input class="fi" id="notify-group" value="'+(n.defaultGroup||'')+'" placeholder="设备管理通知群"></div>';
   h+='<div class="fg"><label class="fl">通知模板</label><select class="fi"><option>标准模板</option><option>简洁模板</option><option>详细模板</option></select></div>';
   h+='<div class="bg"><button class="btn bp" onclick="saveNotifyConfig()">保存通知配置</button><button class="btn bo" onclick="testNotify()">测试通知</button></div></div>';
+  // 改造2: 自定义机器人Webhook配置指引
+  h+='<div class="cd"><div class="ct">飞书自定义机器人配置指引</div>';
+  h+='<div class="webhook-help"><ol>';
+  h+='<li>打开飞书群组 &#8594; 点击右上角 <b>...</b> &#8594; <b>设置</b> &#8594; <b>群机器人</b></li>';
+  h+='<li>选择 <b>添加自定义机器人</b>（无需管理员审批，任何群成员都可添加）</li>';
+  h+='<li>设置机器人名称（如：智能制造组管理平台）和头像</li>';
+  h+='<li>复制生成的 <b>Webhook URL</b>（格式：<code>https://open.feishu.cn/open-apis/bot/v2/hook/xxx</code>）</li>';
+  h+='<li>粘贴到上方"默认Webhook URL"输入框，保存后即可在自动化任务中使用</li>';
+  h+='</ol></div></div>';
   h+='<div class="cd"><div class="ct">通知事件</div>';
   h+='<table class="dt"><thead><tr><th>事件类型</th><th>通知方式</th><th>状态</th></tr></thead><tbody>';
   h+='<tr><td>日报未提交提醒</td><td>飞书消息</td><td><label class="sw"><input type="checkbox" checked><span class="sl"></span></label></td></tr>';
@@ -1992,6 +2181,50 @@ function renderCfgApi(){
 }
 
 // ==========================================
+// 改造2: 飞书自定义机器人推送函数
+// ==========================================
+function sendFeishuMessage(webhookUrl, title, content){
+  var body = {
+    msg_type: "interactive",
+    card: {
+      header: { title: { content: title, tag: "plain_text" } },
+      elements: [
+        { tag: "div", text: { content: content, tag: "lark_md" } },
+        { tag: "hr" },
+        { tag: "note", elements: [{ tag: "plain_text", content: "智能制造组管理平台 · 自动推送 · " + new Date().toLocaleString() }] }
+      ]
+    }
+  };
+  // 由于浏览器CORS限制，生成curl命令供用户复制执行
+  var cmd = 'curl -X POST "' + webhookUrl + '" -H "Content-Type: application/json" -d \'' + JSON.stringify(body).replace(/'/g, "'\\''") + '\'';
+  navigator.clipboard.writeText(cmd).then(function(){
+    alert('curl命令已复制到剪贴板，请在终端执行以发送消息:\n\n' + cmd.substring(0,200) + '...');
+  }).catch(function(){
+    prompt('请手动复制以下命令并在终端执行:', cmd);
+  });
+  return cmd;
+}
+
+// 飞书Webhook测试发送
+function testWebhook(){
+  var url = document.getElementById('at-webhook').value.trim();
+  if(!url){alert('请先填写飞书Webhook URL');return;}
+  if(url.indexOf('open.feishu.cn')===-1&&url.indexOf('open.fishu.cn')===-1){alert('Webhook URL格式不正确，应以 https://open.feishu.cn 或 https://open.fishu.cn 开头');return;}
+  var title = document.getElementById('at-name').value || '测试消息';
+  var msg = document.getElementById('at-msg').value || '这是一条来自智能制造组管理平台的测试消息';
+  sendFeishuMessage(url, title, msg);
+}
+
+// 执行飞书推送（从任务列表）
+function executeFeishuPush(idx){
+  var t = autoTasks[idx];
+  if(!t.webhook){alert('该任务未配置飞书Webhook URL，请先编辑任务添加Webhook地址');return;}
+  var msg = t.message || '自动化任务: ' + t.name + '\n触发时间: ' + new Date().toLocaleString();
+  sendFeishuMessage(t.webhook, t.name, msg);
+  t.lastRun = new Date().toLocaleString('zh-CN');
+  saveAutoTasks();refresh();
+}
+
 // 自动化任务函数（V5增强到15个模板）
 // ==========================================
 
@@ -2024,11 +2257,11 @@ const ACTION_TYPES = [
 
 // 自动化任务列表（示例数据）
 var autoTasks = JSON.parse(localStorage.getItem('v5_auto_tasks')||'null') || [
-  {id:'AT-001',name:'每日日报提醒',template:'TPL-001',status:'启用',lastRun:'2026-07-15 17:00',nextRun:'2026-07-16 17:00',trigger:'每天 17:00',action:'发送飞书消息（文本）',target:'全员'},
-  {id:'AT-002',name:'每周任务汇总',template:'TPL-002',status:'启用',lastRun:'2026-07-11 18:00',nextRun:'2026-07-18 18:00',trigger:'每周五 18:00',action:'发送飞书消息（Markdown）',target:'组长群'},
-  {id:'AT-003',name:'设备保养提醒',template:'TPL-005',status:'启用',lastRun:'2026-07-15 09:00',nextRun:'2026-07-16 09:00',trigger:'每天 09:00',action:'发送飞书消息（文本）',target:'保养组'},
-  {id:'AT-004',name:'设备故障告警',template:'TPL-006',status:'启用',lastRun:'-',nextRun:'实时',trigger:'设备异常时触发',action:'发送飞书消息（卡片）',target:'维修负责人'},
-  {id:'AT-005',name:'项目里程碑提醒',template:'TPL-007',status:'停用',lastRun:'-',nextRun:'-',trigger:'每天 09:00',action:'发送飞书消息（文本）',target:'项目经理'}
+  {id:'AT-001',name:'每日日报提醒',template:'TPL-001',status:'启用',lastRun:'2026-07-15 17:00',nextRun:'2026-07-16 17:00',trigger:'每天 17:00',action:'发送飞书消息（文本）',target:'全员',webhook:'',message:'请各位同事及时提交今日日报'},
+  {id:'AT-002',name:'每周任务汇总',template:'TPL-002',status:'启用',lastRun:'2026-07-11 18:00',nextRun:'2026-07-18 18:00',trigger:'每周五 18:00',action:'发送飞书消息（Markdown）',target:'组长群',webhook:'',message:'本周任务汇总如下：...'},
+  {id:'AT-003',name:'设备保养提醒',template:'TPL-005',status:'启用',lastRun:'2026-07-15 09:00',nextRun:'2026-07-16 09:00',trigger:'每天 09:00',action:'发送飞书消息（文本）',target:'保养组',webhook:'',message:'以下设备即将到期，请安排保养：...'},
+  {id:'AT-004',name:'设备故障告警',template:'TPL-006',status:'启用',lastRun:'-',nextRun:'实时',trigger:'设备异常时触发',action:'发送飞书消息（卡片）',target:'维修负责人',webhook:'',message:'设备故障告警：...'},
+  {id:'AT-005',name:'项目里程碑提醒',template:'TPL-007',status:'停用',lastRun:'-',nextRun:'-',trigger:'每天 09:00',action:'发送飞书消息（文本）',target:'项目经理',webhook:'',message:'以下项目里程碑即将到期：...'}
 ];
 
 function saveAutoTasks(){localStorage.setItem('v5_auto_tasks',JSON.stringify(autoTasks));}
@@ -2041,7 +2274,7 @@ function renderAtList(){
   autoTasks.forEach(function(t,i){
     var stCls=t.status==='启用'?'tg':'tx';
     h+='<tr><td>'+t.id+'</td><td>'+t.name+'</td><td>'+t.trigger+'</td><td>'+t.action+'</td><td>'+t.target+'</td><td>'+t.lastRun+'</td><td>'+t.nextRun+'</td><td><span class="t '+stCls+'">'+t.status+'</span></td>';
-    h+='<td>'+(hasPermission('edit')?'<button class="btn-sm bo" onclick="toggleAutoTask('+i+')">'+(t.status==='启用'?'停用':'启用')+'</button> ':'')+'<button class="btn-sm bo" onclick="runAutoTask('+i+')">立即执行</button></td></tr>';
+    h+='<td>'+(hasPermission('edit')?'<button class="btn-sm bo" onclick="toggleAutoTask('+i+')">'+(t.status==='启用'?'停用':'启用')+'</button> ':'')+'<button class="btn-sm gn" onclick="executeFeishuPush('+i+')">执行推送</button> <button class="btn-sm bo" onclick="runAutoTask('+i+')">立即执行</button></td></tr>';
   });
   h+='</tbody></table></div></div>';
   return h;
@@ -2053,7 +2286,12 @@ function toggleAutoTask(idx){
 }
 function runAutoTask(idx){
   var t=autoTasks[idx];
-  alert('任务 ['+t.name+'] 已执行（演示）\n动作: '+t.action+'\n目标: '+t.target);
+  if(t.webhook){
+    var msg = t.message || '自动化任务: ' + t.name + '\n触发时间: ' + new Date().toLocaleString();
+    sendFeishuMessage(t.webhook, t.name, msg);
+  } else {
+    alert('任务 ['+t.name+'] 已执行（演示）\n动作: '+t.action+'\n目标: '+t.target+'\n\n提示：配置飞书Webhook URL后可实现自动推送');
+  }
   t.lastRun=new Date().toLocaleString('zh-CN');
   saveAutoTasks();refresh();
 }
@@ -2073,7 +2311,15 @@ function renderAtCreate(){
   h+='</select></div>';
   h+='<div class="fg"><label class="fl">通知对象</label><input class="fi" id="at-target" placeholder="例如：全员 / 组长群 / 蔡瑞"></div>';
   h+='<div class="fg"><label class="fl">消息内容</label><textarea class="fi" rows="3" id="at-msg" placeholder="请输入消息内容..."></textarea></div>';
-  h+='<div class="bg"><button class="btn bp" onclick="saveAutoTask()">保存任务</button><button class="btn bo" onclick="curPage=\'at-list\';refresh()">取消</button></div>';
+  // 改造2: 飞书Webhook URL
+  h+='<div class="fg"><label class="fl">飞书Webhook URL</label><input class="fi" id="at-webhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx"></div>';
+  h+='<div class="fg"><label class="fl" style="cursor:pointer;color:var(--blue)" onclick="var el=document.getElementById(\'webhookHelp\');el.style.display=el.style.display===\'none\'?\'block\':\'none\'">&#128161; 获取指引（点击展开）</label>';
+  h+='<div class="webhook-help" id="webhookHelp" style="display:none"><ol>';
+  h+='<li>打开飞书群组 &#8594; 设置 &#8594; 群机器人 &#8594; 添加自定义机器人</li>';
+  h+='<li>复制 Webhook URL（格式：<code>https://open.feishu.cn/open-apis/bot/v2/hook/xxx</code>）</li>';
+  h+='<li>粘贴到上方输入框</li>';
+  h+='</ol></div></div>';
+  h+='<div class="bg"><button class="btn bp" onclick="saveAutoTask()">保存任务</button><button class="btn bo" onclick="testWebhook()">测试发送</button><button class="btn bo" onclick="curPage=\'at-list\';refresh()">取消</button></div>';
   h+='</div>';
   return h;
 }
@@ -2098,7 +2344,9 @@ function saveAutoTask(){
     status:'启用',lastRun:'-',nextRun:'待计算',
     trigger:document.getElementById('at-trigger').value+' '+document.getElementById('at-time').value,
     action:document.getElementById('at-action').value,
-    target:document.getElementById('at-target').value
+    target:document.getElementById('at-target').value,
+    webhook:document.getElementById('at-webhook').value,
+    message:document.getElementById('at-msg').value
   });
   saveAutoTasks();
   curPage='at-list';refresh();
