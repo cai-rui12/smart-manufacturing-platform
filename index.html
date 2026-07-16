@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>智能制造组管理平台 V11</title>
+<title>智能制造组管理平台 V12</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -212,7 +212,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
     <div class="login-logo">
       <div class="logo-icon">&#9881;</div>
       <h2>智能制造组管理平台</h2>
-      <p>V11 - 工号登录系统</p>
+      <p>V12 - 工号登录系统</p>
     </div>
     <div id="loginForm">
       <div class="login-fg">
@@ -241,7 +241,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
 </div>
 <div id="mainApp" class="app" style="display:none">
   <div id="sb" class="sb">
-    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V11</span></div>
+    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V12</span></div>
     <div class="sb-b" id="sbContent"></div>
   </div>
   <div class="mn">
@@ -774,13 +774,12 @@ var modalData = null;
 var pageState = {};
 var chartInstances = {};
 
-// =========================================
-// V11 - 后端API层（双模式运行）
+// V12 - 后端API层（双模式运行 + 自动检测）
 // =========================================
 var SERVER_CONFIG = {
-  url: localStorage.getItem('v11_server_url') || '',
-  enabled: localStorage.getItem('v11_server_enabled') === 'true',
-  mode: localStorage.getItem('v11_server_enabled') === 'true' ? 'online' : 'offline'
+  url: localStorage.getItem('v12_server_url') || 'http://localhost:3000',
+  enabled: localStorage.getItem('v12_server_enabled') === 'true',
+  mode: localStorage.getItem('v12_server_enabled') === 'true' ? 'online' : 'offline'
 };
 
 var API_BASE = '';
@@ -790,15 +789,15 @@ function setServerUrl(url) {
   SERVER_CONFIG.enabled = !!url;
   SERVER_CONFIG.mode = !!url ? 'online' : 'offline';
   API_BASE = url;
-  localStorage.setItem('v11_server_url', url || '');
-  localStorage.setItem('v11_server_enabled', (!!url).toString());
+  localStorage.setItem('v12_server_url', url || '');
+  localStorage.setItem('v12_server_enabled', (!!url).toString());
   updateSyncStatusBadge();
 }
 
 function setServerEnabled(enabled) {
   SERVER_CONFIG.enabled = enabled;
   SERVER_CONFIG.mode = enabled ? 'online' : 'offline';
-  localStorage.setItem('v11_server_enabled', (enabled).toString());
+  localStorage.setItem('v12_server_enabled', (enabled).toString());
   updateSyncStatusBadge();
 }
 
@@ -818,51 +817,68 @@ async function apiRequest(method, path, data) {
   }
 }
 
-async function loadData(type) {
-  if (SERVER_CONFIG.mode === 'online') {
-    try {
-      var res = await apiRequest('GET', '/api/data/' + type);
-      if (res.code === 0) return res.data || [];
-      console.error('API load error:', res.msg);
-    } catch(e) {
-      console.error('loadData API error:', e);
+// V12 - 页面加载时自动检测服务器连接
+async function detectServer() {
+  var url = SERVER_CONFIG.url || 'http://localhost:3000';
+  try {
+    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}});
+    var json = await res.json();
+    if (json.code === 0) {
+      SERVER_CONFIG.enabled = true;
+      SERVER_CONFIG.mode = 'online';
+      API_BASE = url;
+      localStorage.setItem('v12_server_url', url);
+      localStorage.setItem('v12_server_enabled', 'true');
+      updateSyncStatusBadge('connected', '已连接');
+      addSyncLog('自动检测服务器连接成功: ' + url + (json.data ? ' (版本: ' + (json.data.version || '-') + ', 运行时间: ' + (json.data.uptime || '-') + ')' : ''));
+      // 自动同步本地数据到服务器
+      await syncLocalToServer();
+    } else {
+      SERVER_CONFIG.enabled = false;
+      SERVER_CONFIG.mode = 'offline';
+      API_BASE = '';
+      updateSyncStatusBadge('offline', '离线');
     }
+  } catch(e) {
+    SERVER_CONFIG.enabled = false;
+    SERVER_CONFIG.mode = 'offline';
+    API_BASE = '';
+    updateSyncStatusBadge('offline', '离线');
   }
-  return lsGet('local_' + type, []);
 }
 
-async function saveData(type, data) {
-  lsSet('local_' + type, data);
-  if (SERVER_CONFIG.mode === 'online') {
-    try {
-      var res = await apiRequest('POST', '/api/sync/write/' + type, {data: data});
-      if (res.code === 0) return true;
-      console.error('API save error:', res.msg);
-    } catch(e) {
-      console.error('saveData API error:', e);
+// V12 - 同步本地数据到服务器（首次连接时）
+async function syncLocalToServer() {
+  if (SERVER_CONFIG.mode !== 'online') return;
+  try {
+    var dataTypes = ['tasks', 'daily_reports', 'projects', 'equipments', 'improvements', 'maintains', 'repairs', 'auto_tasks'];
+    for (var i = 0; i < dataTypes.length; i++) {
+      var type = dataTypes[i];
+      var localKey = type === 'daily_reports' ? 'local_daily' : type === 'equipments' ? 'local_equips' : type === 'improvements' ? 'local_improves' : 'local_' + type;
+      var localData = lsGet(localKey, []);
+      if (localData.length > 0) {
+        await apiRequest('POST', '/api/data/' + type, localData);
+      }
     }
+    addSyncLog('本地数据已同步到服务器');
+    setSyncStatus('synced');
+  } catch(e) {
+    addSyncLog('本地数据同步到服务器失败: ' + e.message);
   }
-  return false;
 }
 
-// V11 - 同步状态管理
-var SYNC_STATE = {
-  status: 'offline',
-  lastSyncTime: '',
-  logs: []
-};
-
-function updateSyncStatusBadge() {
+// V12 - 增强版 updateSyncStatusBadge，支持直接设置状态
+function updateSyncStatusBadge(status, text) {
   var badge = document.getElementById('syncStatusBadge');
   if (!badge) return;
-  if (SERVER_CONFIG.mode === 'offline') {
+  if (status === 'offline' || SERVER_CONFIG.mode === 'offline') {
     badge.style.background = '#f0f0f0';
     badge.style.color = '#8f959e';
-    badge.textContent = '离线';
-  } else if (SYNC_STATE.status === 'synced') {
+    badge.textContent = text || '离线';
+  } else if (status === 'connected' || (SERVER_CONFIG.mode === 'online' && SYNC_STATE.status !== 'syncing' && SYNC_STATE.status !== 'error')) {
     badge.style.background = '#e8f8e8';
     badge.style.color = '#34c724';
-    badge.textContent = '已同步' + (SYNC_STATE.lastSyncTime ? ' ' + SYNC_STATE.lastSyncTime : '');
+    badge.textContent = text || ('已连接' + (SYNC_STATE.lastSyncTime ? ' ' + SYNC_STATE.lastSyncTime : ''));
   } else if (SYNC_STATE.status === 'syncing') {
     badge.style.background = '#fff4e0';
     badge.style.color = '#ff9800';
@@ -874,9 +890,76 @@ function updateSyncStatusBadge() {
   } else {
     badge.style.background = '#e8f0ff';
     badge.style.color = '#3370ff';
-    badge.textContent = '在线';
+    badge.textContent = text || '在线';
   }
 }
+
+// V12 - 增强版 loadData，在线模式下优先从后端读取并合并
+async function loadData(type) {
+  if (SERVER_CONFIG.mode === 'online') {
+    try {
+      var res = await apiRequest('GET', '/api/data/' + type);
+      if (res.code === 0 && res.data && res.data.length > 0) {
+        // 合并本地数据 - 如果后端数据比本地多，以后端为准
+        var local = lsGet('local_' + type, []);
+        if (res.data.length > local.length) {
+          lsSet('local_' + type, res.data);
+        } else if (local.length > 0) {
+          // 合并策略：以后端为基准，本地新增的补充进去
+          var serverMap = {};
+          res.data.forEach(function(item) { serverMap[item.id] = item; });
+          local.forEach(function(item) {
+            if (!serverMap[item.id]) {
+              res.data.push(item);
+            }
+          });
+          lsSet('local_' + type, res.data);
+        }
+        return lsGet('local_' + type, []);
+      }
+    } catch(e) {
+      console.error('loadData API error:', e);
+      // 后端不可用时自动降级到离线模式
+      SERVER_CONFIG.mode = 'offline';
+      SERVER_CONFIG.enabled = false;
+      API_BASE = '';
+      updateSyncStatusBadge('offline', '离线');
+      addSyncLog('后端不可用，已自动切换到离线模式: ' + e.message);
+    }
+  }
+  return lsGet('local_' + type, []);
+}
+
+// V12 - 增强版 saveData，在线模式下实时同步后端
+async function saveData(type, data) {
+  lsSet('local_' + type, data);
+  if (SERVER_CONFIG.mode === 'online') {
+    try {
+      var res = await apiRequest('POST', '/api/data/' + type, data);
+      if (res.code === 0) {
+        setSyncStatus('synced');
+        return true;
+      }
+      console.error('API save error:', res.msg);
+    } catch(e) {
+      console.error('saveData API error:', e);
+      // 后端不可用时自动降级到离线模式
+      SERVER_CONFIG.mode = 'offline';
+      SERVER_CONFIG.enabled = false;
+      API_BASE = '';
+      updateSyncStatusBadge('offline', '离线');
+      addSyncLog('后端同步失败，已切换到离线模式: ' + e.message);
+    }
+  }
+  return false;
+}
+
+// V12 - 同步状态管理
+var SYNC_STATE = {
+  status: 'offline',
+  lastSyncTime: '',
+  logs: []
+};
 
 function addSyncLog(msg) {
   SYNC_STATE.logs.unshift({time: new Date().toLocaleString(), msg: msg});
@@ -891,7 +974,7 @@ function setSyncStatus(status) {
   updateSyncStatusBadge();
 }
 
-// V11 - 定时同步
+// V12 - 定时同步
 var syncTimerId = null;
 
 function startAutoSync(intervalMinutes) {
@@ -914,11 +997,13 @@ async function doFullSync() {
   if (SERVER_CONFIG.mode !== 'online') return;
   setSyncStatus('syncing');
   try {
-    var types = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
+    var types = ['daily_reports', 'tasks', 'projects', 'equipments', 'improvements', 'maintains', 'repairs', 'auto_tasks'];
     for (var i = 0; i < types.length; i++) {
-      var res = await apiRequest('POST', '/api/sync/read/' + types[i]);
-      if (res.code === 0 && res.data) {
-        lsSet('local_' + types[i], res.data);
+      var res = await apiRequest('GET', '/api/data/' + types[i]);
+      if (res.code === 0 && res.data && res.data.length > 0) {
+        var localKey = types[i] === 'daily_reports' ? 'local_daily' : types[i] === 'equipments' ? 'local_equips' : types[i] === 'improvements' ? 'local_improves' : 'local_' + types[i];
+        lsSet(localKey, res.data);
+        addSyncLog('同步 ' + types[i] + ' 成功，共 ' + res.data.length + ' 条');
       }
     }
     setSyncStatus('synced');
@@ -933,10 +1018,22 @@ async function doWriteAllToServer() {
   if (SERVER_CONFIG.mode !== 'online') return;
   setSyncStatus('syncing');
   try {
-    var types = ['daily_reports', 'tasks', 'projects', 'equips', 'improvements', 'members'];
-    for (var i = 0; i < types.length; i++) {
-      var localData = lsGet('local_' + types[i], []);
-      await apiRequest('POST', '/api/sync/write/' + types[i], {data: localData});
+    var typeKeyMap = [
+      {type: 'daily_reports', key: 'local_daily'},
+      {type: 'tasks', key: 'local_tasks'},
+      {type: 'projects', key: 'local_projects'},
+      {type: 'equipments', key: 'local_equips'},
+      {type: 'improvements', key: 'local_improves'},
+      {type: 'maintains', key: 'local_maintains'},
+      {type: 'repairs', key: 'local_repairs'},
+      {type: 'auto_tasks', key: 'local_autotasks'}
+    ];
+    for (var i = 0; i < typeKeyMap.length; i++) {
+      var localData = lsGet(typeKeyMap[i].key, []);
+      if (localData.length > 0) {
+        await apiRequest('POST', '/api/data/' + typeKeyMap[i].type, localData);
+        addSyncLog('上传 ' + typeKeyMap[i].type + ' 成功，共 ' + localData.length + ' 条');
+      }
     }
     setSyncStatus('synced');
     addSyncLog('全部数据已写入服务器');
@@ -1121,7 +1218,7 @@ function initAuth() {
   } catch(e) { console.error('initAuth error:', e); }
 }
 
-function doLogin() {
+async function doLogin() {
   try {
     var eid = document.getElementById('loginId').value.trim();
     var pwd = document.getElementById('loginPwd').value.trim();
@@ -1129,7 +1226,25 @@ function doLogin() {
     var passwords = lsGet('passwords', {});
     var person = PEOPLE_OBJ.find(function(p) { return p.employeeId === eid; });
     if (!person) { alert('工号不存在'); return; }
-    if (passwords[eid] !== pwd) { alert('密码错误'); return; }
+    if (passwords[eid] && passwords[eid] !== pwd) { alert('密码错误'); return; }
+    // V12 - 在线模式下同步验证后端
+    if (SERVER_CONFIG.mode === 'online') {
+      try {
+        var res = await apiRequest('POST', '/api/auth/login', {username: eid, password: pwd});
+        if (res.code === 1) {
+          // 后端不存在此用户，先在后端创建
+          var roles = lsGet('user_roles', {});
+          await apiRequest('POST', '/api/members', {eid: eid, name: person.name, role: roles[eid] || 'viewer'});
+          addSyncLog('后端创建用户: ' + eid + ' (' + person.name + ')');
+        }
+        if (res.code === 0 || res.code === 1) {
+          addSyncLog('用户登录验证成功: ' + eid);
+        }
+      } catch(e) {
+        // 后端不可用时降级到本地验证
+        console.error('后端登录验证失败，降级到本地:', e);
+      }
+    }
     pendingUser = person;
     if (pwd === '123456') {
       document.getElementById('loginForm').style.display = 'none';
@@ -1470,7 +1585,7 @@ function importAllData() {
   } catch(e) { alert('导入失败: ' + e.message); }
 }
 
-// V11 - 清除本地数据并从服务器恢复
+// V12 - 清除本地数据并从服务器恢复
 async function clearLocalAndRestore() {
   if (!confirm('确定要清除本地所有数据并从服务器恢复吗？\n\n此操作不可撤销！')) return;
   if (!confirm('再次确认：这将清除您本地的所有任务、日报、项目等数据！')) return;
@@ -2865,6 +2980,7 @@ function createEquip() {
       var local = lsGet('local_equips', []);
       local.push(data);
       saveLocalEquips(local);
+      saveData('equipments', local); // V12 - 实时同步后端
     },
     onAfter: function() { refresh(); }
   });
@@ -2912,6 +3028,7 @@ function editEquip(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalEquips(local);
+      saveData('equipments', local); // V12 - 实时同步后端
     },
     onAfter: function() { refresh(); openEquipDetail(id); }
   });
@@ -2922,6 +3039,7 @@ function deleteEquip(id) {
   var local = lsGet('local_equips', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalEquips(local);
+  saveData('equipments', local); // V12 - 实时同步后端
   closeMo();
   refresh();
 }
@@ -3845,6 +3963,7 @@ function createAutoTask() {
       var local = lsGet('local_autotasks', []);
       local.push(data);
       saveLocalAutoTasks(local);
+      saveData('auto_tasks', local); // V12 - 实时同步后端
     },
     onAfter: function() { refresh(); }
   });
@@ -3902,6 +4021,7 @@ function editAutoTask(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalAutoTasks(local);
+      saveData('auto_tasks', local); // V12 - 实时同步后端
     },
     onAfter: function() { refresh(); openAutoTaskDetail(id); }
   });
@@ -3912,6 +4032,7 @@ function deleteAutoTask(id) {
   var local = lsGet('local_autotasks', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalAutoTasks(local);
+  saveData('auto_tasks', local); // V12 - 实时同步后端
   closeMo();
   refresh();
 }
@@ -3932,6 +4053,7 @@ function runAutoTask(id) {
     local.push({id:t.id, name:t.name, type:t.type, action:t.action, trigger:t.trigger, schedule:t.schedule, status:t.status, lastRun:timeStr, target:t.target, template:t.template, remark:t.remark});
   }
   saveLocalAutoTasks(local);
+  saveData('auto_tasks', local); // V12 - 实时同步后端
   // 记录日志
   var logs = lsGet('auto_task_logs', []);
   logs.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr, status:'成功', result:'手动执行成功'});
@@ -3957,6 +4079,7 @@ function copyAutoTask(id) {
   newTask.lastRun = '';
   local.push(newTask);
   saveLocalAutoTasks(local);
+  saveData('auto_tasks', local); // V12 - 实时同步后端
   alert('复制成功！');
   refresh();
 }
@@ -4664,11 +4787,87 @@ function toggleQuickCard(id) {
   refresh();
 }
 
+// V12 - 导入本地数据到服务器
+async function importLocalToServer() {
+  if (SERVER_CONFIG.mode !== 'online') {
+    alert('请先连接到后端服务器');
+    return;
+  }
+  if (!confirm('确定将所有本地数据导入到服务器？\n\n这将把本地数据推送到服务器，服务器上已有的同名数据将被覆盖。')) return;
+  var typeKeyMap = [
+    {type: 'tasks', key: 'local_tasks'},
+    {type: 'daily_reports', key: 'local_daily'},
+    {type: 'projects', key: 'local_projects'},
+    {type: 'equipments', key: 'local_equips'},
+    {type: 'improvements', key: 'local_improves'},
+    {type: 'maintains', key: 'local_maintains'},
+    {type: 'repairs', key: 'local_repairs'},
+    {type: 'auto_tasks', key: 'local_autotasks'}
+  ];
+  setSyncStatus('syncing');
+  try {
+    for (var i = 0; i < typeKeyMap.length; i++) {
+      var localData = lsGet(typeKeyMap[i].key, []);
+      if (localData.length > 0) {
+        await apiRequest('POST', '/api/data/' + typeKeyMap[i].type, localData);
+        addSyncLog('导入 ' + typeKeyMap[i].type + ' 成功，共 ' + localData.length + ' 条');
+      } else {
+        addSyncLog('跳过 ' + typeKeyMap[i].type + '（本地无数据）');
+      }
+    }
+    setSyncStatus('synced');
+    alert('数据已成功导入到服务器！');
+    refresh();
+  } catch(e) {
+    setSyncStatus('error');
+    alert('导入失败: ' + e.message);
+  }
+}
+
+// V12 - 连接/断开服务器切换
+async function toggleServerConnection() {
+  if (SERVER_CONFIG.mode === 'online') {
+    // 断开连接
+    if (!confirm('确定断开与服务器 ' + SERVER_CONFIG.url + ' 的连接？')) return;
+    SERVER_CONFIG.enabled = false;
+    SERVER_CONFIG.mode = 'offline';
+    API_BASE = '';
+    localStorage.setItem('v12_server_enabled', 'false');
+    updateSyncStatusBadge('offline', '离线');
+    addSyncLog('已手动断开服务器连接');
+    stopAutoSync();
+    refresh();
+  } else {
+    // 尝试连接
+    var url = document.getElementById('feishuServerUrl').value.trim() || 'http://localhost:3000';
+    var resultDiv = document.getElementById('serverConnResult');
+    if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在连接...</span>';
+    try {
+      var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}});
+      var json = await res.json();
+      if (json.code === 0) {
+        setServerUrl(url);
+        updateSyncStatusBadge('connected', '已连接');
+        addSyncLog('手动连接服务器成功: ' + url);
+        if (resultDiv) {
+          resultDiv.innerHTML = '<span style="color:var(--gn)">&#10004; 连接成功!</span>' +
+            (json.data ? ' <span style="color:var(--t2)">版本: ' + (json.data.version || '-') + ' | 运行时间: ' + (json.data.uptime || '-') + '</span>' : '');
+        }
+        refresh();
+      } else {
+        if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + (json.msg || '未知错误') + '</span>';
+      }
+    } catch(e) {
+      if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + '</span>';
+    }
+  }
+}
+
 // =========================================
-// V11 - 飞书配置页面
+// V12 - 飞书配置页面
 // =========================================
 
-// V11 - 飞书多维表格配置常量
+// V12 - 飞书多维表格配置常量
 var FEISHU_APP_TOKEN = 'SZT8bHeYsaA3PYsQ7Fvc3uvGn4d';
 var FEISHU_PERSONAL_BASE_TOKEN = 'pt-YTaKT2V-ta6Rw0cRKdlcSQ4JjrNfNNxnaJCQTWqfAQAAAYDDfOpLgGK4i_lq';
 var DEFAULT_TABLE_MAPPINGS = [
@@ -4684,7 +4883,7 @@ var DEFAULT_TABLE_MAPPINGS = [
   {type:'night_shift', tableName:'夜班工作汇报', appToken:FEISHU_APP_TOKEN, tableId:'tbl3aHyLGmZkEK3J'}
 ];
 
-// V11 - 所有26个数据表定义
+// V12 - 所有26个数据表定义
 var ALL_FEISHU_TABLES = [
   {name:'日报', tableId:'tblTZeRLum8uf7mJ', usage:'日报', recordCount:12, mapped:true},
   {name:'周报', tableId:'tblzO3DWc8IDv3KF', usage:'周报', recordCount:null, mapped:false},
@@ -4770,15 +4969,20 @@ function renderFeishuConfig() {
   h += '</tbody></table></div></div>';
   h += '</div>';
 
-  // 2. 服务器连接配置
+  // 2. 服务器连接配置 (V12增强)
   h += '<div class="cd">';
-  h += '<div class="ct">服务器连接配置</div>';
+  h += '<div class="ct">服务器连接配置 <span class="bdg" style="background:' + (SERVER_CONFIG.mode === 'online' ? '#e8f8e8;color:var(--gn)' : '#f0f0f0;color:var(--t3)') + '">' + (SERVER_CONFIG.mode === 'online' ? '已连接' : '未连接') + '</span></div>';
   h += '<div class="form-field"><label>后端服务器地址</label>';
   h += '<div style="display:flex;gap:8px">';
   h += '<input class="fi" id="feishuServerUrl" style="flex:1" value="' + savedUrl + '" placeholder="如 http://localhost:3000">';
   h += '<button class="btn bp" onclick="testServerConnection()">测试连接</button>';
+  h += '<button class="btn ' + (SERVER_CONFIG.mode === 'online' ? 'dg' : 'gs') + '" onclick="toggleServerConnection()">' + (SERVER_CONFIG.mode === 'online' ? '断开连接' : '连接') + '</button>';
   h += '</div></div>';
-  h += '<div id="serverConnResult" style="margin-top:8px;font-size:12px"></div>';
+  h += '<div id="serverConnResult" style="margin-top:8px;font-size:12px">';
+  if (SERVER_CONFIG.mode === 'online') {
+    h += '<span style="color:var(--gn)">&#10004; 已连接到 ' + SERVER_CONFIG.url + '</span>';
+  }
+  h += '</div>';
   h += '</div>';
 
   // 3. 飞书应用凭证
@@ -4899,7 +5103,7 @@ function renderFeishuConfig() {
   return h;
 }
 
-// V11 - 数据表总览筛选功能
+// V12 - 数据表总览筛选功能
 function filterTableOverview(filterType) {
   var rows = document.querySelectorAll('#tableOverviewBody .overview-row');
   rows.forEach(function(row) {
@@ -4923,7 +5127,7 @@ function filterTableOverview(filterType) {
   else btnUnmapped.className = 'btn-sm bp';
 }
 
-// V11 - 恢复映射配置为默认值
+// V12 - 恢复映射配置为默认值
 function resetTableMappingsToDefault() {
   if (!confirm('确定要恢复为默认映射配置吗？这将覆盖当前的自定义配置。')) return;
   localStorage.removeItem('v9_feishu_table_mappings');
@@ -5057,7 +5261,7 @@ function changeSyncInterval() {
 }
 
 // =========================================
-// V10 - 数据备份
+// V12 - 数据备份
 // =========================================
 function renderDataBackup() {
   var h = '<div class="page-enter">';
@@ -5092,20 +5296,28 @@ function renderDataBackup() {
   
   h += '</div>';
   
-  // V11 - 服务器同步操作
+  // V12 - 服务器同步操作
   h += '<div class="g2">';
   h += '<div class="cd">';
   h += '<div class="ct">从服务器同步全部数据</div>';
-  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">从后端服务器拉取飞书多维表格的最新数据到本地。</p>';
-  h += '<div class="status-bar info" style="margin-bottom:12px"><span>需要先在"飞书配置"页面连接服务器</span></div>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">从后端服务器拉取最新数据到本地（覆盖本地数据）。</p>';
+  h += '<div class="status-bar ' + (SERVER_CONFIG.mode === 'online' ? 'success' : 'info') + '" style="margin-bottom:12px"><span>当前状态：' + (SERVER_CONFIG.mode === 'online' ? '已连接服务器' : '未连接服务器，请先在飞书配置页连接') + '</span></div>';
   h += '<button class="btn bp" onclick="doFullSync();setTimeout(function(){refresh()},2000)">从服务器同步全部数据</button>';
   h += '</div>';
   
   h += '<div class="cd">';
   h += '<div class="ct">上传到服务器</div>';
-  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">将本地全部数据推送到后端服务器，写入飞书多维表格。</p>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">将本地全部数据推送到后端服务器。</p>';
   h += '<button class="btn bp" onclick="doWriteAllToServer();setTimeout(function(){refresh()},2000)">上传到服务器</button>';
   h += '</div>';
+  h += '</div>';
+  
+  // V12 - 导入本地数据到服务器（新增）
+  h += '<div class="cd">';
+  h += '<div class="ct">📥 导入本地数据到服务器</div>';
+  h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">将当前浏览器中的所有本地数据一次性导入到后端服务器。适用于首次连接服务器后，将已有本地数据同步到服务器的场景。</p>';
+  h += '<div class="status-bar ' + (SERVER_CONFIG.mode === 'online' ? 'success' : 'warning') + '" style="margin-bottom:12px"><span>' + (SERVER_CONFIG.mode === 'online' ? '服务器已连接，可以开始导入' : '请先连接到后端服务器') + '</span></div>';
+  h += '<button class="btn bp" onclick="importLocalToServer()">导入本地数据到服务器</button>';
   h += '</div>';
   
   h += '<div class="cd">';
@@ -6093,9 +6305,11 @@ function refreshData(type) {
 document.addEventListener('DOMContentLoaded', function() {
   try {
     initAuth();
-    // V11 - 初始化同步状态
+    // V12 - 初始化同步状态并自动检测服务器连接
     API_BASE = SERVER_CONFIG.url;
     updateSyncStatusBadge();
+    // V12 - 自动检测服务器连接（静默，不阻塞UI）
+    detectServer();
   } catch(e) {
     console.error('Init error:', e);
     alert('初始化失败: ' + e.message);
