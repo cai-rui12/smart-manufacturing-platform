@@ -818,33 +818,60 @@ async function apiRequest(method, path, data) {
 }
 
 // V12 - 页面加载时自动检测服务器连接
-async function detectServer() {
-  var url = SERVER_CONFIG.url || 'http://localhost:3000';
+// 依次尝试：用户保存的URL → 公网隧道 → 局域网IP → 本机localhost
+var SERVER_URL_CANDIDATES = [
+  'https://compensation-edmonton-hourly-telecom.trycloudflare.com',
+  'http://172.24.20.28:3000',
+  'http://localhost:3000'
+];
+
+async function tryConnectServer(url) {
   try {
-    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}});
+    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined});
     var json = await res.json();
-    if (json.code === 0) {
+    if (json.code === 0) return json;
+  } catch(e) {}
+  return null;
+}
+
+async function detectServer() {
+  // 1. 先尝试用户保存的URL
+  var savedUrl = localStorage.getItem('v12_server_url');
+  var candidates = [];
+  if (savedUrl) candidates.push(savedUrl);
+  // 2. 添加候选URL（去重）
+  for (var i = 0; i < SERVER_URL_CANDIDATES.length; i++) {
+    if (candidates.indexOf(SERVER_URL_CANDIDATES[i]) === -1) {
+      candidates.push(SERVER_URL_CANDIDATES[i]);
+    }
+  }
+  
+  updateSyncStatusBadge('syncing', '连接中...');
+  
+  // 依次尝试每个候选URL
+  for (var i = 0; i < candidates.length; i++) {
+    var url = candidates[i];
+    var result = await tryConnectServer(url);
+    if (result) {
+      SERVER_CONFIG.url = url;
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url;
       localStorage.setItem('v12_server_url', url);
       localStorage.setItem('v12_server_enabled', 'true');
       updateSyncStatusBadge('connected', '已连接');
-      addSyncLog('自动检测服务器连接成功: ' + url + (json.data ? ' (版本: ' + (json.data.version || '-') + ', 运行时间: ' + (json.data.uptime || '-') + ')' : ''));
+      addSyncLog('服务器连接成功: ' + url + (result.data ? ' (版本: ' + (result.data.version || '-') + ', 运行: ' + Math.round(result.data.uptime || 0) + '秒)' : ''));
       // 自动同步本地数据到服务器
       await syncLocalToServer();
-    } else {
-      SERVER_CONFIG.enabled = false;
-      SERVER_CONFIG.mode = 'offline';
-      API_BASE = '';
-      updateSyncStatusBadge('offline', '离线');
+      return;
     }
-  } catch(e) {
-    SERVER_CONFIG.enabled = false;
-    SERVER_CONFIG.mode = 'offline';
-    API_BASE = '';
-    updateSyncStatusBadge('offline', '离线');
   }
+  
+  // 所有候选URL都失败
+  SERVER_CONFIG.enabled = false;
+  SERVER_CONFIG.mode = 'offline';
+  API_BASE = '';
+  updateSyncStatusBadge('offline', '离线');
 }
 
 // V12 - 同步本地数据到服务器（首次连接时）
