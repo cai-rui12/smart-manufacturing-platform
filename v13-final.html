@@ -6,8 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V13.2</title>
-<script>console.log("V13.2 loaded at " + new Date().toISOString())</script>
+<title>智能制造组管理平台 V13</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=13"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -5442,6 +5441,19 @@ function renderDataBackup() {
   h += '<div class="ct">从服务器同步全部数据</div>';
   h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">从后端服务器拉取最新数据到本地（覆盖本地数据）。</p>';
   h += '<div class="status-bar ' + (SERVER_CONFIG.mode === 'online' ? 'success' : 'info') + '" style="margin-bottom:12px"><span>当前状态：' + (SERVER_CONFIG.mode === 'online' ? '已连接服务器' : '未连接服务器，请先在飞书配置页连接') + '</span></div>';
+  h += '<div style="margin-top:10px;padding:10px;background:#f0f5ff;border-radius:6px;border:1px solid #d0e0ff;">';
+  h += '<div style="font-size:12px;color:#3370ff;font-weight:bold;margin-bottom:8px;">手动连接服务器</div>';
+  h += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
+  h += '<button onclick="connectToServer(\'https://lens-review-steel-hose.trycloudflare.com\')" style="padding:6px 12px;font-size:12px;border:1px solid #3370ff;background:#fff;color:#3370ff;border-radius:4px;cursor:pointer;">外网隧道</button>';
+  h += '<button onclick="connectToServer(\'http://172.24.20.28:3000\')" style="padding:6px 12px;font-size:12px;border:1px solid #34c724;background:#fff;color:#34c724;border-radius:4px;cursor:pointer;">局域网IP</button>';
+  h += '<button onclick="connectToServer(\'http://localhost:3000\')" style="padding:6px 12px;font-size:12px;border:1px solid #999;background:#fff;color:#666;border-radius:4px;cursor:pointer;">本机</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:6px;">';
+  h += '<input type="text" id="customServerUrl" placeholder="自定义服务器地址" style="flex:1;padding:6px 8px;font-size:12px;border:1px solid #ddd;border-radius:4px;" />';
+  h += '<button onclick="connectToServer(document.getElementById(\'customServerUrl\').value)" style="padding:6px 12px;font-size:12px;border:none;background:#3370ff;color:#fff;border-radius:4px;cursor:pointer;">连接</button>';
+  h += '</div>';
+  h += '</div>';
+
   h += '<button class="btn bp" onclick="doFullSync();setTimeout(function(){refresh()},2000)">从服务器同步全部数据</button>';
   h += '</div>';
   
