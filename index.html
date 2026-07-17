@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>智能制造组管理平台 V12</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>智能制造组管理平台 V13</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=13"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--blue:#3370ff;--bl:#e8f0ff;--bd:#2b5ce6;--bg:#f5f6f7;--w:#fff;--t:#1f2329;--t2:#646a73;--t3:#8f959e;--br:#dee0e3;--br2:#e8e8e8;--gn:#34c724;--or:#ff9800;--rd:#f54a45;--r:8px;--sh:0 1px 3px rgba(0,0,0,.08)}
@@ -212,7 +215,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
     <div class="login-logo">
       <div class="logo-icon">&#9881;</div>
       <h2>智能制造组管理平台</h2>
-      <p>V12 - 工号登录系统</p>
+      <p>V13 - 工号登录系统</p>
     </div>
     <div id="loginForm">
       <div class="login-fg">
@@ -241,7 +244,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
 </div>
 <div id="mainApp" class="app" style="display:none">
   <div id="sb" class="sb">
-    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V12</span></div>
+    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V13</span></div>
     <div class="sb-b" id="sbContent"></div>
   </div>
   <div class="mn">
@@ -774,12 +777,12 @@ var modalData = null;
 var pageState = {};
 var chartInstances = {};
 
-// V12 - 后端API层（双模式运行 + 自动检测）
+// V13 - 后端API层（双模式运行 + 自动检测）
 // =========================================
 var SERVER_CONFIG = {
-  url: localStorage.getItem('v12_server_url') || 'http://localhost:3000',
-  enabled: localStorage.getItem('v12_server_enabled') === 'true',
-  mode: localStorage.getItem('v12_server_enabled') === 'true' ? 'online' : 'offline'
+  url: localStorage.getItem('v13_server_url') || 'http://localhost:3000',
+  enabled: localStorage.getItem('v13_server_enabled') === 'true',
+  mode: localStorage.getItem('v13_server_enabled') === 'true' ? 'online' : 'offline'
 };
 
 var API_BASE = '';
@@ -789,15 +792,15 @@ function setServerUrl(url) {
   SERVER_CONFIG.enabled = !!url;
   SERVER_CONFIG.mode = !!url ? 'online' : 'offline';
   API_BASE = url;
-  localStorage.setItem('v12_server_url', url || '');
-  localStorage.setItem('v12_server_enabled', (!!url).toString());
+  localStorage.setItem('v13_server_url', url || '');
+  localStorage.setItem('v13_server_enabled', (!!url).toString());
   updateSyncStatusBadge();
 }
 
 function setServerEnabled(enabled) {
   SERVER_CONFIG.enabled = enabled;
   SERVER_CONFIG.mode = enabled ? 'online' : 'offline';
-  localStorage.setItem('v12_server_enabled', (enabled).toString());
+  localStorage.setItem('v13_server_enabled', (enabled).toString());
   updateSyncStatusBadge();
 }
 
@@ -817,10 +820,9 @@ async function apiRequest(method, path, data) {
   }
 }
 
-// V12 - 页面加载时自动检测服务器连接
+// V13 - 页面加载时自动检测服务器连接
 // 依次尝试：用户保存的URL → 公网隧道 → 局域网IP → 本机localhost
 var SERVER_URL_CANDIDATES = [
-  'https://compensation-edmonton-hourly-telecom.trycloudflare.com',
   'http://172.24.20.28:3000',
   'http://localhost:3000'
 ];
@@ -836,7 +838,7 @@ async function tryConnectServer(url) {
 
 async function detectServer() {
   // 1. 先尝试用户保存的URL
-  var savedUrl = localStorage.getItem('v12_server_url');
+  var savedUrl = localStorage.getItem('v13_server_url');
   var candidates = [];
   if (savedUrl) candidates.push(savedUrl);
   // 2. 添加候选URL（去重）
@@ -857,8 +859,8 @@ async function detectServer() {
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url;
-      localStorage.setItem('v12_server_url', url);
-      localStorage.setItem('v12_server_enabled', 'true');
+      localStorage.setItem('v13_server_url', url);
+      localStorage.setItem('v13_server_enabled', 'true');
       updateSyncStatusBadge('connected', '已连接');
       addSyncLog('服务器连接成功: ' + url + (result.data ? ' (版本: ' + (result.data.version || '-') + ', 运行: ' + Math.round(result.data.uptime || 0) + '秒)' : ''));
       // 自动同步本地数据到服务器
@@ -872,9 +874,11 @@ async function detectServer() {
   SERVER_CONFIG.mode = 'offline';
   API_BASE = '';
   updateSyncStatusBadge('offline', '离线');
+  addSyncLog('服务器连接失败，请检查Cloudflare Tunnel是否在运行');
+  localStorage.setItem('v13_server_connect_error', '服务器连接失败，请检查Cloudflare Tunnel是否在运行');
 }
 
-// V12 - 同步本地数据到服务器（首次连接时）
+// V13 - 同步本地数据到服务器（首次连接时）
 async function syncLocalToServer() {
   if (SERVER_CONFIG.mode !== 'online') return;
   try {
@@ -894,7 +898,7 @@ async function syncLocalToServer() {
   }
 }
 
-// V12 - 增强版 updateSyncStatusBadge，支持直接设置状态
+// V13 - 增强版 updateSyncStatusBadge，支持直接设置状态
 function updateSyncStatusBadge(status, text) {
   var badge = document.getElementById('syncStatusBadge');
   if (!badge) return;
@@ -921,7 +925,7 @@ function updateSyncStatusBadge(status, text) {
   }
 }
 
-// V12 - 数据类型到localStorage key的映射（必须与前端各模块的存取key一致）
+// V13 - 数据类型到localStorage key的映射（必须与前端各模块的存取key一致）
 var LS_KEY_MAP = {
   'tasks': 'local_tasks',
   'daily_reports': 'local_daily',
@@ -976,7 +980,7 @@ async function loadData(type) {
   return lsGet(lsKey, []);
 }
 
-// V12 - 增强版 saveData，在线模式下实时同步后端
+// V13 - 增强版 saveData，在线模式下实时同步后端
 async function saveData(type, data) {
   lsSet('local_' + type, data);
   if (SERVER_CONFIG.mode === 'online') {
@@ -1000,7 +1004,7 @@ async function saveData(type, data) {
   return false;
 }
 
-// V12 - 同步状态管理
+// V13 - 同步状态管理
 var SYNC_STATE = {
   status: 'offline',
   lastSyncTime: '',
@@ -1020,7 +1024,7 @@ function setSyncStatus(status) {
   updateSyncStatusBadge();
 }
 
-// V12 - 定时同步
+// V13 - 定时同步
 var syncTimerId = null;
 
 function startAutoSync(intervalMinutes) {
@@ -1273,7 +1277,7 @@ async function doLogin() {
     var person = PEOPLE_OBJ.find(function(p) { return p.employeeId === eid; });
     if (!person) { alert('工号不存在'); return; }
     if (passwords[eid] && passwords[eid] !== pwd) { alert('密码错误'); return; }
-    // V12 - 在线模式下同步验证后端
+    // V13 - 在线模式下同步验证后端
     if (SERVER_CONFIG.mode === 'online') {
       try {
         var res = await apiRequest('POST', '/api/auth/login', {username: eid, password: pwd});
@@ -1632,7 +1636,7 @@ function importAllData() {
   } catch(e) { alert('导入失败: ' + e.message); }
 }
 
-// V12 - 清除本地数据并从服务器恢复
+// V13 - 清除本地数据并从服务器恢复
 async function clearLocalAndRestore() {
   if (!confirm('确定要清除本地所有数据并从服务器恢复吗？\n\n此操作不可撤销！')) return;
   if (!confirm('再次确认：这将清除您本地的所有任务、日报、项目等数据！')) return;
@@ -1673,11 +1677,11 @@ function getSearch(key) { return pageState[key + '_search'] || ''; }
 function setSearch(key, s) { pageState[key + '_search'] = s; pageState[key + '_page'] = 1; }
 
 function getStatusClass(status) {
-  if (status.indexOf('完成') !== -1) return 'tg';
-  if (status.indexOf('进行') !== -1) return 'tb';
-  if (status.indexOf('待') !== -1 || status.indexOf('规划') !== -1) return 'to';
-  if (status.indexOf('故障') !== -1 || status.indexOf('阻塞') !== -1 || status.indexOf('停滞') !== -1) return 'tr';
-  if (status.indexOf('启用') !== -1 || status.indexOf('运行') !== -1) return 'tg';
+  if ((status||'').indexOf('完成') !== -1) return 'tg';
+  if ((status||'').indexOf('进行') !== -1) return 'tb';
+  if ((status||'').indexOf('待') !== -1 || (status||'').indexOf('规划') !== -1) return 'to';
+  if ((status||'').indexOf('故障') !== -1 || (status||'').indexOf('阻塞') !== -1 || (status||'').indexOf('停滞') !== -1) return 'tr';
+  if ((status||'').indexOf('启用') !== -1 || (status||'').indexOf('运行') !== -1) return 'tg';
   return 'tx';
 }
 
@@ -1874,7 +1878,7 @@ function renderDailyReportList(filterFn, title) {
   var search = getSearch('daily');
   if (search) {
     list = list.filter(function(r) {
-      return r.reporter.indexOf(search) !== -1 || r.content.indexOf(search) !== -1 || r.date.indexOf(search) !== -1;
+      return (r.reporter||'').indexOf(search) !== -1 || (r.content||'').indexOf(search) !== -1 || (r.date||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('daily');
@@ -2151,7 +2155,7 @@ function renderTaskList(filterFn, title) {
   var search = getSearch('task');
   if (search) {
     list = list.filter(function(t) {
-      return t.desc.indexOf(search) !== -1 || t.owner.indexOf(search) !== -1 || t.id.indexOf(search) !== -1;
+      return (t.desc||'').indexOf(search) !== -1 || (t.owner||'').indexOf(search) !== -1 || (t.id||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('task');
@@ -2234,7 +2238,7 @@ function createTask() {
       var all = getAllTasks();
       var maxNum = 0;
       all.forEach(function(t) {
-        var m = t.id.match(/T(\d+)/);
+        var m = String(t.id).match(/T(\d+)/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'T' + String(maxNum + 1).padStart(3, '0');
@@ -2362,7 +2366,7 @@ function renderProjectList(filterFn, title) {
   var search = getSearch('project');
   if (search) {
     list = list.filter(function(p) {
-      return p.name.indexOf(search) !== -1 || p.manager.indexOf(search) !== -1 || p.id.indexOf(search) !== -1;
+      return (p.name||'').indexOf(search) !== -1 || (p.manager||'').indexOf(search) !== -1 || (p.id||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('project');
@@ -2442,7 +2446,7 @@ function createProject() {
       var all = getAllProjects();
       var maxNum = 0;
       all.forEach(function(p) {
-        var m = p.id.match(/PRJ-(\d+)/);
+        var m = String(p.id).match(/PRJ-(\d+)/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'PRJ-' + String(maxNum + 1).padStart(4, '0');
@@ -2570,7 +2574,7 @@ function renderMaintainList(mode) {
     }
     if (search) {
       list = list.filter(function(m) {
-        return m.equipName.indexOf(search) !== -1 || m.equipNo.indexOf(search) !== -1 || m.content.indexOf(search) !== -1;
+        return (m.equipName||'').indexOf(search) !== -1 || (m.equipNo||'').indexOf(search) !== -1 || (m.content||'').indexOf(search) !== -1;
       });
     }
     
@@ -2656,7 +2660,7 @@ function createMaintain() {
         var all = getAllMaintains();
         var maxNum = 0;
         all.forEach(function(m) {
-          var mm = m.id.match(/MT(\d+)/);
+          var mm = String(m.id).match(/MT(\d+)/);
           if (mm) maxNum = Math.max(maxNum, parseInt(mm[1]));
         });
         data.id = 'MT' + String(maxNum + 1).padStart(3, '0');
@@ -2761,7 +2765,7 @@ function renderRepairList(mode) {
     }
     if (search) {
       list = list.filter(function(r) {
-        return r.equipName.indexOf(search) !== -1 || r.faultDesc.indexOf(search) !== -1 || r.reporter.indexOf(search) !== -1;
+        return (r.equipName||'').indexOf(search) !== -1 || (r.faultDesc||'').indexOf(search) !== -1 || (r.reporter||'').indexOf(search) !== -1;
       });
     }
     
@@ -2846,7 +2850,7 @@ function createRepair() {
         var all = getAllRepairs();
         var maxNum = 0;
         all.forEach(function(r) {
-          var mm = r.id.match(/RP(\d+)/);
+          var mm = String(r.id).match(/RP(\d+)/);
           if (mm) maxNum = Math.max(maxNum, parseInt(mm[1]));
         });
         data.id = 'RP' + String(maxNum + 1).padStart(3, '0');
@@ -2943,7 +2947,7 @@ function renderEquipList(filterFn, title) {
   var search = getSearch('equip');
   if (search) {
     list = list.filter(function(e) {
-      return e.name.indexOf(search) !== -1 || e.equipNo.indexOf(search) !== -1 || e.location.indexOf(search) !== -1;
+      return (e.name||'').indexOf(search) !== -1 || (e.equipNo||'').indexOf(search) !== -1 || (e.location||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('equip');
@@ -3020,14 +3024,14 @@ function createEquip() {
       var all = getAllEquips();
       var maxNum = 0;
       all.forEach(function(e) {
-        var m = e.id.match(/E(\d+)/);
+        var m = String(e.id).match(/E(\d+)/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'E' + String(maxNum + 1).padStart(3, '0');
       var local = lsGet('local_equips', []);
       local.push(data);
       saveLocalEquips(local);
-      saveData('equipments', local); // V12 - 实时同步后端
+      saveData('equipments', local); // V13 - 实时同步后端
     },
     onAfter: function() { refresh(); }
   });
@@ -3075,7 +3079,7 @@ function editEquip(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalEquips(local);
-      saveData('equipments', local); // V12 - 实时同步后端
+      saveData('equipments', local); // V13 - 实时同步后端
     },
     onAfter: function() { refresh(); openEquipDetail(id); }
   });
@@ -3086,7 +3090,7 @@ function deleteEquip(id) {
   var local = lsGet('local_equips', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalEquips(local);
-  saveData('equipments', local); // V12 - 实时同步后端
+  saveData('equipments', local); // V13 - 实时同步后端
   closeMo();
   refresh();
 }
@@ -3198,7 +3202,7 @@ function renderImproveList(filterFn, title) {
   var search = getSearch('improve');
   if (search) {
     list = list.filter(function(i) {
-      return i.title.indexOf(search) !== -1 || i.proposer.indexOf(search) !== -1 || i.dept.indexOf(search) !== -1;
+      return (i.title||'').indexOf(search) !== -1 || (i.proposer||'').indexOf(search) !== -1 || (i.dept||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('improve');
@@ -3278,7 +3282,7 @@ function createImprove() {
       var all = getAllImproves();
       var maxNum = 0;
       all.forEach(function(i) {
-        var m = i.id.match(/IMP(\d+)/);
+        var m = String(i.id).match(/IMP(\d+)/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'IMP' + String(maxNum + 1).padStart(3, '0');
@@ -3457,8 +3461,8 @@ function renderOrgDept(dept) {
     var people = PEOPLE_OBJ.filter(function(p){ return p.dept === deptName; });
     
     // 构建树形结构：部门领导 -> 组长 -> 组员
-    var leaders = people.filter(function(p){ return p.group.indexOf('部门领导') !== -1 || p.group.indexOf('组领导') !== -1; });
-    var groupLeads = people.filter(function(p){ return p.group.indexOf('组长') !== -1 && leaders.indexOf(p) === -1; });
+    var leaders = people.filter(function(p){ return (p.group||'').indexOf('部门领导') !== -1 || (p.group||'').indexOf('组领导') !== -1; });
+    var groupLeads = people.filter(function(p){ return (p.group||'').indexOf('组长') !== -1 && leaders.indexOf(p) === -1; });
     var others = people.filter(function(p){ return leaders.indexOf(p) === -1 && groupLeads.indexOf(p) === -1; });
     
     // 按组分类
@@ -3474,8 +3478,8 @@ function renderOrgDept(dept) {
     h += '<div class="kpi-row">';
     h += '<div class="kpi-card"><div class="kpi-value">' + people.length + '</div><div class="kpi-label">总人数</div></div>';
     h += '<div class="kpi-card"><div class="kpi-value">' + leaders.length + '</div><div class="kpi-label">管理岗</div></div>';
-    h += '<div class="kpi-card"><div class="kpi-value">' + people.filter(function(p){return p.group.indexOf('工程师')!==-1;}).length + '</div><div class="kpi-label">技术岗</div></div>';
-    h += '<div class="kpi-card"><div class="kpi-value">' + people.filter(function(p){return p.group.indexOf('工人')!==-1 || p.group.indexOf('技工')!==-1;}).length + '</div><div class="kpi-label">操作岗</div></div>';
+    h += '<div class="kpi-card"><div class="kpi-value">' + people.filter(function(p){return (p.group||'').indexOf('工程师')!==-1;}).length + '</div><div class="kpi-label">技术岗</div></div>';
+    h += '<div class="kpi-card"><div class="kpi-value">' + people.filter(function(p){return (p.group||'').indexOf('工人')!==-1 || (p.group||'').indexOf('技工')!==-1;}).length + '</div><div class="kpi-label">操作岗</div></div>';
     h += '</div>';
     
     // 树形架构图
@@ -3497,7 +3501,7 @@ function renderOrgDept(dept) {
       h += '<div style="margin-left:30px;margin-top:10px;border-left:2px solid var(--br);padding-left:16px">';
       Object.keys(groups).forEach(function(gName) {
         var groupMembers = groups[gName];
-        var lead = groupLeads.find(function(gl){ return gl.group === gName || gl.scope.indexOf(gName) !== -1; });
+        var lead = groupLeads.find(function(gl){ return gl.group === gName || (gl.scope||'').indexOf(gName) !== -1; });
         h += '<div style="margin-bottom:12px">';
         h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f7f8fa;border-radius:6px;margin-bottom:6px">';
         h += '<span style="font-size:14px">📁</span>';
@@ -3559,7 +3563,7 @@ function renderPeopleList() {
   var list = all;
   if (search) {
     list = all.filter(function(p) {
-      return p.name.indexOf(search) !== -1 || p.employeeId.indexOf(search) !== -1 || p.position.indexOf(search) !== -1;
+      return (p.name||'').indexOf(search) !== -1 || (p.employeeId||'').indexOf(search) !== -1 || (p.position||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('people');
@@ -3698,7 +3702,7 @@ function renderDocLibrary() {
   var list = all;
   if (search) {
     list = list.filter(function(d) {
-      return d.name.indexOf(search) !== -1 || d.category.indexOf(search) !== -1;
+      return (d.name||'').indexOf(search) !== -1 || (d.category||'').indexOf(search) !== -1;
     });
   }
   if (docCat) {
@@ -3713,7 +3717,7 @@ function renderDocLibrary() {
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.length + '</div><div class="kpi-label">文档总数</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(d){return d.type==='PDF';}).length + '</div><div class="kpi-label">PDF文档</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(d){return d.category.indexOf('制度')!==-1;}).length + '</div><div class="kpi-label">制度规范</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(d){return (d.category||'').indexOf('制度')!==-1;}).length + '</div><div class="kpi-label">制度规范</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">8</div><div class="kpi-label">文档分类</div></div>';
   h += '</div>';
   h += '<div class="bg">';
@@ -3765,7 +3769,7 @@ function uploadDoc() {
         var all = getAllDocs();
         var maxNum = 0;
         all.forEach(function(d) {
-          var m = d.id.match(/D(\d+)/);
+          var m = String(d.id).match(/D(\d+)/);
           if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
         });
         data.id = 'D' + String(maxNum + 1).padStart(3, '0');
@@ -3905,7 +3909,7 @@ function renderAutoTaskList() {
   var list = all;
   if (search) {
     list = list.filter(function(t) {
-      return t.name.indexOf(search) !== -1 || t.type.indexOf(search) !== -1;
+      return (t.name||'').indexOf(search) !== -1 || (t.type||'').indexOf(search) !== -1;
     });
   }
   if (atType) {
@@ -4002,7 +4006,7 @@ function createAutoTask() {
       var all = getAllAutoTasks();
       var maxNum = 0;
       all.forEach(function(t) {
-        var m = t.id.match(/TPL(\d+)/);
+        var m = String(t.id).match(/TPL(\d+)/);
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'TPL' + String(maxNum + 1).padStart(3, '0');
@@ -4010,7 +4014,7 @@ function createAutoTask() {
       var local = lsGet('local_autotasks', []);
       local.push(data);
       saveLocalAutoTasks(local);
-      saveData('auto_tasks', local); // V12 - 实时同步后端
+      saveData('auto_tasks', local); // V13 - 实时同步后端
     },
     onAfter: function() { refresh(); }
   });
@@ -4068,7 +4072,7 @@ function editAutoTask(id) {
       if (idx >= 0) local[idx] = data;
       else local.push(data);
       saveLocalAutoTasks(local);
-      saveData('auto_tasks', local); // V12 - 实时同步后端
+      saveData('auto_tasks', local); // V13 - 实时同步后端
     },
     onAfter: function() { refresh(); openAutoTaskDetail(id); }
   });
@@ -4079,7 +4083,7 @@ function deleteAutoTask(id) {
   var local = lsGet('local_autotasks', []);
   local = local.filter(function(x){ return x.id !== id; });
   saveLocalAutoTasks(local);
-  saveData('auto_tasks', local); // V12 - 实时同步后端
+  saveData('auto_tasks', local); // V13 - 实时同步后端
   closeMo();
   refresh();
 }
@@ -4100,7 +4104,7 @@ function runAutoTask(id) {
     local.push({id:t.id, name:t.name, type:t.type, action:t.action, trigger:t.trigger, schedule:t.schedule, status:t.status, lastRun:timeStr, target:t.target, template:t.template, remark:t.remark});
   }
   saveLocalAutoTasks(local);
-  saveData('auto_tasks', local); // V12 - 实时同步后端
+  saveData('auto_tasks', local); // V13 - 实时同步后端
   // 记录日志
   var logs = lsGet('auto_task_logs', []);
   logs.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr, status:'成功', result:'手动执行成功'});
@@ -4117,7 +4121,7 @@ function copyAutoTask(id) {
   var local = lsGet('local_autotasks', []);
   var maxNum = 0;
   all.forEach(function(x) {
-    var m = x.id.match(/TPL(\d+)/);
+    var m = String(x.id).match(/TPL(\d+)/);
     if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
   });
   var newTask = JSON.parse(JSON.stringify(t));
@@ -4126,7 +4130,7 @@ function copyAutoTask(id) {
   newTask.lastRun = '';
   local.push(newTask);
   saveLocalAutoTasks(local);
-  saveData('auto_tasks', local); // V12 - 实时同步后端
+  saveData('auto_tasks', local); // V13 - 实时同步后端
   alert('复制成功！');
   refresh();
 }
@@ -4175,7 +4179,7 @@ function useTemplate(id) {
   var local = lsGet('local_autotasks', []);
   var maxNum = 0;
   getAllAutoTasks().forEach(function(x) {
-    var m = x.id.match(/TPL(\d+)/);
+    var m = String(x.id).match(/TPL(\d+)/);
     if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
   });
   var newTask = JSON.parse(JSON.stringify(t));
@@ -4261,7 +4265,7 @@ function renderMsgPush() {
     h += '<button class="btn-sm bo" onclick="selectAllWebhooks(false)">全不选</button>';
     h += '</div>';
     webhooks.forEach(function(w) {
-      var checked = selectedWebhooks.indexOf(w.id) !== -1;
+      var checked = (selectedWebhooks||[]).indexOf(w.id) !== -1;
       h += '<div class="webhook-card">';
       h += '<input type="checkbox" ' + (checked?'checked':'') + ' onchange="toggleWebhook(\'' + w.id + '\')" style="margin-right:8px">';
       h += '<div style="flex:1">';
@@ -4347,7 +4351,7 @@ function switchMsgTab(tab) {
 }
 
 function toggleWebhook(id) {
-  var idx = selectedWebhooks.indexOf(id);
+  var idx = (selectedWebhooks||[]).indexOf(id);
   if (idx >= 0) selectedWebhooks.splice(idx, 1);
   else selectedWebhooks.push(id);
 }
@@ -4404,7 +4408,7 @@ function createMsgTemplate() {
         var templates = getMsgTemplates();
         var maxNum = 0;
         templates.forEach(function(t) {
-          var m = t.id.match(/MT(\d+)/);
+          var m = String(t.id).match(/MT(\d+)/);
           if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
         });
         data.id = 'MT' + String(maxNum + 1).padStart(3, '0');
@@ -4494,7 +4498,7 @@ function sendMsg() {
     return;
   }
   var webhooks = getWebhooks();
-  var targetNames = webhooks.filter(function(w){ return selectedWebhooks.indexOf(w.id) !== -1; }).map(function(w){ return w.name; }).join('、');
+  var targetNames = webhooks.filter(function(w){ return (selectedWebhooks||[]).indexOf(w.id) !== -1; }).map(function(w){ return w.name; }).join('、');
   
   // 记录历史
   var history = getPushHistory();
@@ -4719,7 +4723,7 @@ function renderPermConfig() {
       ROLE_ORDER.forEach(function(role) {
         var modPerm = matrix[mod.id] || {};
         var actionPerm = modPerm[action] || [];
-        var checked = actionPerm.indexOf(role) !== -1;
+        var checked = (actionPerm||[]).indexOf(role) !== -1;
         h += '<td>';
         h += '<input type="checkbox" ' + (checked?'checked':'') + (isOwner?'':' disabled') + ' onchange="togglePerm(\'' + mod.id + '\',\'' + action + '\',\'' + role + '\', this.checked)">';
         h += '</td>';
@@ -4827,14 +4831,14 @@ function saveHomeSlogan(val) {
 function toggleQuickCard(id) {
   var cfg = getHomeConfig();
   if (!cfg.quickCards) cfg.quickCards = [];
-  var idx = cfg.quickCards.indexOf(id);
+  var idx = (cfg.quickCards||[]).indexOf(id);
   if (idx >= 0) cfg.quickCards.splice(idx, 1);
   else cfg.quickCards.push(id);
   saveHomeConfig(cfg);
   refresh();
 }
 
-// V12 - 导入本地数据到服务器
+// V13 - 导入本地数据到服务器
 async function importLocalToServer() {
   if (SERVER_CONFIG.mode !== 'online') {
     alert('请先连接到后端服务器');
@@ -4871,7 +4875,7 @@ async function importLocalToServer() {
   }
 }
 
-// V12 - 连接/断开服务器切换
+// V13 - 连接/断开服务器切换
 async function toggleServerConnection() {
   if (SERVER_CONFIG.mode === 'online') {
     // 断开连接
@@ -4879,7 +4883,7 @@ async function toggleServerConnection() {
     SERVER_CONFIG.enabled = false;
     SERVER_CONFIG.mode = 'offline';
     API_BASE = '';
-    localStorage.setItem('v12_server_enabled', 'false');
+    localStorage.setItem('v13_server_enabled', 'false');
     updateSyncStatusBadge('offline', '离线');
     addSyncLog('已手动断开服务器连接');
     stopAutoSync();
@@ -4910,8 +4914,46 @@ async function toggleServerConnection() {
   }
 }
 
+// V13 - 刷新隧道URL列表
+function refreshTunnelUrls() {
+  localStorage.removeItem('v13_server_connect_error');
+  var urlInput = document.getElementById('feishuServerUrl');
+  if (urlInput && urlInput.value.trim()) {
+    localStorage.setItem('v13_server_url', urlInput.value.trim());
+  }
+  var resultDiv = document.getElementById('serverConnResult');
+  if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在重新检测服务器...</span>';
+  detectServer().then(function() {
+    setTimeout(function() { refresh(); }, 500);
+  });
+}
+
+// V13 - 增强testServerConnection
+function testServerConnection() {
+  var url = document.getElementById('feishuServerUrl').value.trim();
+  if (!url) { alert('请输入服务器地址'); return; }
+  var resultDiv = document.getElementById('serverConnResult');
+  if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在测试连接...</span>';
+ fetch(url + '/api/status', {
+    method: 'GET',
+    headers: {'Content-Type': 'application/json'},
+    signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined
+  }).then(function(res) {
+    return res.json();
+  }).then(function(json) {
+    if (json.code === 0) {
+      localStorage.removeItem('v13_server_connect_error');
+      if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--gn)">&#10004; 连接成功!</span> <span style="color:var(--t2)">版本: ' + (json.data.version || '-') + ' | 运行时间: ' + (json.data.uptime || '-') + '</span>';
+    } else {
+      if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 服务器返回错误: ' + (json.msg || '未知错误') + '</span>';
+    }
+  }).catch(function(e) {
+    if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + ' - 请检查Cloudflare Tunnel是否在运行</span>';
+  });
+}
+
 // =========================================
-// V12 - 飞书配置页面
+// V13 - 飞书配置页面
 // =========================================
 
 // V12 - 飞书多维表格配置常量
@@ -4930,7 +4972,7 @@ var DEFAULT_TABLE_MAPPINGS = [
   {type:'night_shift', tableName:'夜班工作汇报', appToken:FEISHU_APP_TOKEN, tableId:'tbl3aHyLGmZkEK3J'}
 ];
 
-// V12 - 所有26个数据表定义
+// V13 - 所有26个数据表定义
 var ALL_FEISHU_TABLES = [
   {name:'日报', tableId:'tblTZeRLum8uf7mJ', usage:'日报', recordCount:12, mapped:true},
   {name:'周报', tableId:'tblzO3DWc8IDv3KF', usage:'周报', recordCount:null, mapped:false},
@@ -5016,18 +5058,26 @@ function renderFeishuConfig() {
   h += '</tbody></table></div></div>';
   h += '</div>';
 
-  // 2. 服务器连接配置 (V12增强)
+  // 2. 服务器连接配置 (V13增强)
+  var serverConnError = localStorage.getItem('v13_server_connect_error');
   h += '<div class="cd">';
   h += '<div class="ct">服务器连接配置 <span class="bdg" style="background:' + (SERVER_CONFIG.mode === 'online' ? '#e8f8e8;color:var(--gn)' : '#f0f0f0;color:var(--t3)') + '">' + (SERVER_CONFIG.mode === 'online' ? '已连接' : '未连接') + '</span></div>';
+  if (SERVER_CONFIG.url) {
+    h += '<div style="font-size:12px;color:var(--t2);margin-bottom:8px">当前服务器: <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;word-break:break-all">' + SERVER_CONFIG.url + '</code></div>';
+  }
+  h += '<div style="font-size:11px;color:var(--t3);margin-bottom:8px">候选地址: <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:10px">' + SERVER_URL_CANDIDATES.join('</code>, <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:10px">') + '</code></div>';
   h += '<div class="form-field"><label>后端服务器地址</label>';
   h += '<div style="display:flex;gap:8px">';
   h += '<input class="fi" id="feishuServerUrl" style="flex:1" value="' + savedUrl + '" placeholder="如 http://localhost:3000">';
   h += '<button class="btn bp" onclick="testServerConnection()">测试连接</button>';
   h += '<button class="btn ' + (SERVER_CONFIG.mode === 'online' ? 'dg' : 'gs') + '" onclick="toggleServerConnection()">' + (SERVER_CONFIG.mode === 'online' ? '断开连接' : '连接') + '</button>';
   h += '</div></div>';
+  h += '<div style="margin-top:6px"><button class="btn-sm bp" onclick="refreshTunnelUrls()">&#8635; 刷新隧道URL列表</button></div>';
   h += '<div id="serverConnResult" style="margin-top:8px;font-size:12px">';
   if (SERVER_CONFIG.mode === 'online') {
     h += '<span style="color:var(--gn)">&#10004; 已连接到 ' + SERVER_CONFIG.url + '</span>';
+  } else if (serverConnError) {
+    h += '<span style="color:var(--rd)">&#10008; ' + serverConnError + '</span>';
   }
   h += '</div>';
   h += '</div>';
@@ -5150,7 +5200,7 @@ function renderFeishuConfig() {
   return h;
 }
 
-// V12 - 数据表总览筛选功能
+// V13 - 数据表总览筛选功能
 function filterTableOverview(filterType) {
   var rows = document.querySelectorAll('#tableOverviewBody .overview-row');
   rows.forEach(function(row) {
@@ -5174,36 +5224,14 @@ function filterTableOverview(filterType) {
   else btnUnmapped.className = 'btn-sm bp';
 }
 
-// V12 - 恢复映射配置为默认值
+// V13 - 恢复映射配置为默认值
 function resetTableMappingsToDefault() {
   if (!confirm('确定要恢复为默认映射配置吗？这将覆盖当前的自定义配置。')) return;
   localStorage.removeItem('v9_feishu_table_mappings');
   refresh();
 }
 
-async function testServerConnection() {
-  var url = document.getElementById('feishuServerUrl').value.trim();
-  var resultDiv = document.getElementById('serverConnResult');
-  if (!url) {
-    resultDiv.innerHTML = '<span style="color:var(--rd)">请输入服务器地址</span>';
-    return;
-  }
-  resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在连接...</span>';
-  try {
-    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}});
-    var json = await res.json();
-    if (json.code === 0) {
-      setServerUrl(url);
-      resultDiv.innerHTML = '<span style="color:var(--gn)">&#10004; 连接成功!</span>' +
-        (json.data ? ' <span style="color:var(--t2)">版本: ' + (json.data.version || '-') + ' | 运行时间: ' + (json.data.uptime || '-') + '</span>' : '');
-      addSyncLog('服务器连接成功: ' + url);
-    } else {
-      resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + (json.msg || '未知错误') + '</span>';
-    }
-  } catch(e) {
-    resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + '</span>';
-  }
-}
+async 
 
 async function testTableConnection(type) {
   if (SERVER_CONFIG.mode !== 'online') {
@@ -5308,7 +5336,7 @@ function changeSyncInterval() {
 }
 
 // =========================================
-// V12 - 数据备份
+// V13 - 数据备份
 // =========================================
 function renderDataBackup() {
   var h = '<div class="page-enter">';
@@ -5359,7 +5387,7 @@ function renderDataBackup() {
   h += '</div>';
   h += '</div>';
   
-  // V12 - 导入本地数据到服务器（新增）
+  // V13 - 导入本地数据到服务器（新增）
   h += '<div class="cd">';
   h += '<div class="ct">📥 导入本地数据到服务器</div>';
   h += '<p style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.6">将当前浏览器中的所有本地数据一次性导入到后端服务器。适用于首次连接服务器后，将已有本地数据同步到服务器的场景。</p>';
@@ -6352,10 +6380,10 @@ function refreshData(type) {
 document.addEventListener('DOMContentLoaded', function() {
   try {
     initAuth();
-    // V12 - 初始化同步状态并自动检测服务器连接
+    // V13 - 初始化同步状态并自动检测服务器连接
     API_BASE = SERVER_CONFIG.url;
     updateSyncStatusBadge();
-    // V12 - 自动检测服务器连接（静默，不阻塞UI）
+    // V13 - 自动检测服务器连接（静默，不阻塞UI）
     detectServer();
   } catch(e) {
     console.error('Init error:', e);
