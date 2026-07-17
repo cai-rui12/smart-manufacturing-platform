@@ -881,8 +881,8 @@ async function syncLocalToServer() {
     var dataTypes = ['tasks', 'daily_reports', 'projects', 'equipments', 'improvements', 'maintains', 'repairs', 'auto_tasks'];
     for (var i = 0; i < dataTypes.length; i++) {
       var type = dataTypes[i];
-      var localKey = type === 'daily_reports' ? 'local_daily' : type === 'equipments' ? 'local_equips' : type === 'improvements' ? 'local_improves' : 'local_' + type;
-      var localData = lsGet(localKey, []);
+      var lsKey = getLsKey(type);
+      var localData = lsGet(lsKey, []);
       if (localData.length > 0) {
         await apiRequest('POST', '/api/data/' + type, localData);
       }
@@ -921,40 +921,59 @@ function updateSyncStatusBadge(status, text) {
   }
 }
 
-// V12 - 增强版 loadData，在线模式下优先从后端读取并合并
+// V12 - 数据类型到localStorage key的映射（必须与前端各模块的存取key一致）
+var LS_KEY_MAP = {
+  'tasks': 'local_tasks',
+  'daily_reports': 'local_daily',
+  'projects': 'local_projects',
+  'equipments': 'local_equips',
+  'improvements': 'local_improves',
+  'maintains': 'local_maintains',
+  'repairs': 'local_repairs',
+  'auto_tasks': 'local_auto_tasks'
+};
+
+function getLsKey(type) {
+  return LS_KEY_MAP[type] || ('local_' + type);
+}
+
 async function loadData(type) {
+  var lsKey = getLsKey(type);
   if (SERVER_CONFIG.mode === 'online') {
     try {
       var res = await apiRequest('GET', '/api/data/' + type);
-      if (res.code === 0 && res.data && res.data.length > 0) {
-        // 合并本地数据 - 如果后端数据比本地多，以后端为准
-        var local = lsGet('local_' + type, []);
-        if (res.data.length > local.length) {
-          lsSet('local_' + type, res.data);
-        } else if (local.length > 0) {
-          // 合并策略：以后端为基准，本地新增的补充进去
-          var serverMap = {};
-          res.data.forEach(function(item) { serverMap[item.id] = item; });
+      if (res.code === 0 && res.data) {
+        var serverData = Array.isArray(res.data) ? res.data : [];
+        var local = lsGet(lsKey, []);
+        // 合并策略：用后端数据为基准，合并本地新增的数据
+        if (serverData.length > 0) {
+          var serverIds = {};
+          serverData.forEach(function(item) { if (item.id) serverIds[item.id] = true; });
+          var hasNew = false;
           local.forEach(function(item) {
-            if (!serverMap[item.id]) {
-              res.data.push(item);
+            if (item.id && !serverIds[item.id]) {
+              serverData.push(item);
+              hasNew = true;
             }
           });
-          lsSet('local_' + type, res.data);
+          if (local.length > serverData.length || hasNew) {
+            // 把合并后的数据推回服务器
+            lsSet(lsKey, serverData);
+            await apiRequest('POST', '/api/data/' + type, serverData);
+          } else {
+            lsSet(lsKey, serverData);
+          }
+        } else if (local.length > 0) {
+          // 后端为空，把本地数据上传
+          await apiRequest('POST', '/api/data/' + type, local);
         }
-        return lsGet('local_' + type, []);
+        return lsGet(lsKey, []);
       }
     } catch(e) {
       console.error('loadData API error:', e);
-      // 后端不可用时自动降级到离线模式
-      SERVER_CONFIG.mode = 'offline';
-      SERVER_CONFIG.enabled = false;
-      API_BASE = '';
-      updateSyncStatusBadge('offline', '离线');
-      addSyncLog('后端不可用，已自动切换到离线模式: ' + e.message);
     }
   }
-  return lsGet('local_' + type, []);
+  return lsGet(lsKey, []);
 }
 
 // V12 - 增强版 saveData，在线模式下实时同步后端
@@ -1339,7 +1358,8 @@ function hasPermission(module, action) {
     var matrix = getPermissionMatrix();
     var mod = matrix[module];
     if (!mod) return r === 'admin';
-    var actions = mod[action] || [];
+    var actions = mod[action];
+    if (!actions) return r === 'admin';
     return actions.indexOf(r) !== -1;
   } catch(e) { return false; }
 }
