@@ -830,10 +830,10 @@ var SERVER_URL_CANDIDATES = [
 // 从GitHub读取最新的隧道URL（动态，每次服务器重启后会自动更新）
 var CONFIG_URL = 'https://cai-rui12.github.io/smart-manufacturing-platform/server-config.json';
 
-async function tryConnectServer(url) {
+async function tryConnectServer(url, timeoutMs) {
   try {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, 5000) : null;
+    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 5000) : null;
     var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: controller ? controller.signal : undefined});
     if (timeoutId) clearTimeout(timeoutId);
     var json = await res.json();
@@ -919,6 +919,32 @@ async function syncLocalToServer() {
 }
 
 // V13 - 增强版 updateSyncStatusBadge，支持直接设置状态
+
+async function connectToServer(url) {
+  if (!url || !url.trim()) { alert('请输入服务器地址'); return; }
+  url = url.trim();
+  if (url.endsWith('/')) url = url.slice(0, -1);
+  updateSyncStatusBadge('syncing', '连接中...');
+  addSyncLog('手动连接: ' + url);
+  var result = await tryConnectServer(url, 8000);
+  if (result) {
+    SERVER_CONFIG.url = url;
+    SERVER_CONFIG.enabled = true;
+    SERVER_CONFIG.mode = 'online';
+    API_BASE = url;
+    localStorage.setItem('v13_server_url', url);
+    localStorage.setItem('v13_server_enabled', 'true');
+    updateSyncStatusBadge('connected', '已连接');
+    addSyncLog('手动连接成功: ' + url);
+    alert('连接成功！服务器: ' + url);
+    await syncLocalToServer();
+  } else {
+    updateSyncStatusBadge('offline', '离线');
+    addSyncLog('手动连接失败: ' + url);
+    alert('连接失败，请确认服务器地址正确且服务器正在运行。\n\n当前可用地址：\n- 外网: https://lens-review-steel-hose.trycloudflare.com\n- 局域网: http://172.24.20.28:3000\n- 本机: http://localhost:3000');
+  }
+}
+
 function updateSyncStatusBadge(status, text) {
   var badge = document.getElementById('syncStatusBadge');
   if (!badge) return;
