@@ -830,7 +830,10 @@ var SERVER_URL_CANDIDATES = [
 
 async function tryConnectServer(url) {
   try {
-    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined});
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, 5000) : null;
+    var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: controller ? controller.signal : undefined});
+    if (timeoutId) clearTimeout(timeoutId);
     var json = await res.json();
     if (json.code === 0) return json;
   } catch(e) {}
@@ -875,8 +878,8 @@ async function detectServer() {
   SERVER_CONFIG.mode = 'offline';
   API_BASE = '';
   updateSyncStatusBadge('offline', '离线');
-  addSyncLog('服务器连接失败，请检查Cloudflare Tunnel是否在运行');
-  localStorage.setItem('v13_server_connect_error', '服务器连接失败，请检查Cloudflare Tunnel是否在运行');
+  addSyncLog('服务器连接失败，请确认后端服务器已在运行（见smart-manufacturing-server目录下的start.bat）');
+  localStorage.setItem('v13_server_connect_error', '服务器连接失败，请确认后端服务器已在运行（见smart-manufacturing-server目录下的start.bat）');
 }
 
 // V13 - 同步本地数据到服务器（首次连接时）
@@ -4949,7 +4952,7 @@ function testServerConnection() {
       if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 服务器返回错误: ' + (json.msg || '未知错误') + '</span>';
     }
   }).catch(function(e) {
-    if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + ' - 请检查Cloudflare Tunnel是否在运行</span>';
+    if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--rd)">&#10008; 连接失败: ' + e.message + ' - 请确认后端服务器已在运行（见smart-manufacturing-server目录下的start.bat）</span>';
   });
 }
 
