@@ -823,6 +823,7 @@ async function apiRequest(method, path, data) {
 // V13 - 页面加载时自动检测服务器连接
 // 依次尝试：用户保存的URL → 公网隧道 → 局域网IP → 本机localhost
 var SERVER_URL_CANDIDATES = [
+  'https://hot-roses-beg.loca.lt',
   'http://172.24.20.28:3000',
   'http://localhost:3000'
 ];
