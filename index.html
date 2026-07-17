@@ -255,7 +255,7 @@ table.dt tr:hover td{background:#f7f9ff;cursor:pointer}
     <div class="mn-h">
       <div class="bc" id="breadcrumb"></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <span id="syncStatusBadge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f0f0;color:#8f959e;cursor:pointer" onclick="goToPage('feishu-config')">离线</span>
+        <span id="syncStatusBadge" onclick="showConnectionInfo()" title="点击显示连接详情" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f0f0;color:#8f959e;cursor:pointer" onclick="goToPage('feishu-config')">离线</span>
         <button class="btn-sm bo" onclick="exportAllData()" title="导出全部数据">&#128190; 导出</button>
         <button class="btn-sm bo" onclick="importAllData()" title="导入全部数据">&#128190; 导入</button>
         <span id="userLabel" style="font-size:12px;color:var(--t2)"></span>
@@ -929,7 +929,7 @@ function updateSyncStatusBadge(status, text) {
   if (status === 'offline' || SERVER_CONFIG.mode === 'offline') {
     badge.style.background = '#f0f0f0';
     badge.style.color = '#8f959e';
-    badge.textContent = text || '离线';
+    badge.innerHTML = (text || '离线') + ' <span onclick="manualConnect(event)" style="margin-left:4px;padding:1px 5px;font-size:10px;border-radius:3px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;">重连</span>';
   } else if (status === 'connected' || (SERVER_CONFIG.mode === 'online' && SYNC_STATE.status !== 'syncing' && SYNC_STATE.status !== 'error')) {
     badge.style.background = '#e8f8e8';
     badge.style.color = '#34c724';
@@ -947,6 +947,26 @@ function updateSyncStatusBadge(status, text) {
     badge.style.color = '#3370ff';
     badge.textContent = text || '在线';
   }
+}
+
+async function manualConnect(e) {
+  if (e) e.stopPropagation();
+  updateSyncStatusBadge('syncing', '重连中...');
+  addSyncLog('手动触发服务器连接...');
+  await detectServer();
+}
+
+function showConnectionInfo() {
+  var info = [];
+  info.push('当前状态: ' + (SERVER_CONFIG.mode || 'unknown'));
+  info.push('服务器URL: ' + (SERVER_CONFIG.url || '未设置'));
+  info.push('隧道URL: https://lens-review-steel-hose.trycloudflare.com');
+  info.push('局域网URL: http://172.24.20.28:3000');
+  info.push('');
+  info.push('如果手机4G无法连接，请尝试：');
+  info.push('1. 电脑和手机连接同一WiFi');
+  info.push('2. 或点击"重连"按钮重新检测');
+  alert(info.join('\n'));
 }
 
 // V13 - 数据类型到localStorage key的映射（必须与前端各模块的存取key一致）
