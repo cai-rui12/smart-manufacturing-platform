@@ -2094,6 +2094,7 @@ function renderDailyReportList(filterFn, title) {
   }
   h += '<button class="btn bo" onclick="refreshData(\'daily\')">&#8635; 刷新</button>';
   h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'daily_reports\',true)">&#9889; 同步飞书</button>';
+  h += '<button class="btn" style="background:#e74c3c;color:#fff" onclick="sendDailyReportToGroup()" id="btnSendDailyReport">&#128227; 推送日报到飞书群</button>';
   if (hasPermission('work-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllDailyReports(), \'日报列表\')">&#128190; 导出</button>';
   }
@@ -2136,6 +2137,36 @@ async function syncDailyToFeishu(id) {
   var r = all.find(function(x){ return x.id === id; });
   if (!r) { showToast('记录不存在', 'warn'); return; }
   await syncRecordToFeishu('daily_reports', r, true);
+}
+
+// 推送日报到飞书群（从各组工作汇报和出勤统计表聚合）
+async function sendDailyReportToGroup() {
+  if (SERVER_CONFIG.mode !== 'online') {
+    showToast('请先连接服务器', 'warn');
+    return;
+  }
+  var btn = document.getElementById('btnSendDailyReport');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 推送中...'; }
+  try {
+    var today = new Date().toISOString().split('T')[0];
+    var resp = await apiRequest('POST', '/api/daily-report/send', { date: today });
+    if (resp.code === 0) {
+      var workCount = resp.data.work_report_count || 0;
+      var attendCount = resp.data.attendance_count || 0;
+      if (workCount === 0 && attendCount === 0) {
+        showToast('日报已推送，但今日无数据（未配置PersonalBaseToken时无法自动读取飞书表）', 'warn');
+      } else {
+        showToast('日报已推送到飞书群！工作汇报:' + workCount + '条, 出勤:' + attendCount + '条', 'success');
+      }
+    } else {
+      showToast('推送失败: ' + (resp.msg || '未知错误'), 'error');
+    }
+  } catch(e) {
+    showToast('推送异常: ' + e.message, 'error');
+    console.error('sendDailyReportToGroup error:', e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '&#128227; 推送日报到飞书群'; }
+  }
 }
 
 // 同步单条周报到飞书
