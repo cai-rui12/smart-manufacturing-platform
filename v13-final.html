@@ -855,13 +855,12 @@ async function detectServer() {
     }
   } catch(e) {}
 
-  // 2. 构建候选URL列表（动态URL优先）
+  // 2. 构建候选URL列表（动态隧道URL最优先）
   var candidates = [];
   if (dynamicUrl) candidates.push(dynamicUrl);
   var savedUrl = localStorage.getItem('v13_server_url');
-  var candidates = [];
-  if (savedUrl) candidates.push(savedUrl);
-  // 2. 添加候选URL（去重）
+  if (savedUrl && candidates.indexOf(savedUrl) === -1) candidates.push(savedUrl);
+  // 3. 添加固定候选URL（去重）
   for (var i = 0; i < SERVER_URL_CANDIDATES.length; i++) {
     if (candidates.indexOf(SERVER_URL_CANDIDATES[i]) === -1) {
       candidates.push(SERVER_URL_CANDIDATES[i]);
