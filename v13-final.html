@@ -396,6 +396,25 @@ var REAL_PROJECTS = [
   {id:'PRJ-0006', name:'OEE提升项目', manager:'丁洋', status:'规划中', progress:10, startDate:'2026-06-01', endDate:'2026-12-31', budget:600000, members:'丁洋,蔡佳琪', description:'设备综合效率OEE提升专项项目'}
 ];
 
+var REAL_WEEKLY_REPORTS = [
+  {id:'W001', week:'第28周', reporter:'蔡瑞', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'本周完成智能巡检驾驶舱开发，推进设备验收进度跟踪', highlights:'智能巡检驾驶舱上线，设备故障率分析会议常态化', problems:'无重大问题', nextPlan:'推进三期自动化设备采购审批', hours:55, progress:'80%', rate:'85%'},
+  {id:'W002', week:'第28周', reporter:'黄广生', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'内层工序设备验收跟进，智能制造组月保养完成率提升', highlights:'完成设备验收2台，维修单处理率提升', problems:'层压工序红牌异常待闭环', nextPlan:'集中清理超期维修单', hours:52, progress:'75%', rate:'80%'},
+  {id:'W003', week:'第28周', reporter:'梁辉彬', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'智能巡检驾驶舱与设备验收驾驶舱开发，五厂扩建设备进度更新', highlights:'驾驶舱页面上线，多维表格批量更新', problems:'五厂扩建三期新设备即将回厂', nextPlan:'推进智能巡检系统外层/阻焊上线', hours:58, progress:'85%', rate:'90%'},
+  {id:'W004', week:'第28周', reporter:'郑绪友', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'阻焊自动计划推进，陶瓷磨板自动物流测试', highlights:'阻焊自动计划借三厂方案完成上线', problems:'去毛刺自动物流待自动计划上线', nextPlan:'继续推进各工序自动物流', hours:50, progress:'70%', rate:'85%'},
+  {id:'W005', week:'第28周', reporter:'湛子昂', time:'', status:'未提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'', highlights:'', problems:'', nextPlan:'', hours:0, progress:'', rate:''},
+  {id:'W006', week:'第28周', reporter:'肖永哲', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'陶瓷磨板自动物流测试配合，AGV调度系统维护', highlights:'陶瓷磨板自动物流测试完成', problems:'AGV调度系统偶发超时', nextPlan:'跟进AGV调度优化', hours:48, progress:'65%', rate:'80%'},
+  {id:'W007', week:'第28周', reporter:'丁洋', time:'', status:'未提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'', highlights:'', problems:'', nextPlan:'', hours:0, progress:'', rate:''}
+];
+
+var REAL_MONTHLY_REPORTS = [
+  {id:'M001', month:'2026年6月', name:'6月设备部月报', author:'蔡瑞', time:'2026-07-01', status:'已发布', summary:'6月完成设备验收12台，智能巡检系统覆盖内层/外层工序', keyWork:'一二期设备验收进度43.3%，智能巡检系统二期上线', results:'设备故障率下降15%，智能巡检出库率提升20%', review:'巡检覆盖率不足，需扩大至全厂', nextPlan:'推进全厂智能巡检覆盖，三期自动化设备采购', hours:'220h', performance:'85%', targetRate:'92%'},
+  {id:'M002', month:'2026年5月', name:'5月设备部月报', author:'蔡瑞', time:'2026-06-01', status:'已发布', summary:'5月完成设备验收8台，AGV跨厂区调度功能上线', keyWork:'AGV调度、电镀MCP自动物流项目推进', results:'AGV调度上线运行稳定', review:'部分设备维修单超期未处理', nextPlan:'清理超期维修单，提升月保养完成率', hours:'210h', performance:'82%', targetRate:'90%'},
+  {id:'M003', month:'2026年4月', name:'4月设备部月报', author:'蔡瑞', time:'2026-05-01', status:'已发布', summary:'4月设备部完成月度保养计划，智能巡检一期上线', keyWork:'智能巡检系统内层工序上线试运行', results:'巡检系统检出异常设备3台', review:'巡检系统误报率偏高需优化', nextPlan:'优化巡检算法，扩展至外层工序', hours:'200h', performance:'80%', targetRate:'88%'},
+  {id:'M004', month:'2026年3月', name:'3月设备部月报', author:'蔡瑞', time:'2026-04-01', status:'已发布', summary:'3月设备部完成季度设备大检查', keyWork:'设备季度检查、智能制造项目规划', results:'完成全厂设备普查1021台', review:'部分老旧设备需更换', nextPlan:'启动三期自动化设备采购流程', hours:'195h', performance:'78%', targetRate:'85%'},
+  {id:'M005', month:'2026年2月', name:'2月设备部月报', author:'蔡瑞', time:'2026-03-01', status:'已发布', summary:'2月春节后复工复产设备全面检查', keyWork:'复工复产设备检查、年度计划制定', results:'设备完好率98.5%', review:'春节假期设备停机保养到位', nextPlan:'启动智能制造项目年度计划', hours:'160h', performance:'76%', targetRate:'85%'},
+  {id:'M006', month:'2026年1月', name:'1月设备部月报', author:'蔡瑞', time:'2026-02-01', status:'已发布', summary:'1月年度总结与新年规划', keyWork:'年度工作总结、设备部KPI达成', results:'全年设备完好率97.8%', review:'年度目标基本达成', nextPlan:'制定新年度工作计划', hours:'150h', performance:'75%', targetRate:'82%'}
+];
+
 var REAL_EQUIPMENTS = [
   {id:'E001', equipNo:'EQ-AGV-001', process:'智能物流', name:'AGV搬运车1号', status:'运行中', installDate:'2025-03-15', group:'智能制造组', location:'二楼车间'},
   {id:'E002', equipNo:'EQ-AGV-002', process:'智能物流', name:'AGV搬运车2号', status:'运行中', installDate:'2025-03-15', group:'智能制造组', location:'二楼车间'},
@@ -1288,6 +1307,8 @@ function mergeData(builtIn, localKey) {
 
 function getAllTasks() { return mergeData(REAL_TASKS, 'local_tasks'); }
 function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_daily'); }
+function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
+function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 function getAllProjects() { return mergeData(REAL_PROJECTS, 'local_projects'); }
 function getAllEquips() { return mergeData(REAL_EQUIPMENTS, 'local_equips'); }
 function getAllImproves() { return mergeData(REAL_IMPROVEMENTS, 'local_improves'); }
@@ -1297,6 +1318,8 @@ function getAllAutoTasks() { return mergeData(AUTO_TASK_TEMPLATES, 'local_autota
 
 function saveLocalTasks(arr) { lsSet('local_tasks', arr); }
 function saveLocalDaily(arr) { lsSet('local_daily', arr); }
+function saveLocalWeekly(arr) { lsSet('local_weekly', arr); }
+function saveLocalMonthly(arr) { lsSet('local_monthly', arr); }
 function saveLocalProjects(arr) { lsSet('local_projects', arr); }
 function saveLocalEquips(arr) { lsSet('local_equips', arr); }
 function saveLocalImproves(arr) { lsSet('local_improves', arr); }
@@ -2115,6 +2138,30 @@ async function syncDailyToFeishu(id) {
   await syncRecordToFeishu('daily_reports', r, true);
 }
 
+// 同步单条周报到飞书
+async function syncWeeklyToFeishu(id) {
+  var all = getAllWeeklyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) { showToast('记录不存在', 'warn'); return; }
+  await syncRecordToFeishu('weekly_reports', r, true);
+}
+
+// 同步单条月报到飞书
+async function syncMonthlyToFeishu(id) {
+  var all = getAllMonthlyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) { showToast('记录不存在', 'warn'); return; }
+  await syncRecordToFeishu('monthly_reports', r, true);
+}
+
+// 同步单条项目到飞书
+async function syncProjectToFeishu(id) {
+  var all = getAllProjects();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) { showToast('记录不存在', 'warn'); return; }
+  await syncRecordToFeishu('projects', r, true);
+}
+
 function createDaily() {
   var today = new Date().toISOString().slice(0,10);
   submitFormModal({
@@ -2268,63 +2315,132 @@ function initDailyStatsCharts() {
 }
 
 function renderWeeklyReport() {
+  var all = getAllWeeklyReports();
+  var total = all.length;
+  var submitted = all.filter(function(w){return w.status==='已提交';}).length;
+  var unsubmitted = total - submitted;
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📅 周报管理 <span class="bdg">周报功能</span></div>';
-  h += '<div class="status-bar info">周报模块与日报共用数据架构，当前展示周报汇总视图。</div>';
+  h += '<div class="pt">📅 周报管理 <span class="bdg">共 ' + total + ' 条</span></div>';
+  h += '<div class="status-bar info">周报模块用于汇总每周工作成果和下周计划。</div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">12</div><div class="kpi-label">本周周报数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">85%</div><div class="kpi-label">提交率</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">3</div><div class="kpi-label">待提交</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">7</div><div class="kpi-label">组内人数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + total + '</div><div class="kpi-label">周报总数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + (total > 0 ? Math.round(submitted/total*100) : 0) + '%</div><div class="kpi-label">提交率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + unsubmitted + '</div><div class="kpi-label">待提交</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + submitted + '</div><div class="kpi-label">已提交</div></div>';
   h += '</div>';
-  h += '<div class="cd">';
-  h += '<div class="ct">本周周报列表</div>';
-  h += '<table class="dt"><thead><tr><th>周次</th><th>汇报人</th><th>提交时间</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  var weeklyData = [
-    {week:'第28周', reporter:'蔡瑞', time:'2026-07-10', status:'已提交'},
-    {week:'第28周', reporter:'黄广生', time:'2026-07-10', status:'已提交'},
-    {week:'第28周', reporter:'梁辉彬', time:'2026-07-10', status:'已提交'},
-    {week:'第28周', reporter:'郑绪友', time:'2026-07-10', status:'已提交'},
-    {week:'第28周', reporter:'湛子昂', time:'', status:'未提交'},
-    {week:'第28周', reporter:'肖永哲', time:'2026-07-10', status:'已提交'},
-    {week:'第28周', reporter:'丁洋', time:'', status:'未提交'}
-  ];
-  weeklyData.forEach(function(w) {
-    h += '<tr><td>' + w.week + '</td><td>' + w.reporter + '</td><td>' + (w.time || '-') + '</td><td><span class="t ' + (w.status==='已提交'?'tg':'tr') + '">' + w.status + '</span></td>';
-    h += '<td><button class="btn-sm bo" onclick="alert(\'查看周报详情\')">查看</button></td></tr>';
-  });
-  h += '</tbody></table></div>';
+  h += '<div class="bg">';
+  h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'weekly_reports\',true)">&#9889; 同步飞书</button>';
+  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '</div>';
+  h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
+  h += '<thead><tr><th>编号</th><th>周次</th><th>汇报人</th><th>提交时间</th><th>状态</th><th>工作时长</th><th>完成率</th><th>操作</th></tr></thead><tbody>';
+  if (all.length === 0) {
+    h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
+    all.forEach(function(w) {
+      h += '<tr onclick="openWeeklyDetail(\'' + w.id + '\')">';
+      h += '<td>' + w.id + '</td>';
+      h += '<td>' + w.week + '</td>';
+      h += '<td>' + w.reporter + '</td>';
+      h += '<td>' + (w.time || '-') + '</td>';
+      h += '<td><span class="t ' + (w.status==='已提交'?'tg':'tr') + '">' + w.status + '</span></td>';
+      h += '<td>' + (w.hours || 0) + 'h</td>';
+      h += '<td>' + (w.rate || '-') + '</td>';
+      h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openWeeklyDetail(\'' + w.id + '\')">查看</button>';
+      h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncWeeklyToFeishu(\'' + w.id + '\')" title="同步到飞书">飞书</button>';
+      h += '</td></tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
   h += '</div>';
   return h;
 }
 
+function openWeeklyDetail(id) {
+  var all = getAllWeeklyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) return;
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">编号</div><div class="ii-value">' + r.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">周次</div><div class="ii-value">' + r.week + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">汇报人</div><div class="ii-value">' + r.reporter + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">提交时间</div><div class="ii-value">' + (r.time || '-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">工作时长</div><div class="ii-value">' + (r.hours || 0) + ' 小时</div></div>';
+  h += '<div class="info-item"><div class="ii-label">完成率</div><div class="ii-value">' + (r.rate || '-') + '</div></div>';
+  h += '</div>';
+  h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
+  h += '<div class="form-field"><label>本周工作总结</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.summary || '') + '</div></div>';
+  h += '<div class="form-field"><label>工作亮点</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.highlights || '') + '</div></div>';
+  h += '<div class="form-field"><label>问题与解决方案</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.problems || '') + '</div></div>';
+  h += '<div class="form-field"><label>下周工作计划</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.nextPlan || '') + '</div></div>';
+  var footer = '';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncWeeklyToFeishu(\'' + r.id + '\')">同步到飞书</button>';
+  openMo({title:'周报详情 - ' + r.id, html:h, footer:footer});
+}
+
 function renderMonthlyReport() {
+  var all = getAllMonthlyReports();
+  var total = all.length;
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📇 月报管理 <span class="bdg">月报功能</span></div>';
+  h += '<div class="pt">📇 月报管理 <span class="bdg">共 ' + total + ' 条</span></div>';
   h += '<div class="status-bar info">月报模块用于汇总月度工作成果和KPI数据。</div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">6</div><div class="kpi-label">月报总数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + total + '</div><div class="kpi-label">月报总数</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">95%</div><div class="kpi-label">KPI完成率</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">142</div><div class="kpi-label">任务完成数</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">4.2%</div><div class="kpi-label">设备故障率</div></div>';
   h += '</div>';
-  h += '<div class="cd"><div class="ct">月度报告列表</div>';
-  h += '<table class="dt"><thead><tr><th>月份</th><th>报告名称</th><th>编制人</th><th>提交时间</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  var monthly = [
-    {month:'2026年6月', name:'6月设备部月报', author:'蔡瑞', time:'2026-07-01', status:'已发布'},
-    {month:'2026年5月', name:'5月设备部月报', author:'蔡瑞', time:'2026-06-01', status:'已发布'},
-    {month:'2026年4月', name:'4月设备部月报', author:'蔡瑞', time:'2026-05-01', status:'已发布'},
-    {month:'2026年3月', name:'3月设备部月报', author:'蔡瑞', time:'2026-04-01', status:'已发布'},
-    {month:'2026年2月', name:'2月设备部月报', author:'蔡瑞', time:'2026-03-01', status:'已发布'},
-    {month:'2026年1月', name:'1月设备部月报', author:'蔡瑞', time:'2026-02-01', status:'已发布'}
-  ];
-  monthly.forEach(function(m) {
-    h += '<tr><td>' + m.month + '</td><td>' + m.name + '</td><td>' + m.author + '</td><td>' + m.time + '</td><td><span class="t tg">' + m.status + '</span></td>';
-    h += '<td><button class="btn-sm bo" onclick="alert(\'查看月报详情\')">查看</button> <button class="btn-sm bo" onclick="alert(\'下载月报\')">下载</button></td></tr>';
-  });
-  h += '</tbody></table></div>';
+  h += '<div class="bg">';
+  h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'monthly_reports\',true)">&#9889; 同步飞书</button>';
+  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '</div>';
+  h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
+  h += '<thead><tr><th>编号</th><th>月份</th><th>报告名称</th><th>编制人</th><th>提交时间</th><th>状态</th><th>KPI达成率</th><th>操作</th></tr></thead><tbody>';
+  if (all.length === 0) {
+    h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
+    all.forEach(function(m) {
+      h += '<tr onclick="openMonthlyDetail(\'' + m.id + '\')">';
+      h += '<td>' + m.id + '</td>';
+      h += '<td>' + m.month + '</td>';
+      h += '<td>' + m.name + '</td>';
+      h += '<td>' + m.author + '</td>';
+      h += '<td>' + m.time + '</td>';
+      h += '<td><span class="t tg">' + m.status + '</span></td>';
+      h += '<td>' + (m.targetRate || '-') + '</td>';
+      h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openMonthlyDetail(\'' + m.id + '\')">查看</button>';
+      h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncMonthlyToFeishu(\'' + m.id + '\')" title="同步到飞书">飞书</button>';
+      h += '</td></tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
   h += '</div>';
   return h;
+}
+
+function openMonthlyDetail(id) {
+  var all = getAllMonthlyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) return;
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">编号</div><div class="ii-value">' + r.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">月份</div><div class="ii-value">' + r.month + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">报告名称</div><div class="ii-value">' + r.name + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">编制人</div><div class="ii-value">' + r.author + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">提交时间</div><div class="ii-value">' + r.time + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">月度绩效</div><div class="ii-value">' + (r.performance || '-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">目标达成率</div><div class="ii-value">' + (r.targetRate || '-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">工作时长</div><div class="ii-value">' + (r.hours || '-') + '</div></div>';
+  h += '</div>';
+  h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
+  h += '<div class="form-field"><label>月度总结</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.summary || '') + '</div></div>';
+  h += '<div class="form-field"><label>重点工作进展</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.keyWork || '') + '</div></div>';
+  h += '<div class="form-field"><label>关键成果</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.results || '') + '</div></div>';
+  h += '<div class="form-field"><label>回顾与改进</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.review || '') + '</div></div>';
+  h += '<div class="form-field"><label>下月计划</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.nextPlan || '') + '</div></div>';
+  var footer = '';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncMonthlyToFeishu(\'' + r.id + '\')">同步到飞书</button>';
+  openMo({title:'月报详情 - ' + r.id, html:h, footer:footer});
 }
 
 // =========================================
@@ -2569,6 +2685,7 @@ function renderProjectList(filterFn, title) {
     h += '<button class="btn bp" onclick="createProject()">&#10133; 新建项目</button>';
   }
   h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'projects\',true)">&#9889; 同步飞书</button>';
   if (hasPermission('project-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllProjects(), \'项目列表\')">&#128190; 导出</button>';
   }
@@ -2592,6 +2709,7 @@ function renderProjectList(filterFn, title) {
       if (hasPermission('project-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editProject(\'' + p.id + '\')">编辑</button>';
       }
+      h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncProjectToFeishu(\'' + p.id + '\')" title="同步到飞书">飞书</button>';
       if (hasPermission('project-manage','del')) {
         h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteProject(\'' + p.id + '\')">删除</button>';
       }
@@ -2658,8 +2776,9 @@ function openProjectDetail(id) {
   h += '<div class="form-field"><label>项目成员</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px">' + (p.members || '-') + '</div></div>';
   h += '<div class="form-field"><label>项目描述</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (p.description || '') + '</div></div>';
   var footer = '';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')">同步到飞书</button>';
   if (hasPermission('project-manage','edit')) {
-    footer += '<button class="btn bp" onclick="editProject(\'' + p.id + '\')">编辑</button>';
+    footer += ' <button class="btn bp" onclick="editProject(\'' + p.id + '\')">编辑</button>';
   }
   openMo({title:'项目详情 - ' + p.name, html:h, footer:footer});
 }
