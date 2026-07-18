@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -1070,6 +1070,110 @@ async function saveData(type, data) {
   return false;
 }
 
+// V13 - 飞书多维表格 Webhook 同步
+var FEISHU_SYNC_ENABLED = localStorage.getItem('v13_feishu_sync_enabled') !== 'false';
+var FEISHU_AUTO_SYNC = localStorage.getItem('v13_feishu_auto_sync') === 'true';
+
+// 飞书数据类型映射：前端data_type -> 飞书webhook字段名
+var FEISHU_FIELD_MAP = {
+  daily_reports: {
+    date: 'report_date', reporter: 'reporter', content: 'today_work',
+    plan: 'tomorrow_plan', issues: 'problems', status: 'work_status',
+    workHours: 'work_hours', presentCount: 'expected_attendance',
+    actualCount: 'actual_attendance'
+  },
+  weekly_reports: {
+    weekStartDate: 'week_start_date', weekEndDate: 'week_end_date',
+    summary: 'week_summary', highlights: 'week_highlights',
+    problems: 'problems_and_solutions', nextPlan: 'next_week_plan',
+    hours: 'weekly_hours', progress: 'overall_progress', rate: 'completion_rate'
+  },
+  monthly_reports: {
+    month: 'month', year: 'year', summary: 'month_summary',
+    keyWork: 'key_work_status', results: 'key_results',
+    review: 'review_and_improvement', nextPlan: 'next_month_plan',
+    hours: 'monthly_hours', performance: 'monthly_performance', targetRate: 'monthly_target_rate'
+  },
+  projects: {
+    name: 'project_name', description: 'project_description',
+    status: 'project_status', priority: 'project_priority',
+    planStart: 'plan_start_date', planEnd: 'plan_end_date',
+    actualStart: 'actual_start_date', actualEnd: 'actual_end_date',
+    budget: 'project_budget', cost: 'actual_cost',
+    progress: 'overall_progress', milestone: 'current_milestone',
+    risks: 'risks_and_issues', remarks: 'remarks'
+  }
+};
+
+// 将前端记录转换为飞书webhook body格式
+function convertToFeishuPayload(dataType, record) {
+  var fieldMap = FEISHU_FIELD_MAP[dataType];
+  if (!fieldMap) return record; // 无映射则原样发送
+  var body = {};
+  for (var key in record) {
+    if (record.hasOwnProperty(key)) {
+      var feishuKey = fieldMap[key] || key;
+      body[feishuKey] = record[key];
+    }
+  }
+  return body;
+}
+
+// 同步单条记录到飞书
+async function syncRecordToFeishu(dataType, record, showMsg) {
+  if (!FEISHU_SYNC_ENABLED) {
+    if (showMsg) showToast('飞书同步未启用', 'warn');
+    return false;
+  }
+  if (SERVER_CONFIG.mode !== 'online') {
+    if (showMsg) showToast('请先连接服务器', 'warn');
+    return false;
+  }
+  try {
+    var body = convertToFeishuPayload(dataType, record);
+    var res = await apiRequest('POST', '/api/feishu/send/' + dataType, body);
+    if (res.code === 0) {
+      if (showMsg) showToast('已同步到飞书', 'success');
+      addSyncLog('[' + dataType + '] 同步成功: ' + (record.id || record.name || ''));
+      return true;
+    } else {
+      if (showMsg) showToast('飞书同步失败: ' + (res.msg || '未知错误'), 'error');
+      return false;
+    }
+  } catch(e) {
+    if (showMsg) showToast('飞书同步异常: ' + e.message, 'error');
+    console.error('syncRecordToFeishu error:', e);
+    return false;
+  }
+}
+
+// 批量同步某类数据到飞书
+async function syncAllToFeishu(dataType, showMsg) {
+  if (!FEISHU_SYNC_ENABLED) {
+    if (showMsg) showToast('飞书同步未启用', 'warn');
+    return;
+  }
+  if (SERVER_CONFIG.mode !== 'online') {
+    if (showMsg) showToast('请先连接服务器', 'warn');
+    return;
+  }
+  var records = lsGet('local_' + dataType, []);
+  if (!records || records.length === 0) {
+    if (showMsg) showToast('无数据可同步', 'warn');
+    return;
+  }
+  if (showMsg) showToast('正在同步 ' + records.length + ' 条记录到飞书...', 'info');
+  var success = 0, fail = 0;
+  for (var i = 0; i < records.length; i++) {
+    var ok = await syncRecordToFeishu(dataType, records[i], false);
+    if (ok) success++; else fail++;
+    // 避免频率限制，每条间隔500ms
+    if (i < records.length - 1) await new Promise(function(r){ setTimeout(r, 500); });
+  }
+  if (showMsg) showToast('同步完成: 成功' + success + '条, 失败' + fail + '条', success > 0 ? 'success' : 'error');
+  addSyncLog('[' + dataType + '] 批量同步完成: 成功' + success + ', 失败' + fail);
+}
+
 // V13 - 同步状态管理
 var SYNC_STATE = {
   status: 'offline',
@@ -1966,6 +2070,7 @@ function renderDailyReportList(filterFn, title) {
     h += '<button class="btn bp" onclick="createDaily()">&#10133; 新建日报</button>';
   }
   h += '<button class="btn bo" onclick="refreshData(\'daily\')">&#8635; 刷新</button>';
+  h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'daily_reports\',true)">&#9889; 同步飞书</button>';
   if (hasPermission('work-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllDailyReports(), \'日报列表\')">&#128190; 导出</button>';
   }
@@ -1987,6 +2092,7 @@ function renderDailyReportList(filterFn, title) {
       if (hasPermission('work-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editDaily(\'' + r.id + '\')">编辑</button>';
       }
+      h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncDailyToFeishu(\'' + r.id + '\')" title="同步到飞书">飞书</button>';
       if (hasPermission('work-manage','del')) {
         h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteDaily(\'' + r.id + '\')">删除</button>';
       }
@@ -2000,6 +2106,14 @@ function renderDailyReportList(filterFn, title) {
 }
 
 function dailyPageChange(p) { setPage('daily', p); refresh(); }
+
+// 同步单条日报到飞书
+async function syncDailyToFeishu(id) {
+  var all = getAllDailyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) { showToast('记录不存在', 'warn'); return; }
+  await syncRecordToFeishu('daily_reports', r, true);
+}
 
 function createDaily() {
   var today = new Date().toISOString().slice(0,10);
@@ -2046,8 +2160,9 @@ function openDailyDetail(id) {
   h += '<div class="form-field"><label>明日工作计划</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.plan || '') + '</div></div>';
   h += '<div class="form-field"><label>问题反馈</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.issues || '') + '</div></div>';
   var footer = '';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncDailyToFeishu(\'' + r.id + '\')">同步到飞书</button>';
   if (hasPermission('work-manage','edit')) {
-    footer += '<button class="btn bp" onclick="editDaily(\'' + r.id + '\')">编辑</button>';
+    footer += ' <button class="btn bp" onclick="editDaily(\'' + r.id + '\')">编辑</button>';
   }
   openMo({title:'日报详情 - ' + r.id, html:h, footer:footer});
 }
