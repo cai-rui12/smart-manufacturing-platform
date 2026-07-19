@@ -807,25 +807,18 @@ var REAL_TASKS = [
 ];
 
 var REAL_PROJECTS = [
-  {id:'PRJ-0001', name:'三期自动化', manager:'蔡瑞', status:'规划中', progress:0, startDate:'2026-07-01', endDate:'2026-12-31', budget:5000000, members:'蔡瑞,梁辉彬,黄广生', description:'三期自动化设备引进与验收项目，包括AGV、立体库、提升机等设备', nextPlan:'1.完成AGV和立体库设备选型\n2.推进提升机采购审批\n3.启动设备安装场地规划'},
-  {id:'PRJ-0002', name:'21台追加设备验收进度', manager:'蔡瑞', status:'进行中', progress:35, startDate:'2026-05-01', endDate:'2026-08-31', budget:2000000, members:'蔡瑞,梁辉彬', description:'二期追加20台自动化设备验收进度跟踪', nextPlan:'1.加快推进剩余设备验收\n2.完成验收报告整理\n3.推进设备移交生产部门'},
-  {id:'PRJ-0003', name:'一二期自动化设备验收', manager:'蔡瑞', status:'进行中', progress:43.3, startDate:'2026-01-01', endDate:'2026-09-30', budget:8000000, members:'蔡瑞,梁辉彬,黄广生,丁洋', description:'东城五厂一二期新设备验收全流程跟踪，全厂1021台设备，已完成442台（43.3%）', nextPlan:'1.按计划推进设备验收，目标9月30日前完成全部1021台\n2.重点跟进内层和外层工序设备\n3.整理验收资料归档'},
-  {id:'PRJ-0004', name:'智能巡检项目', manager:'蔡瑞', status:'进行中', progress:50, startDate:'2026-03-01', endDate:'2026-10-31', budget:1200000, members:'蔡瑞,湛子昂,刘洪文', description:'智能巡检系统推广项目，覆盖内层/外层/阻焊/沉金等工序', nextPlan:'1.推广智能巡检到更多工序\n2.优化巡检算法准确率\n3.建立巡检数据看板'},
-  {id:'PRJ-0005', name:'自动排产项目', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-11-30', budget:800000, members:'黄广生,梁辉彬,郑绪友', description:'自动排产与自动计划项目进度跟踪', nextPlan:'1.完成自动排产系统核心算法开发\n2.推进与MES系统对接\n3.试点工序验证'},
-  {id:'PRJ-0006', name:'OEE提升项目', manager:'丁洋', status:'规划中', progress:10, startDate:'2026-06-01', endDate:'2026-12-31', budget:600000, members:'丁洋,蔡佳琪', description:'设备综合效率OEE提升专项项目', nextPlan:'1.建立OEE数据采集体系\n2.分析当前OEE瓶颈\n3.制定提升方案并试点'}
-  ,{id:'PRJ-0007', name:'生产参数下发', manager:'郑绪友', lead:'郑绪友', status:'进行中', progress:97.08, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发专项，总计203项已完成185项，上线率92.04%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/阻焊字符/沉金/外形加工/电测/FQC包装共11个工序。', subSteps:[
-    {name:'内层',total:25,done:29,rate:82.86,lead:'郑绪友'},
-    {name:'压合',total:44,done:43,rate:97.73,lead:'郑绪友'},
-    {name:'钻孔',total:3,done:2,rate:66.67,lead:'郑绪友'},
-    {name:'电镀',total:22,done:20,rate:90.91,lead:'郑绪友'},
-    {name:'树脂塞孔',total:25,done:25,rate:100,lead:'郑绪友'},
-    {name:'外层',total:8,done:7,rate:87.5,lead:'郑绪友'},
-    {name:'阻焊字符',total:8,done:4,rate:50,lead:'郑绪友'},
-    {name:'沉金',total:2,done:2,rate:100,lead:'郑绪友'},
-    {name:'外形加工',total:17,done:17,rate:100,lead:'郑绪友'},
-    {name:'电测',total:14,done:14,rate:100,lead:'郑绪友'},
-    {name:'FQC包装',total:3,done:3,rate:100,lead:'郑绪友'}
-  ], nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.目标月底前整体上线率达到95%以上'}
+  {id:'PRJ-0001', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:92.04, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发总计201项，已完成185项，上线率92%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/丝印字符/沉金/外形加工/电测/FQC包装共11个工序。', leadType:'主导人', nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.内层7/8/9线曝光机未实现通孔码转曝光码，8号蚀刻线MES本周配置', risks:'1.5/7/8号蚀刻线未配置MES，供应商预计本周进厂\n2.阻焊单机曝光机未实现自动转码，四厂测试中\n3.创峰除胶线、超声波清洗线待工艺与IT对接', subSteps:[
+    {name:'内层',total:25,done:29,rate:82.86},{name:'压合',total:44,done:43,rate:97.73},{name:'钻孔',total:3,done:2,rate:66.67},{name:'电镀',total:22,done:20,rate:90.91},{name:'树脂塞孔',total:25,done:25,rate:100},{name:'外层',total:8,done:7,rate:87.5},{name:'丝印字符',total:8,done:4,rate:50},{name:'沉金',total:2,done:2,rate:100},{name:'外形加工',total:17,done:17,rate:100},{name:'电测',total:14,done:14,rate:100},{name:'FQC包装',total:3,done:3,rate:100}
+  ]},
+  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）'},
+  {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系'},
+  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢'},
+  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大'},
+  {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线'},
+  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数'},
+  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难'},
+  {id:'PRJ-0009', name:'自动计划专项', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'自动排产与自动计划项目，覆盖全厂工序。', leadType:'主导人', nextPlan:'1.完成自动排产核心算法开发\n2.推进与MES系统对接\n3.试点工序验证', risks:'项目刚启动，需明确各工序排产规则优先级'},
+  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认'}
 ];
 
 var REAL_WEEKLY_REPORTS = [
@@ -3847,43 +3840,38 @@ function renderProjectList(filterFn, title) {
   }
   h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
-  h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>编号</th><th>项目名称</th><th>项目经理</th><th>状态</th><th>进度</th><th>开始日期</th><th>结束日期</th><th>预算</th><th>操作</th></tr></thead><tbody>';
-  if (pageData.length === 0) {
-    h += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
-  } else {
-    pageData.forEach(function(p) {
-      h += '<tr onclick="openProjectDetail(\'' + p.id + '\')">';
-      h += '<td>' + p.id + '</td>';
-      h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + p.name;
+    var filtered = list;
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;margin-top:16px">';
+    for (var pi = 0; pi < filtered.length; pi++) {
+      var p = filtered[pi];
+      var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
+      var statusColor = p.status === '已完成' ? '#34c724' : p.status === '进行中' ? '#3b82f6' : p.status === '已暂停' ? '#ef4444' : '#f59e0b';
+      var statusBg = p.status === '已完成' ? 'rgba(52,199,36,0.1)' : p.status === '进行中' ? 'rgba(59,130,246,0.1)' : p.status === '已暂停' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
+      h += '<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'" onclick="openProjectDetail(\'' + p.id + '\')">';
+      // 顶部：项目名称+状态
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+      h += '<div><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name) + '</b></div>';
+      h += '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + escapeHtml(p.status) + '</span>';
+      h += '</div>';
+      // 负责人
+      h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">负责人：<span style="color:#e2e8f0">' + escapeHtml(p.manager) + '</span>' + (p.leadType ? ' (' + escapeHtml(p.leadType) + ')' : '') + '</div>';
+      // 进度条
+      h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#94a3b8">进度</span><span style="color:' + barColor + ';font-weight:700">' + p.progress + '%</span></div>';
+      h += '<div style="background:#334155;border-radius:6px;height:10px"><div style="background:' + barColor + ';height:10px;border-radius:6px;width:' + Math.min(p.progress, 100) + '%;transition:width .5s"></div></div></div>';
+      // 描述摘要
+      h += '<div style="font-size:12px;color:#94a3b8;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(p.description || '') + '</div>';
+      // 底部：后续计划摘要
+      if (p.nextPlan) {
+        var planLines = p.nextPlan.split('\\n');
+        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;font-size:11px;color:#64748b"><b style="color:#60a5fa">后续计划：</b> ' + escapeHtml(planLines[0]) + (planLines.length > 1 ? ' ...' : '') + '</div>';
+      }
+      // 子步骤摘要
       if (p.subSteps && p.subSteps.length > 0) {
-        var sDone = 0, sAll = 0;
-        for (var ssi = 0; ssi < p.subSteps.length; ssi++) { sDone += p.subSteps[ssi].done; sAll += p.subSteps[ssi].total; }
-        var sRate = sAll > 0 ? (sDone / sAll * 100).toFixed(1) : 0;
-        h += '<div style="font-size:11px;color:var(--t3);margin-top:2px">子工序 ' + sDone + '/' + sAll + ' (' + sRate + '%)</div>';
+        h += '<div style="margin-top:8px;font-size:11px;color:#64748b">子工序 <span style="color:#e2e8f0">' + p.subSteps.length + '</span> 项</div>';
       }
-      h += '</td>';
-      h += '<td>' + p.manager + '</td>';
-      h += '<td><span class="t ' + getStatusClass(p.status) + '">' + p.status + '</span></td>';
-      h += '<td style="min-width:120px"><div class="pb"><div class="pf ' + getProgressClass(p.progress) + '" style="width:' + p.progress + '%"></div></div><div style="font-size:11px;color:var(--t3);margin-top:2px">' + p.progress + '%</div></td>';
-      h += '<td>' + p.startDate + '</td>';
-      h += '<td>' + p.endDate + '</td>';
-      h += '<td>¥' + ((p.budget||0)/10000).toFixed(0) + '万</td>';
-      h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openProjectDetail(\'' + p.id + '\')">查看</button>';
-      if (hasPermission('project-manage','edit')) {
-        h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editProject(\'' + p.id + '\')">编辑</button>';
-        h += ' <button class="btn-sm" style="background:var(--or);color:#fff" onclick="event.stopPropagation();quickUpdateProgress(\'' + p.id + '\',' + p.progress + ')" title="更新进度">进度</button>';
-        h += ' <button class="btn-sm" style="background:var(--gn);color:#fff" onclick="event.stopPropagation();changeProjectStatus(\'' + p.id + '\')" title="变更状态">状态</button>';
-      }
-      h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncProjectToFeishu(\'' + p.id + '\')" title="同步到飞书">飞书</button>';
-      if (hasPermission('project-manage','del')) {
-        h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteProject(\'' + p.id + '\')">删除</button>';
-      }
-      h += '</td></tr>';
-    });
-  }
-  h += '</tbody></table></div></div>';
-  h += renderPagination(total, page, pageSize, 'projectPageChange');
+      h += '</div>';
+    }
+    h += '</div>';
   h += '</div>';
   return h;
 }
