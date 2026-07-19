@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V14</title>
+<title>智能制造组管理平台 V15</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -322,6 +322,9 @@ table.dt tr{transition:var(--tr-fast)}
 .activity-list .al-title{font-size:12.5px;font-weight:500;color:var(--t);line-height:1.5}
 .activity-list .al-time{font-size:11px;color:var(--t3);margin-top:3px}
 
+/* === Print === */
+@media print{.sb,.mn-h,.bg,.btn,.pagination,.toast-container{display:none !important}.mn-b{padding:0;background:#fff}.cd{box-shadow:none;border:1px solid #ddd;margin-bottom:8px;page-break-inside:avoid}.ch{height:200px}.timeline{padding-left:20px}.md{position:static;display:block;padding:0;backdrop-filter:none;background:none}.md .mo-bg{animation:none}.table-responsive{overflow:visible}} .print-only{display:none} @media print{.print-only{display:block}} .no-print{@media print{display:none !important}}
+
 /* === Responsive === */
 @media(max-width:768px){.sb{width:50px;min-width:50px}.sb-h .lo,.sb-h .v,.ml span:not(.a){display:none}.ml{justify-content:center;padding:7px 4px}.ml .a{margin:0}.sr{grid-template-columns:repeat(2,1fr)}.g2,.g3,.g4{grid-template-columns:1fr}.kpi-row{grid-template-columns:repeat(2,1fr)}.info-grid{grid-template-columns:1fr}}
 
@@ -378,7 +381,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
     <div class="login-logo">
       <div class="logo-icon">&#9881;</div>
       <h2>智能制造组管理平台</h2>
-      <p>V14 - 工号登录系统</p>
+      <p>V15 - 工号登录系统</p>
     </div>
     <div id="loginForm">
       <div class="login-fg">
@@ -407,7 +410,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 </div>
 <div id="mainApp" class="app" style="display:none">
   <div id="sb" class="sb">
-    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V14</span></div>
+    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V15</span></div>
     <div class="sb-b" id="sbContent"></div>
   </div>
   <div class="mn">
@@ -1228,8 +1231,7 @@ async function connectToServer(url) {
     localStorage.setItem('v13_server_enabled', 'true');
     updateSyncStatusBadge('connected', '已连接');
     addSyncLog('手动连接成功: ' + url);
-    showToast('连接成功！服务器: ', 'success') + url);
-    await syncLocalToServer();
+    showToast('连接成功！服务器: ' +  url), 'success')    await syncLocalToServer();
   } else {
     updateSyncStatusBadge('offline', '离线');
     addSyncLog('手动连接失败: ' + url);
@@ -1707,22 +1709,38 @@ function saveHomeConfig(c) { lsSet('home_config', c); }
 // =========================================
 function initAuth() {
   try {
-    if (!lsGet('passwords', null)) {
-      var pw = {};
-      PEOPLE_OBJ.forEach(function(p) { pw[p.employeeId] = '123456'; });
+    // V14 Fix: 增量同步密码，确保新增用户也有默认密码
+    var pw = lsGet('passwords', null);
+    if (!pw) { pw = {}; }
+    var pwChanged = false;
+    PEOPLE_OBJ.forEach(function(p) {
+      if (!pw[p.employeeId]) {
+        pw[p.employeeId] = '123456';
+        pwChanged = true;
+      }
+    });
+    if (pwChanged || !lsGet('passwords', null)) {
       lsSet('passwords', pw);
     }
-    if (!lsGet('user_roles', null)) {
-      var roles = {};
-      PEOPLE_OBJ.forEach(function(p) {
-        var eid = p.employeeId;
+
+    // V14 Fix: 增量同步角色，确保新增用户也有正确角色
+    var roles = lsGet('user_roles', null);
+    if (!roles) { roles = {}; }
+    var rolesChanged = false;
+    PEOPLE_OBJ.forEach(function(p) {
+      var eid = p.employeeId;
+      if (!roles[eid]) {
         if (eid === '64135') roles[eid] = 'owner';
         else if (eid === '70163' || eid === '60714') roles[eid] = 'admin';
         else if (EDITOR_IDS.indexOf(eid) !== -1) roles[eid] = 'editor';
         else roles[eid] = 'viewer';
-      });
+        rolesChanged = true;
+      }
+    });
+    if (rolesChanged || !lsGet('user_roles', null)) {
       lsSet('user_roles', roles);
     }
+
     var saved = lsGet('current_user', null);
     if (saved) {
       currentUser = saved;
@@ -2058,28 +2076,44 @@ function exportJSON(data, filename) {
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
+// V15 - 打印当前页面内容
+function printPage() {
+  try {
+    window.print();
+  } catch(e) { showToast('打印失败: ' + e.message, 'error'); }
+}
+
 function exportAllData() {
   try {
     var data = {
-      version: 'v9',
+      version: 'v15',
       exportTime: new Date().toISOString(),
       tasks: lsGet('local_tasks', []),
       daily: lsGet('local_daily', []),
+      weekly: lsGet('local_weekly', []),
+      monthly: lsGet('local_monthly', []),
       projects: lsGet('local_projects', []),
       equips: lsGet('local_equips', []),
       improves: lsGet('local_improves', []),
       docs: lsGet('local_docs', []),
+      scripts: lsGet('local_scripts', []),
       autoTasks: lsGet('local_autotasks', []),
+      maintains: lsGet('local_maintains', []),
+      repairs: lsGet('local_repairs', []),
+      equipAccepts: lsGet('local_equip_accepts', []),
+      spares: lsGet('local_spares', []),
+      memberApplies: lsGet('local_member_applies', []),
       webhooks: lsGet('webhooks', []),
       pushHistory: lsGet('push_history', []),
       passwords: lsGet('passwords', {}),
       userRoles: lsGet('user_roles', {}),
       permissionMatrix: lsGet('permission_matrix', {}),
-      homeConfig: lsGet('home_config', {})
+      homeConfig: lsGet('home_config', {}),
+      autoTaskLogs: lsGet('auto_task_logs', [])
     };
-    exportJSON(data, 'v9_all_data_backup');
+    exportJSON(data, 'v15_all_data_backup');
     showToast('数据导出成功！', 'success');
-  } catch(e) { showToast('导出失败: ', 'error') + e.message); }
+  } catch(e) { showToast('导出失败: ' + e.message, 'error'); }
 }
 
 function importAllData() {
@@ -2097,25 +2131,34 @@ function importAllData() {
           if (!confirm('确定要导入数据吗？这将覆盖现有数据！')) return;
           if (data.tasks) lsSet('local_tasks', data.tasks);
           if (data.daily) lsSet('local_daily', data.daily);
+          if (data.weekly) lsSet('local_weekly', data.weekly);
+          if (data.monthly) lsSet('local_monthly', data.monthly);
           if (data.projects) lsSet('local_projects', data.projects);
           if (data.equips) lsSet('local_equips', data.equips);
           if (data.improves) lsSet('local_improves', data.improves);
           if (data.docs) lsSet('local_docs', data.docs);
+          if (data.scripts) lsSet('local_scripts', data.scripts);
           if (data.autoTasks) lsSet('local_autotasks', data.autoTasks);
+          if (data.maintains) lsSet('local_maintains', data.maintains);
+          if (data.repairs) lsSet('local_repairs', data.repairs);
+          if (data.equipAccepts) lsSet('local_equip_accepts', data.equipAccepts);
+          if (data.spares) lsSet('local_spares', data.spares);
+          if (data.memberApplies) lsSet('local_member_applies', data.memberApplies);
           if (data.webhooks) lsSet('webhooks', data.webhooks);
           if (data.pushHistory) lsSet('push_history', data.pushHistory);
           if (data.passwords) lsSet('passwords', data.passwords);
           if (data.userRoles) lsSet('user_roles', data.userRoles);
           if (data.permissionMatrix) lsSet('permission_matrix', data.permissionMatrix);
           if (data.homeConfig) lsSet('home_config', data.homeConfig);
+          if (data.autoTaskLogs) lsSet('auto_task_logs', data.autoTaskLogs);
           showToast('导入成功！', 'success');
           refresh();
-        } catch(err) { showToast('导入失败: ', 'error') + err.message); }
+        } catch(err) { showToast('导入失败: ' + err.message, 'error'); }
       };
       reader.readAsText(file);
     };
     input.click();
-  } catch(e) { showToast('导入失败: ', 'error') + e.message); }
+  } catch(e) { showToast('导入失败: ' + e.message, 'error'); }
 }
 
 // V13 - 清除本地数据并从服务器恢复
@@ -2129,9 +2172,9 @@ async function clearLocalAndRestore() {
     if (SERVER_CONFIG.mode === 'online') {
       await doFullSync();
     }
-    showToast('本地数据已清除', 'info') + (SERVER_CONFIG.mode === 'online' ? '，已从服务器恢复' : '。由于未连接服务器，数据将为内置默认值'));
+    showToast('本地数据已清除' + (SERVER_CONFIG.mode === 'online' ? '，已从服务器恢复' : '。由于未连接服务器，数据将为内置默认值'), 'info');
     refresh();
-  } catch(e) { showToast('操作失败: ', 'error') + e.message); }
+  } catch(e) { showToast('操作失败: ' + e.message, 'error'); }
 }
 
 function renderPagination(total, page, pageSize, callback) {
@@ -2315,12 +2358,24 @@ function initHomeCharts() {
         options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
       });
     }
-    // 本周日报柱状图
+    // 本周日报柱状图（动态统计）
     var c2 = document.getElementById('homeChart2');
     if (c2) {
       if (chartInstances.home2) chartInstances.home2.destroy();
       var days = ['周一','周二','周三','周四','周五','周六','周日'];
-      var counts = [5, 6, 7, 5, 6, 2, 1];
+      var reports = getAllDailyReports();
+      var now2 = new Date();
+      var monday = new Date(now2);
+      monday.setDate(now2.getDate() - ((now2.getDay() + 6) % 7));
+      monday.setHours(0,0,0,0);
+      var counts = [0,0,0,0,0,0,0];
+      reports.forEach(function(r) {
+        if (!r.date) return;
+        var d = new Date(r.date.replace(/\//g,'-'));
+        if (isNaN(d.getTime())) return;
+        var diff = Math.floor((d - monday) / 86400000);
+        if (diff >= 0 && diff < 7) counts[diff]++;
+      });
       chartInstances.home2 = new Chart(c2, {
         type: 'bar',
         data: {
@@ -2387,6 +2442,7 @@ function renderDailyReportList(filterFn, title) {
   if (hasPermission('work-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllDailyReports(), \'日报列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>日期</th><th>汇报人</th><th>状态</th><th>工时</th><th>今日工作</th><th>操作</th></tr></thead><tbody>';
@@ -2708,6 +2764,7 @@ function renderWeeklyReport() {
   if (hasPermission('work-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllWeeklyReports(), \'周报列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>周次</th><th>汇报人</th><th>周期</th><th>提交时间</th><th>状态</th><th>工时</th><th>完成率</th><th>操作</th></tr></thead><tbody>';
@@ -2916,6 +2973,7 @@ function renderMonthlyReport() {
   if (hasPermission('work-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllMonthlyReports(), \'月报列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>月份</th><th>报告名称</th><th>编制人</th><th>提交时间</th><th>状态</th><th>绩效</th><th>目标达成率</th><th>操作</th></tr></thead><tbody>';
@@ -3094,6 +3152,7 @@ function renderTaskList(filterFn, title) {
   if (hasPermission('task-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllTasks(), \'任务列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>任务描述</th><th>负责人</th><th>优先级</th><th>状态</th><th>进度</th><th>开始日期</th><th>截止日期</th><th>操作</th></tr></thead><tbody>';
@@ -3305,6 +3364,7 @@ function renderProjectList(filterFn, title) {
   if (hasPermission('project-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllProjects(), \'项目列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>项目名称</th><th>项目经理</th><th>状态</th><th>进度</th><th>开始日期</th><th>结束日期</th><th>预算</th><th>操作</th></tr></thead><tbody>';
@@ -3586,6 +3646,10 @@ function renderMaintainList(mode) {
       h += '<button class="btn bp" onclick="createMaintain()">&#10133; 新建保养</button>';
     }
     h += '<button class="btn bo" onclick="refreshMaintain()">&#8635; 刷新</button>';
+    if (hasPermission('equip-manage','export')) {
+      h += '<button class="btn bo" onclick="exportCSV(getAllMaintains(), \'保养记录\')">&#128190; 导出</button>';
+    }
+    h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
     h += '</div>';
     h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
     h += '<thead><tr><th>编号</th><th>设备编号</th><th>设备名称</th><th>保养类型</th><th>计划日期</th><th>执行人</th><th>状态</th><th>下次保养</th><th>操作</th></tr></thead><tbody>';
@@ -3777,6 +3841,10 @@ function renderRepairList(mode) {
       h += '<button class="btn bp" onclick="createRepair()">&#10133; 新建报修</button>';
     }
     h += '<button class="btn bo" onclick="refreshRepair()">&#8635; 刷新</button>';
+    if (hasPermission('equip-manage','export')) {
+      h += '<button class="btn bo" onclick="exportCSV(getAllRepairs(), \'报修记录\')">&#128190; 导出</button>';
+    }
+    h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
     h += '</div>';
     h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
     h += '<thead><tr><th>编号</th><th>设备</th><th>故障描述</th><th>报修人</th><th>报修时间</th><th>状态</th><th>处理人</th><th>费用</th><th>操作</th></tr></thead><tbody>';
@@ -3955,6 +4023,7 @@ function renderEquipList(filterFn, title) {
   if (hasPermission('equip-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllEquips(), \'设备清单\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>设备编号</th><th>设备名称</th><th>所属工序</th><th>状态</th><th>安装日期</th><th>所属班组</th><th>位置</th><th>操作</th></tr></thead><tbody>';
@@ -4159,9 +4228,14 @@ function renderEquipAccept(status) {
     h += '<option value="不合格"' + (resultFilter==='不合格'?' selected':'') + '>不合格</option>';
     h += '</select>';
   }
-  h += '<button class="btn bp" onclick="createEquipAccept()">&#10133; 新增验收</button>';
+  if (hasPermission('equip-manage','create')) {
+    h += '<button class="btn bp" onclick="createEquipAccept()">&#10133; 新增验收</button>';
+  }
   h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
-  h += '<button class="btn bo" onclick="exportCSV(getAllEquipAccepts(), \'设备验收\')">&#128190; 导出</button>';
+  if (hasPermission('equip-manage','export')) {
+    h += '<button class="btn bo" onclick="exportCSV(getAllEquipAccepts(), \'设备验收\')">&#128190; 导出</button>';
+  }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>设备名称</th><th>设备编号</th><th>供应商</th><th>验收日期</th><th>验收人员</th><th>验收结果</th><th>状态</th><th>操作</th></tr></thead><tbody>';
@@ -4175,11 +4249,15 @@ function renderEquipAccept(status) {
       h += '<td><span class="t ' + (e.status==='已验收'?'tg':'to') + '">' + e.status + '</span></td>';
       h += '<td>';
       h += '<button class="btn-sm bo" onclick="viewEquipAccept(\'' + e.id + '\')">查看</button> ';
-      h += '<button class="btn-sm bp" onclick="editEquipAccept(\'' + e.id + '\')">编辑</button> ';
-      if (e.status !== '已验收') {
-        h += '<button class="btn-sm bp" onclick="doEquipAccept(\'' + e.id + '\')">验收</button> ';
+      if (hasPermission('equip-manage','edit')) {
+        h += '<button class="btn-sm bp" onclick="editEquipAccept(\'' + e.id + '\')">编辑</button> ';
+        if (e.status !== '已验收') {
+          h += '<button class="btn-sm bp" onclick="doEquipAccept(\'' + e.id + '\')">验收</button> ';
+        }
       }
-      h += '<button class="btn-sm dg" onclick="deleteEquipAccept(\'' + e.id + '\')">删除</button>';
+      if (hasPermission('equip-manage','del')) {
+        h += '<button class="btn-sm dg" onclick="deleteEquipAccept(\'' + e.id + '\')">删除</button>';
+      }
       h += '</td></tr>';
     });
   }
@@ -4355,9 +4433,14 @@ function renderSpare(kind) {
   h += '<option value="正常"' + (statusFilter==='正常'?' selected':'') + '>正常</option>';
   h += '<option value="库存不足"' + (statusFilter==='库存不足'?' selected':'') + '>库存不足</option>';
   h += '</select>';
-  h += '<button class="btn bp" onclick="createSpare()">&#10133; 新增备件</button>';
+  if (hasPermission('equip-manage','create')) {
+    h += '<button class="btn bp" onclick="createSpare()">&#10133; 新增备件</button>';
+  }
   h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
-  h += '<button class="btn bo" onclick="exportCSV(getAllSpares(), \'备件管理\')">&#128190; 导出</button>';
+  if (hasPermission('equip-manage','export')) {
+    h += '<button class="btn bo" onclick="exportCSV(getAllSpares(), \'备件管理\')">&#128190; 导出</button>';
+  }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>备件编号</th><th>备件名称</th><th>库存数量</th><th>最低库存</th><th>单位</th><th>存放位置</th>';
@@ -4376,9 +4459,13 @@ function renderSpare(kind) {
       h += '<td><span class="t ' + (warn?'tr':'tg') + '">' + (warn?'库存不足':'正常') + '</span></td>';
       h += '<td>';
       h += '<button class="btn-sm bo" onclick="viewSpare(\'' + s.id + '\')">查看</button> ';
-      h += '<button class="btn-sm bp" onclick="editSpare(\'' + s.id + '\')">编辑</button> ';
-      if (warn) h += '<button class="btn-sm bp" onclick="restockSpare(\'' + s.id + '\')">补货</button> ';
-      h += '<button class="btn-sm dg" onclick="deleteSpare(\'' + s.id + '\')">删除</button>';
+      if (hasPermission('equip-manage','edit')) {
+        h += '<button class="btn-sm bp" onclick="editSpare(\'' + s.id + '\')">编辑</button> ';
+        if (warn) h += '<button class="btn-sm bp" onclick="restockSpare(\'' + s.id + '\')">补货</button> ';
+      }
+      if (hasPermission('equip-manage','del')) {
+        h += '<button class="btn-sm dg" onclick="deleteSpare(\'' + s.id + '\')">删除</button>';
+      }
       h += '</td></tr>';
     });
   }
@@ -4555,6 +4642,7 @@ function renderImproveList(filterFn, title) {
   if (hasPermission('improve-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllImproves(), \'改善列表\')">&#128190; 导出</button>';
   }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>改善标题</th><th>提案人</th><th>部门</th><th>分类</th><th>日期</th><th>状态</th><th>效果</th><th>操作</th></tr></thead><tbody>';
@@ -4981,7 +5069,7 @@ function viewPersonDetail(employeeId) {
     h += '</div>';
     h += '<div class="form-field" style="margin-top:12px"><label>职责范围</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6">' + p.scope + '</div></div>';
     openMo({title:'人员详情 - ' + p.name, html:h});
-  } catch(e) { showToast('查看详情失败: ', 'error') + e.message); }
+  } catch(e) { showToast('查看详情失败: ' + e.message, 'error'); }
 }
 
 function renderPeopleList() {
@@ -5107,11 +5195,11 @@ function editSkillLevel(personId, skillName, currentLevel) {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { showToast('编辑技能失败: ', 'error') + e.message); }
+  } catch(e) { showToast('编辑技能失败: ' + e.message, 'error'); }
 }
 
 function refreshSkillMatrix() {
-  try { refresh(); } catch(e) { showToast('刷新失败: ', 'error') + e.message); }
+  try { refresh(); } catch(e) { showToast('刷新失败: ' + e.message, 'error'); }
 }
 
 function resetSkillMatrix() {
@@ -5119,7 +5207,7 @@ function resetSkillMatrix() {
     if (!confirm('确定重置技能矩阵为默认数据？此操作不可撤销。')) return;
     saveSkillMatrix(DEFAULT_SKILL_MATRIX);
     refresh();
-  } catch(e) { showToast('重置失败: ', 'error') + e.message); }
+  } catch(e) { showToast('重置失败: ' + e.message, 'error'); }
 }
 
 function renderDocLibrary() {
@@ -5209,7 +5297,7 @@ function uploadDoc() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { showToast('上传文档失败: ', 'error') + e.message); }
+  } catch(e) { showToast('上传文档失败: ' + e.message, 'error'); }
 }
 
 function viewDocDetail(id) {
@@ -5228,7 +5316,7 @@ function viewDocDetail(id) {
     h += '</div></div>';
     h += '<div class="form-field"><label>文档描述</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6">' + (d.desc || '') + '</div></div>';
     openMo({title:'文档详情 - ' + d.name, html:h});
-  } catch(e) { showToast('查看文档失败: ', 'error') + e.message); }
+  } catch(e) { showToast('查看文档失败: ' + e.message, 'error'); }
 }
 
 function downloadDoc(id) {
@@ -5261,7 +5349,7 @@ function downloadDoc(id) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
-  } catch(e) { showToast('下载失败: ', 'error') + e.message); }
+  } catch(e) { showToast('下载失败: ' + e.message, 'error'); }
 }
 
 function downloadScript(id) {
@@ -5284,7 +5372,7 @@ function downloadScript(id) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
-  } catch(e) { showToast('下载失败: ', 'error') + e.message); }
+  } catch(e) { showToast('下载失败: ' + e.message, 'error'); }
 }
 
 function viewScriptCode(id) {
@@ -5297,7 +5385,7 @@ function viewScriptCode(id) {
     h += '<div class="form-field"><label>描述</label><div style="font-size:12px;color:var(--t2)">' + s.desc + '</div></div>';
     h += '<div class="form-field"><label>代码预览</label><pre style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:300px">// ' + s.name + '\n// 功能: ' + s.desc + '\n// 日期: ' + s.date + '\n\nprint("Hello, World!")</pre></div>';
     openMo({title:'脚本代码 - ' + s.name, html:h});
-  } catch(e) { showToast('查看代码失败: ', 'error') + e.message); }
+  } catch(e) { showToast('查看代码失败: ' + e.message, 'error'); }
 }
 
 function renderToolLibrary() {
@@ -5646,8 +5734,7 @@ function renderAutoTaskTemplates() {
 function useTemplate(id) {
   var t = AUTO_TASK_TEMPLATES.find(function(x){return x.id===id;});
   if (!t) return;
-  showToast('使用模板：', 'info') + t.name + '\n可在任务列表中编辑调整。');
-  // 直接创建一个副本
+  showToast('使用模板：' +  t.name + '\n可在任务列表中编辑调整。'), 'info')  // 直接创建一个副本
   var local = lsGet('local_autotasks', []);
   var maxNum = 0;
   getAllAutoTasks().forEach(function(x) {
@@ -5666,20 +5753,15 @@ function useTemplate(id) {
 function renderAutoTaskLogs() {
   var logs = lsGet('auto_task_logs', []);
   if (logs.length === 0) {
-    // 生成一些示例日志
-    logs = [
-      {id:'LOG001', taskId:'TPL001', taskName:'每日日报提醒', time:'2026-07-10 17:00:00', status:'成功', result:'已推送至全员群，57人收到'},
-      {id:'LOG002', taskId:'TPL005', taskName:'设备保养提醒', time:'2026-07-10 09:00:00', status:'成功', result:'已推送保养任务清单'},
-      {id:'LOG003', taskId:'TPL008', taskName:'安全巡检提醒', time:'2026-07-10 08:30:00', status:'成功', result:'已推送给安全员'},
-      {id:'LOG004', taskId:'TPL001', taskName:'每日日报提醒', time:'2026-07-09 17:00:00', status:'成功', result:'已推送至全员群'},
-      {id:'LOG005', taskId:'TPL009', taskName:'备件库存预警', time:'2026-07-09 10:00:00', status:'成功', result:'预警3种备件库存不足'},
-      {id:'LOG006', taskId:'TPL002', taskName:'每周周报汇总', time:'2026-07-05 17:00:00', status:'成功', result:'已推送周报提醒'},
-      {id:'LOG007', taskId:'TPL004', taskName:'每日改善提醒', time:'2026-07-10 15:30:00', status:'成功', result:'已推送改善提醒'},
-      {id:'LOG008', taskId:'TPL003', taskName:'每月KPI报告', time:'2026-07-01 09:00:00', status:'成功', result:'6月KPI报告已生成'},
-      {id:'LOG009', taskId:'TPL006', taskName:'设备验收提醒', time:'2026-07-09 14:30:00', status:'成功', result:'已通知项目负责人'},
-      {id:'LOG010', taskId:'TPL011', taskName:'周报逾期未交提醒', time:'2026-07-05 18:00:00', status:'成功', result:'提醒3位未提交人员'}
-    ];
-    lsSet('auto_task_logs', logs);
+    // 空状态：不生成示例数据，显示提示
+    var h = '<div class="page-enter">';
+    h += '<div class="pt">📋 执行日志 <span class="bdg">共 0 条</span></div>';
+    h += '<div class="empty-state">';
+    h += '<div class="es-icon">📭</div>';
+    h += '<div class="es-title">暂无执行日志</div>';
+    h += '<div class="es-hint">自动化任务执行后，日志将在此显示。<br>请先在"自动化任务"页面配置并启用任务。</div>';
+    h += '</div></div>';
+    return h;
   }
   var h = '<div class="page-enter">';
   h += '<div class="pt">📋 执行日志 <span class="bdg">共 ' + logs.length + ' 条</span></div>';
@@ -5894,7 +5976,7 @@ function createMsgTemplate() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { showToast('新增模板失败: ', 'error') + e.message); }
+  } catch(e) { showToast('新增模板失败: ' + e.message, 'error'); }
 }
 
 function editMsgTemplate(id) {
@@ -5926,7 +6008,7 @@ function editMsgTemplate(id) {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { showToast('编辑模板失败: ', 'error') + e.message); }
+  } catch(e) { showToast('编辑模板失败: ' + e.message, 'error'); }
 }
 
 function deleteMsgTemplate(id) {
@@ -5935,7 +6017,7 @@ function deleteMsgTemplate(id) {
     var templates = getMsgTemplates().filter(function(t){ return t.id !== id; });
     saveMsgTemplates(templates);
     refresh();
-  } catch(e) { showToast('删除模板失败: ', 'error') + e.message); }
+  } catch(e) { showToast('删除模板失败: ' + e.message, 'error'); }
 }
 
 function useMsgTemplate(id) {
@@ -5986,8 +6068,7 @@ function sendMsg() {
   });
   savePushHistory(history.slice(0, 50));
   
-  showToast('消息已推送至 ', 'info') + selectedWebhooks.length + ' 个群组！\n目标：' + targetNames);
-  refresh();
+  showToast('消息已推送至 ' +  selectedWebhooks.length + ' 个群组！\n目标：' + targetNames), 'info')  refresh();
 }
 
 function viewPushHistoryDetail(id) {
@@ -6003,7 +6084,7 @@ function viewPushHistoryDetail(id) {
     html += '</div>';
     html += '<div class="form-field" style="margin-top:12px"><label>消息内容</label><div style="padding:10px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-wrap">' + h.content + '</div></div>';
     openMo({title:'推送详情', html:html});
-  } catch(e) { showToast('查看详情失败: ', 'error') + e.message); }
+  } catch(e) { showToast('查看详情失败: ' + e.message, 'error'); }
 }
 
 function resendPush(id) {
@@ -6025,7 +6106,7 @@ function resendPush(id) {
     savePushHistory(history.slice(0, 50));
     showToast('重发成功！', 'success');
     refresh();
-  } catch(e) { showToast('重发失败: ', 'error') + e.message); }
+  } catch(e) { showToast('重发失败: ' + e.message, 'error'); }
 }
 
 function clearPushHistory() {
@@ -6343,8 +6424,7 @@ async function importLocalToServer() {
     refresh();
   } catch(e) {
     setSyncStatus('error');
-    showToast('导入失败: ', 'error') + e.message);
-  }
+    showToast('导入失败: ' +  e.message), 'error')  }
 }
 
 // V13 - 连接/断开服务器切换
@@ -6708,20 +6788,16 @@ async function testTableConnection(type) {
     showToast('请先连接服务器', 'warn');
     return;
   }
-  showToast('测试读取 ', 'info') + type + ' 的前3条记录...');
-  try {
+  showToast('测试读取 ' +  type + ' 的前3条记录...'), 'info')  try {
     var res = await apiRequest('POST', '/api/sync/read/' + type, {limit: 3});
     if (res.code === 0) {
       var count = res.data ? res.data.length : 0;
-      showToast('测试成功! 读取到 ', 'success') + count + ' 条记录');
-      addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
+      showToast('测试成功! 读取到 ' +  count + ' 条记录'), 'success')      addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
     } else {
-      showToast('测试失败: ', 'error') + res.msg);
-      addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
+      showToast('测试失败: ' +  res.msg), 'error')      addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
     }
   } catch(e) {
-    showToast('测试失败: ', 'error') + e.message);
-  }
+    showToast('测试失败: ' +  e.message), 'error')  }
   refresh();
 }
 
@@ -6780,8 +6856,7 @@ async function readAllFromFeishu() {
   } catch(e) {
     setSyncStatus('error');
     addSyncLog('读取飞书数据失败: ' + e.message);
-    showToast('读取失败: ', 'error') + e.message);
-  }
+    showToast('读取失败: ' +  e.message), 'error')  }
   refresh();
 }
 
@@ -6946,9 +7021,14 @@ function renderMemberApply() {
   h += '<option value="已通过"' + (statusFilter==='已通过'?' selected':'') + '>已通过</option>';
   h += '<option value="已拒绝"' + (statusFilter==='已拒绝'?' selected':'') + '>已拒绝</option>';
   h += '</select>';
-  h += '<button class="btn bp" onclick="createMemberApply()">&#10133; 新增申请</button>';
+  if (hasPermission('org-manage','create')) {
+    h += '<button class="btn bp" onclick="createMemberApply()">&#10133; 新增申请</button>';
+  }
   h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
-  h += '<button class="btn bo" onclick="exportCSV(getAllMemberApplies(), \'人员申请\')">&#128190; 导出</button>';
+  if (hasPermission('org-manage','export')) {
+    h += '<button class="btn bo" onclick="exportCSV(getAllMemberApplies(), \'人员申请\')">&#128190; 导出</button>';
+  }
+  h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>申请编号</th><th>申请人</th><th>工号</th><th>部门</th><th>申请类型</th><th>申请原因</th><th>申请日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
@@ -6963,12 +7043,16 @@ function renderMemberApply() {
       h += '<td><span class="t ' + statusClass + '">' + a.status + '</span></td>';
       h += '<td>';
       h += '<button class="btn-sm bo" onclick="viewMemberApply(\'' + a.id + '\')">查看</button> ';
-      h += '<button class="btn-sm bp" onclick="editMemberApply(\'' + a.id + '\')">编辑</button> ';
-      if (a.status === '待审批') {
-        h += '<button class="btn-sm gs" onclick="approveMemberApply(\'' + a.id + '\')">通过</button> ';
-        h += '<button class="btn-sm dg" onclick="rejectMemberApply(\'' + a.id + '\')">拒绝</button> ';
+      if (hasPermission('org-manage','edit')) {
+        h += '<button class="btn-sm bp" onclick="editMemberApply(\'' + a.id + '\')">编辑</button> ';
+        if (a.status === '待审批') {
+          h += '<button class="btn-sm gs" onclick="approveMemberApply(\'' + a.id + '\')">通过</button> ';
+          h += '<button class="btn-sm dg" onclick="rejectMemberApply(\'' + a.id + '\')">拒绝</button> ';
+        }
       }
-      h += '<button class="btn-sm dg" onclick="deleteMemberApply(\'' + a.id + '\')">删除</button>';
+      if (hasPermission('org-manage','del')) {
+        h += '<button class="btn-sm dg" onclick="deleteMemberApply(\'' + a.id + '\')">删除</button>';
+      }
       h += '</td></tr>';
     });
   }
@@ -8845,8 +8929,7 @@ document.addEventListener('DOMContentLoaded', function() {
     detectServer();
   } catch(e) {
     console.error('Init error:', e);
-    showToast('初始化失败: ', 'error') + e.message);
-  }
+    showToast('初始化失败: ' +  e.message), 'error')  }
 });
 
 // 回车键登录
