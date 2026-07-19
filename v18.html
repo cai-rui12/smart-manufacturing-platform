@@ -1277,7 +1277,7 @@ var chartInstances = {};
 // V13 - 后端API层（双模式运行 + 自动检测）
 // =========================================
 var SERVER_CONFIG = {
-  url: localStorage.getItem('v13_server_url') || (location.protocol==='file:' ? 'http://localhost:3000' : 'https://one-rug-investigations-lexington.trycloudflare.com'),
+  url: localStorage.getItem('v13_server_url') || (location.protocol==='file:' ? 'http://localhost:3000' : 'http://172.24.20.28:3000'),
   enabled: localStorage.getItem('v13_server_enabled') !== 'false',
   mode: localStorage.getItem('v13_server_enabled') !== 'false' ? 'online' : 'offline'
 };
@@ -1480,7 +1480,7 @@ function updateSyncStatusBadge(status, text) {
 
 async function manualConnect(e) {
   if (e) e.stopPropagation();
-  var url = SERVER_CONFIG.url || 'https://one-rug-investigations-lexington.trycloudflare.com';
+  var url = SERVER_CONFIG.url || 'https://mothers-temp-tide-lawsuit.trycloudflare.com';
   if (url && url.trim()) {
     updateSyncStatusBadge('syncing', '重连中...');
     addSyncLog('手动连接到: ' + url.trim());
