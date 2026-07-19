@@ -4450,7 +4450,7 @@ function renderAutoTaskList() {
       h += '<td><span class="t ' + (t.status==='启用'?'tg':'tx') + '">' + t.status + '</span></td>';
       h += '<td>' + (t.lastRun || '-') + '</td>';
       h += '<td>';
-      h += '<button class="btn-sm gs" onclick="event.stopPropagation();runAutoTask(\'' + t.id + '\')" title="执行">▶</button> ';
+      h += '<button class="btn-sm gs" id="btnRunAutoTask_' + t.id + '" onclick="event.stopPropagation();runAutoTask(\'' + t.id + '\')" title="执行">▶</button> ';
       h += '<button class="btn-sm bp" onclick="event.stopPropagation();editAutoTask(\'' + t.id + '\')" title="编辑">✏</button> ';
       h += '<button class="btn-sm dg" onclick="event.stopPropagation();deleteAutoTask(\'' + t.id + '\')" title="删除">🗑</button> ';
       h += '<button class="btn-sm bo" onclick="event.stopPropagation();viewAutoTaskLog(\'' + t.id + '\')" title="日志">📋</button> ';
@@ -4520,7 +4520,7 @@ function openAutoTaskDetail(id) {
   h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
   h += '<div class="form-field"><label>消息模板</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (t.template || '') + '</div></div>';
   h += '<div class="form-field"><label>备注</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px">' + (t.remark || '-') + '</div></div>';
-  var footer = '<button class="btn gs" onclick="runAutoTask(\'' + t.id + '\')">立即执行</button>';
+  var footer = '<button class="btn gs" id="btnRunAutoTask_' + t.id + '" onclick="runAutoTask(\'' + t.id + '\')">立即执行</button>';
   if (hasPermission('auto-task','edit')) {
     footer += '<button class="btn bp" onclick="editAutoTask(\'' + t.id + '\')">编辑</button>';
   }
@@ -4571,30 +4571,75 @@ function deleteAutoTask(id) {
   refresh();
 }
 
-function runAutoTask(id) {
+async function runAutoTask(id) {
   var all = getAllAutoTasks();
   var t = all.find(function(x){ return x.id === id; });
   if (!t) return;
-  if (!confirm('确定立即执行任务：' + t.name + '？')) return;
-  // 更新上次执行时间
-  var local = lsGet('local_autotasks', []);
-  var idx = local.findIndex(function(x){ return x.id === id; });
-  var now = new Date();
-  var timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  if (idx >= 0) {
-    local[idx].lastRun = timeStr;
-  } else {
-    local.push({id:t.id, name:t.name, type:t.type, action:t.action, trigger:t.trigger, schedule:t.schedule, status:t.status, lastRun:timeStr, target:t.target, template:t.template, remark:t.remark});
+
+  // 非日报提醒类型给出toast提示
+  if (t.type !== '日报提醒') {
+    showToast('当前任务类型为"' + t.type + '"，暂不支持手动执行。仅"日报提醒"类型支持立即推送日报。', 'warn');
+    return;
   }
-  saveLocalAutoTasks(local);
-  saveData('auto_tasks', local); // V13 - 实时同步后端
-  // 记录日志
-  var logs = lsGet('auto_task_logs', []);
-  logs.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr, status:'成功', result:'手动执行成功'});
-  lsSet('auto_task_logs', logs.slice(0, 100));
-  alert('任务执行成功！');
-  closeMo();
-  refresh();
+
+  if (!confirm('确定立即执行任务：' + t.name + '？')) return;
+
+  // 检查服务器连接
+  if (SERVER_CONFIG.mode !== 'online') {
+    showToast('请先连接服务器后再执行任务', 'warn');
+    return;
+  }
+
+  // 按钮loading状态
+  var btn = document.getElementById('btnRunAutoTask_' + id);
+  var btnOrigHtml = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ 执行中...'; }
+  showToast('正在推送日报，请稍候...', 'info');
+
+  try {
+    var today = new Date().toISOString().split('T')[0];
+    var resp = await apiRequest('POST', '/api/daily-report/send', { date: today });
+
+    var now = new Date();
+    var timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    // 更新上次执行时间
+    var local = lsGet('local_autotasks', []);
+    var idx = local.findIndex(function(x){ return x.id === id; });
+    if (idx >= 0) {
+      local[idx].lastRun = timeStr;
+    } else {
+      local.push({id:t.id, name:t.name, type:t.type, action:t.action, trigger:t.trigger, schedule:t.schedule, status:t.status, lastRun:timeStr, target:t.target, template:t.template, remark:t.remark});
+    }
+    saveLocalAutoTasks(local);
+    saveData('auto_tasks', local);
+
+    // 记录日志
+    var logs = lsGet('auto_task_logs', []);
+    if (resp.code === 0) {
+      var workCount = resp.data.work_report_count || 0;
+      var attendCount = resp.data.attendance_count || 0;
+      var resultMsg = '工作汇报:' + workCount + '条, 出勤:' + attendCount + '条';
+      logs.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr, status:'成功', result:resultMsg});
+      lsSet('auto_task_logs', logs.slice(0, 100));
+      showToast('日报推送成功！' + resultMsg, 'success');
+    } else {
+      logs.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr, status:'失败', result: resp.msg || '未知错误'});
+      lsSet('auto_task_logs', logs.slice(0, 100));
+      showToast('日报推送失败: ' + (resp.msg || '未知错误'), 'error');
+    }
+  } catch(e) {
+    var now2 = new Date();
+    var timeStr2 = now2.getFullYear() + '-' + String(now2.getMonth()+1).padStart(2,'0') + '-' + String(now2.getDate()).padStart(2,'0') + ' ' + String(now2.getHours()).padStart(2,'0') + ':' + String(now2.getMinutes()).padStart(2,'0');
+    var logs2 = lsGet('auto_task_logs', []);
+    logs2.unshift({id:'LOG' + Date.now(), taskId:id, taskName:t.name, time:timeStr2, status:'失败', result:'异常: ' + e.message});
+    lsSet('auto_task_logs', logs2.slice(0, 100));
+    showToast('日报推送异常: ' + e.message, 'error');
+    console.error('runAutoTask error:', e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = btnOrigHtml; }
+    refresh();
+  }
 }
 
 function copyAutoTask(id) {
@@ -5918,39 +5963,193 @@ function renderDataBackup() {
 // =========================================
 // V10 - 人员申请
 // =========================================
+var MEMBER_APPLY_DEFAULTS = [
+  {id:'AP001', name:'张三', employeeId:'70001', dept:'智能制造组', position:'助理工程师', applyType:'入职申请', reason:'新员工入职申请', status:'待审批', date:'2026-07-08'},
+  {id:'AP002', name:'李四', employeeId:'70002', dept:'机电设备组', position:'二级工程师', applyType:'调动申请', reason:'部门调动申请', status:'待审批', date:'2026-07-09'},
+  {id:'AP003', name:'王五', employeeId:'70003', dept:'保养组', position:'保养技工', applyType:'入职申请', reason:'新员工入职申请', status:'已通过', date:'2026-07-05'},
+  {id:'AP004', name:'赵六', employeeId:'70004', dept:'电子设备组', position:'技术员', applyType:'离职申请', reason:'离职申请', status:'已驳回', date:'2026-07-03'}
+];
+
+function getAllMemberApplies() { return mergeData(MEMBER_APPLY_DEFAULTS, 'local_member_applies'); }
+function saveLocalMemberApplies(arr) { lsSet('local_member_applies', arr); }
+
 function renderMemberApply() {
-  var applies = lsGet('member_applies', [
-    {id:'AP001', name:'张三', employeeId:'70001', dept:'智能制造组', position:'助理工程师', reason:'新员工入职申请', status:'待审批', date:'2026-07-08'},
-    {id:'AP002', name:'李四', employeeId:'70002', dept:'机电设备组', position:'二级工程师', reason:'部门调动申请', status:'待审批', date:'2026-07-09'},
-    {id:'AP003', name:'王五', employeeId:'70003', dept:'保养组', position:'保养技工', reason:'新员工入职申请', status:'已通过', date:'2026-07-05'},
-    {id:'AP004', name:'赵六', employeeId:'70004', dept:'电子设备组', position:'技术员', reason:'离职申请', status:'已驳回', date:'2026-07-03'}
-  ]);
+  var applies = getAllMemberApplies();
+  var search = getSearch('memberApply');
+  if (search) {
+    applies = applies.filter(function(a) {
+      return (a.name||'').indexOf(search) !== -1 || (a.employeeId||'').indexOf(search) !== -1 || (a.dept||'').indexOf(search) !== -1 || (a.applyType||'').indexOf(search) !== -1 || (a.reason||'').indexOf(search) !== -1;
+    });
+  }
+  var statusFilter = getSearch('memberApplyStatus');
+  if (statusFilter) {
+    applies = applies.filter(function(a) { return a.status === statusFilter; });
+  }
+  var allApplies = getAllMemberApplies();
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📝 人员申请 <span class="bdg">共 ' + applies.length + ' 条</span></div>';
+  h += '<div class="pt">📝 人员申请 <span class="bdg">共 ' + allApplies.length + ' 条</span></div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">' + applies.length + '</div><div class="kpi-label">申请总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + applies.filter(function(a){return a.status==='待审批';}).length + '</div><div class="kpi-label">待审批</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + applies.filter(function(a){return a.status==='已通过';}).length + '</div><div class="kpi-label">已通过</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + applies.filter(function(a){return a.status==='已驳回';}).length + '</div><div class="kpi-label">已驳回</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + allApplies.length + '</div><div class="kpi-label">申请总数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + allApplies.filter(function(a){return a.status==='待审批';}).length + '</div><div class="kpi-label">待审批</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + allApplies.filter(function(a){return a.status==='已通过';}).length + '</div><div class="kpi-label">已通过</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + allApplies.filter(function(a){return a.status==='已拒绝';}).length + '</div><div class="kpi-label">已拒绝</div></div>';
   h += '</div>';
-  h += '<div class="bg"><button class="btn bp" onclick="alert(\'提交申请\')">+ 提交申请</button><button class="btn bo">&#8635; 刷新</button></div>';
+  h += '<div class="bg">';
+  h += '<input class="fi" style="width:200px" placeholder="搜索申请人/工号/部门..." value="' + search + '" oninput="setSearch(\'memberApply\',this.value);refresh()">';
+  h += '<select class="fi" style="width:130px" onchange="setSearch(\'memberApplyStatus\',this.value);refresh()">';
+  h += '<option value="">全部状态</option>';
+  h += '<option value="待审批"' + (statusFilter==='待审批'?' selected':'') + '>待审批</option>';
+  h += '<option value="已通过"' + (statusFilter==='已通过'?' selected':'') + '>已通过</option>';
+  h += '<option value="已拒绝"' + (statusFilter==='已拒绝'?' selected':'') + '>已拒绝</option>';
+  h += '</select>';
+  h += '<button class="btn bp" onclick="createMemberApply()">&#10133; 新增申请</button>';
+  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '<button class="btn bo" onclick="exportCSV(getAllMemberApplies(), \'人员申请\')">&#128190; 导出</button>';
+  h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>申请编号</th><th>姓名</th><th>工号</th><th>部门</th><th>岗位</th><th>申请原因</th><th>申请日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  applies.forEach(function(a) {
-    h += '<tr><td>' + a.id + '</td><td>' + a.name + '</td><td>' + a.employeeId + '</td><td>' + a.dept + '</td><td>' + a.position + '</td>';
-    h += '<td style="max-width:150px" class="text-overflow-ellipsis">' + a.reason + '</td><td>' + a.date + '</td>';
-    h += '<td><span class="t ' + (a.status==='已通过'?'tg':a.status==='待审批'?'to':'tr') + '">' + a.status + '</span></td>';
-    h += '<td>';
-    if (a.status === '待审批') {
-      h += '<button class="btn-sm gs" onclick="alert(\'通过\')">通过</button> <button class="btn-sm dg" onclick="alert(\'驳回\')">驳回</button>';
-    } else {
-      h += '<button class="btn-sm bo">查看</button>';
-    }
-    h += '</td></tr>';
-  });
+  h += '<thead><tr><th>申请编号</th><th>申请人</th><th>工号</th><th>部门</th><th>申请类型</th><th>申请原因</th><th>申请日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  if (applies.length === 0) {
+    h += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
+    applies.forEach(function(a) {
+      var statusClass = a.status==='已通过'?'tg':a.status==='待审批'?'to':'tr';
+      h += '<tr><td>' + a.id + '</td><td>' + a.name + '</td><td>' + a.employeeId + '</td><td>' + a.dept + '</td>';
+      h += '<td><span class="t tb">' + (a.applyType||'') + '</span></td>';
+      h += '<td style="max-width:150px" class="text-overflow-ellipsis">' + a.reason + '</td><td>' + a.date + '</td>';
+      h += '<td><span class="t ' + statusClass + '">' + a.status + '</span></td>';
+      h += '<td>';
+      h += '<button class="btn-sm bo" onclick="viewMemberApply(\'' + a.id + '\')">查看</button> ';
+      h += '<button class="btn-sm bp" onclick="editMemberApply(\'' + a.id + '\')">编辑</button> ';
+      if (a.status === '待审批') {
+        h += '<button class="btn-sm gs" onclick="approveMemberApply(\'' + a.id + '\')">通过</button> ';
+        h += '<button class="btn-sm dg" onclick="rejectMemberApply(\'' + a.id + '\')">拒绝</button> ';
+      }
+      h += '<button class="btn-sm dg" onclick="deleteMemberApply(\'' + a.id + '\')">删除</button>';
+      h += '</td></tr>';
+    });
+  }
   h += '</tbody></table></div></div>';
   h += '</div>';
   return h;
+}
+
+function createMemberApply() {
+  var today = new Date().toISOString().slice(0,10);
+  submitFormModal({
+    title: '新增人员申请',
+    showSaveAndNew: true,
+    fields: [
+      {key:'name', label:'申请人', type:'text', required:true, placeholder:'请输入申请人姓名'},
+      {key:'employeeId', label:'工号', type:'text', required:true, placeholder:'请输入工号'},
+      {key:'dept', label:'部门', type:'select', options:['智能制造组','机电设备组','电子设备组','保养组','设备部'], value:'智能制造组'},
+      {key:'applyType', label:'申请类型', type:'select', options:['入职申请','调动申请','离职申请','转正申请','其他'], value:'入职申请'},
+      {key:'date', label:'申请日期', type:'date', value:today},
+      {key:'status', label:'状态', type:'select', options:['待审批','已通过','已拒绝'], value:'待审批'},
+      {key:'reason', label:'申请原因', type:'textarea', rows:3, required:true, placeholder:'请输入申请原因'}
+    ],
+    onSave: function(data) {
+      var all = getAllMemberApplies();
+      var maxNum = 0;
+      all.forEach(function(a) {
+        var m = String(a.id).match(/AP(\d+)/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+      });
+      data.id = 'AP' + String(maxNum + 1).padStart(3, '0');
+      var local = lsGet('local_member_applies', []);
+      local.push(data);
+      saveLocalMemberApplies(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function viewMemberApply(id) {
+  var all = getAllMemberApplies();
+  var a = all.find(function(x){ return x.id === id; });
+  if (!a) return;
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">申请编号</div><div class="ii-value">' + a.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">申请人</div><div class="ii-value">' + a.name + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">工号</div><div class="ii-value">' + a.employeeId + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">部门</div><div class="ii-value">' + a.dept + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">申请类型</div><div class="ii-value"><span class="t tb">' + (a.applyType||'') + '</span></div></div>';
+  h += '<div class="info-item"><div class="ii-label">申请日期</div><div class="ii-value">' + a.date + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + (a.status==='已通过'?'tg':a.status==='待审批'?'to':'tr') + '">' + a.status + '</span></div></div>';
+  h += '</div>';
+  h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
+  h += '<div class="form-field"><label>申请原因</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (a.reason || '') + '</div></div>';
+  var footer = '';
+  footer += '<button class="btn bp" onclick="editMemberApply(\'' + a.id + '\')">编辑</button>';
+  if (a.status === '待审批') {
+    footer += '<button class="btn bg" onclick="approveMemberApply(\'' + a.id + '\');closeMo()">通过</button>';
+    footer += '<button class="btn dg" onclick="rejectMemberApply(\'' + a.id + '\');closeMo()">拒绝</button>';
+  }
+  footer += '<button class="btn dg" onclick="deleteMemberApply(\'' + a.id + '\');closeMo()">删除</button>';
+  openMo({title:'人员申请详情 - ' + a.id, html:h, footer:footer});
+}
+
+function editMemberApply(id) {
+  var all = getAllMemberApplies();
+  var a = all.find(function(x){ return x.id === id; });
+  if (!a) return;
+  submitFormModal({
+    title: '编辑人员申请 - ' + id,
+    fields: [
+      {key:'name', label:'申请人', type:'text', value:a.name, required:true},
+      {key:'employeeId', label:'工号', type:'text', value:a.employeeId, required:true},
+      {key:'dept', label:'部门', type:'select', options:['智能制造组','机电设备组','电子设备组','保养组','设备部'], value:a.dept},
+      {key:'applyType', label:'申请类型', type:'select', options:['入职申请','调动申请','离职申请','转正申请','其他'], value:a.applyType||'入职申请'},
+      {key:'date', label:'申请日期', type:'date', value:a.date},
+      {key:'status', label:'状态', type:'select', options:['待审批','已通过','已拒绝'], value:a.status},
+      {key:'reason', label:'申请原因', type:'textarea', rows:3, value:a.reason||''}
+    ],
+    onSave: function(data) {
+      var local = lsGet('local_member_applies', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      data.id = id;
+      if (idx >= 0) local[idx] = data;
+      else local.push(data);
+      saveLocalMemberApplies(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function approveMemberApply(id) {
+  var local = lsGet('local_member_applies', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    local[idx].status = '已通过';
+    saveLocalMemberApplies(local);
+  } else {
+    var all = getAllMemberApplies();
+    var item = all.find(function(x){ return x.id === id; });
+    if (item) { item.status = '已通过'; local.push(item); saveLocalMemberApplies(local); }
+  }
+  refresh();
+}
+
+function rejectMemberApply(id) {
+  var local = lsGet('local_member_applies', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    local[idx].status = '已拒绝';
+    saveLocalMemberApplies(local);
+  } else {
+    var all = getAllMemberApplies();
+    var item = all.find(function(x){ return x.id === id; });
+    if (item) { item.status = '已拒绝'; local.push(item); saveLocalMemberApplies(local); }
+  }
+  refresh();
+}
+
+function deleteMemberApply(id) {
+  if (!confirm('确定删除此人员申请记录？')) return;
+  var local = lsGet('local_member_applies', []);
+  local = local.filter(function(x){ return x.id !== id; });
+  saveLocalMemberApplies(local);
+  closeMo();
+  refresh();
 }
 
 // =========================================
@@ -6233,31 +6432,122 @@ function renderTaskRate() {
   return renderDashWork();
 }
 
+// 出勤统计数据缓存，供图表初始化使用
+var _attendanceCache = null;
+
 function renderAttendance() {
   var h = '<div class="page-enter">';
   h += '<div class="pt">📊 出勤统计 <span class="bdg">考勤数据</span></div>';
+  h += '<div id="attLoadingArea"><div class="cd" style="text-align:center;padding:40px"><div style="color:var(--t3);font-size:14px">正在加载出勤数据...</div></div></div>';
+  h += '<div id="attContentArea" style="display:none"></div>';
+  h += '</div>';
+  // 异步加载出勤数据
+  loadAttendanceData();
+  return h;
+}
+
+async function loadAttendanceData() {
+  var loadingEl = document.getElementById('attLoadingArea');
+  var contentEl = document.getElementById('attContentArea');
+  try {
+    var data = null;
+    if (SERVER_CONFIG.mode === 'online' && API_BASE) {
+      var res = await apiRequest('GET', '/api/data/attendance');
+      if (res.code === 0 && res.data) {
+        data = Array.isArray(res.data) ? res.data : [];
+      }
+    }
+    // 离线模式或API失败时使用本地缓存
+    if (!data || data.length === 0) {
+      data = lsGet('local_attendance', []);
+    }
+    _attendanceCache = data;
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) {
+      contentEl.style.display = 'block';
+      contentEl.innerHTML = renderAttendanceContent(data);
+    }
+    // 数据加载完成后初始化图表
+    initAttCharts();
+  } catch(e) {
+    console.error('加载出勤数据失败:', e);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (contentEl) {
+      contentEl.style.display = 'block';
+      contentEl.innerHTML = '<div class="cd"><div class="status-bar error">加载出勤数据失败: ' + e.message + '</div></div>';
+    }
+  }
+}
+
+function renderAttendanceContent(data) {
+  // 从后端数据中计算汇总统计
+  var summary = calcAttendanceSummary(data);
+  var h = '';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">57</div><div class="kpi-label">应出勤人数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">54</div><div class="kpi-label">实际出勤</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">94.7%</div><div class="kpi-label">出勤率</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">3</div><div class="kpi-label">缺勤/请假</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + summary.expected + '</div><div class="kpi-label">应出勤人数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + summary.actual + '</div><div class="kpi-label">实际出勤</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + summary.rate + '%</div><div class="kpi-label">出勤率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + summary.absent + '</div><div class="kpi-label">缺勤/请假</div></div>';
   h += '</div>';
   h += '<div class="cd"><div class="ct">本周出勤趋势</div><div class="ch"><canvas id="attChart1"></canvas></div></div>';
-  h += '<div class="cd"><div class="ct">各部门出勤情况</div>';
-  h += '<table class="dt"><thead><tr><th>部门</th><th>应出勤</th><th>实际出勤</th><th>出勤率</th><th>请假</th><th>缺勤</th></tr></thead><tbody>';
-  var depts = [
-    {name:'智能制造组', total:7, actual:7, leave:0, absent:0},
-    {name:'机电设备组', total:24, actual:22, leave:1, absent:1},
-    {name:'电子设备组', total:18, actual:17, leave:1, absent:0},
-    {name:'保养组', total:28, actual:26, leave:1, absent:1}
-  ];
-  depts.forEach(function(d) {
-    h += '<tr><td>' + d.name + '</td><td>' + d.total + '</td><td>' + d.actual + '</td>';
-    h += '<td>' + Math.round(d.actual/d.total*100) + '%</td><td>' + d.leave + '</td><td>' + d.absent + '</td></tr>';
-  });
-  h += '</tbody></table></div>';
-  h += '</div>';
+  // 部门出勤表格
+  var depts = calcDeptAttendance(data);
+  if (depts.length > 0) {
+    h += '<div class="cd"><div class="ct">各部门出勤情况</div>';
+    h += '<table class="dt"><thead><tr><th>部门</th><th>应出勤</th><th>实际出勤</th><th>出勤率</th><th>请假</th><th>缺勤</th></tr></thead><tbody>';
+    depts.forEach(function(d) {
+      var rate = d.total > 0 ? Math.round(d.actual / d.total * 100) : 0;
+      h += '<tr><td>' + d.name + '</td><td>' + d.total + '</td><td>' + d.actual + '</td>';
+      h += '<td>' + rate + '%</td><td>' + d.leave + '</td><td>' + d.absent + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  } else {
+    h += '<div class="cd"><div class="ct">各部门出勤情况</div>';
+    h += '<div class="status-bar info">暂无出勤数据</div></div>';
+  }
   return h;
+}
+
+function calcAttendanceSummary(data) {
+  if (!data || data.length === 0) {
+    return { expected: 0, actual: 0, rate: '0.0', absent: 0 };
+  }
+  // 优先使用后端返回的汇总字段，否则逐条累加
+  if (data[0] && data[0]._summary) {
+    var s = data[0]._summary;
+    var expected = s.expected_count || 0;
+    var actual = s.actual_count || 0;
+    var rate = expected > 0 ? (actual / expected * 100).toFixed(1) : '0.0';
+    var absent = (s.leave_count || 0) + (s.absent_count || 0);
+    return { expected: expected, actual: actual, rate: rate, absent: absent };
+  }
+  // 逐条累加
+  var totalExpected = 0, totalActual = 0, totalLeave = 0, totalAbsent = 0;
+  data.forEach(function(r) {
+    totalExpected += parseInt(r.expected_count || r.presentCount || 0, 10);
+    totalActual += parseInt(r.actual_count || r.actualCount || 0, 10);
+    totalLeave += parseInt(r.leave_count || r.leave || 0, 10);
+    totalAbsent += parseInt(r.absent_count || r.absent || 0, 10);
+  });
+  var rate = totalExpected > 0 ? (totalActual / totalExpected * 100).toFixed(1) : '0.0';
+  return { expected: totalExpected, actual: totalActual, rate: rate, absent: totalLeave + totalAbsent };
+}
+
+function calcDeptAttendance(data) {
+  if (!data || data.length === 0) return [];
+  var deptMap = {};
+  data.forEach(function(r) {
+    var dept = r.department || r.group_name || r.dept || '未分组';
+    if (!deptMap[dept]) {
+      deptMap[dept] = { name: dept, total: 0, actual: 0, leave: 0, absent: 0 };
+    }
+    var d = deptMap[dept];
+    d.total += parseInt(r.expected_count || r.presentCount || 0, 10);
+    d.actual += parseInt(r.actual_count || r.actualCount || 0, 10);
+    d.leave += parseInt(r.leave_count || r.leave || 0, 10);
+    d.absent += parseInt(r.absent_count || r.absent || 0, 10);
+  });
+  return Object.values(deptMap);
 }
 
 function initAttCharts() {
@@ -6265,20 +6555,59 @@ function initAttCharts() {
     var c1 = document.getElementById('attChart1');
     if (c1) {
       if (chartInstances.att1) chartInstances.att1.destroy();
+      // 从缓存数据中计算图表数据
+      var chartData = calcAttendanceChartData(_attendanceCache);
       chartInstances.att1 = new Chart(c1, {
         type: 'bar',
-        data: {
-          labels: ['周一','周二','周三','周四','周五','周六','周日'],
-          datasets: [
-            {label:'出勤', data:[57,56,57,55,54,12,8], backgroundColor:'#34c724', borderRadius:4},
-            {label:'请假', data:[0,1,0,1,1,1,0], backgroundColor:'#ff9800', borderRadius:4},
-            {label:'缺勤', data:[0,0,0,1,2,1,0], backgroundColor:'#f54a45', borderRadius:4}
-          ]
-        },
+        data: chartData,
         options: {responsive:true, maintainAspectRatio:false, scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true}}}
       });
     }
   } catch(e) {}
+}
+
+function calcAttendanceChartData(data) {
+  var labels = ['周一','周二','周三','周四','周五','周六','周日'];
+  var attendData = [0,0,0,0,0,0,0];
+  var leaveData = [0,0,0,0,0,0,0];
+  var absentData = [0,0,0,0,0,0,0];
+  if (data && data.length > 0) {
+    data.forEach(function(r) {
+      var idx = -1;
+      // 支持按星期索引(0-6)或按日期字段匹配
+      if (r.day_index !== undefined && r.day_index !== null) {
+        idx = parseInt(r.day_index, 10);
+      } else if (r.weekday !== undefined && r.weekday !== null) {
+        idx = parseInt(r.weekday, 10) - 1; // 周一=1 -> index=0
+      } else if (r.date) {
+        var d = new Date(r.date);
+        if (!isNaN(d.getTime())) {
+          var dow = d.getDay(); // 0=周日,1=周一...
+          idx = dow === 0 ? 6 : dow - 1; // 转为0=周一,6=周日
+        }
+      }
+      if (idx >= 0 && idx < 7) {
+        attendData[idx] += parseInt(r.actual_count || r.actualCount || 0, 10);
+        leaveData[idx] += parseInt(r.leave_count || r.leave || 0, 10);
+        absentData[idx] += parseInt(r.absent_count || r.absent || 0, 10);
+      }
+    });
+    // 如果按天聚合后全为0，尝试直接读取汇总趋势数据
+    if (attendData.every(function(v){return v===0}) && data[0] && data[0].trend) {
+      var trend = data[0].trend;
+      if (trend.attendance) attendData = trend.attendance.slice(0, 7);
+      if (trend.leave) leaveData = trend.leave.slice(0, 7);
+      if (trend.absent) absentData = trend.absent.slice(0, 7);
+    }
+  }
+  return {
+    labels: labels,
+    datasets: [
+      {label:'出勤', data:attendData, backgroundColor:'#34c724', borderRadius:4},
+      {label:'请假', data:leaveData, backgroundColor:'#ff9800', borderRadius:4},
+      {label:'缺勤', data:absentData, backgroundColor:'#f54a45', borderRadius:4}
+    ]
+  };
 }
 
 // =========================================
@@ -6823,7 +7152,7 @@ function initCharts() {
       return;
     }
     if (curPage === 'dash-attendance') {
-      initAttCharts();
+      // 图表由loadAttendanceData在数据加载完成后初始化，此处不重复调用
       return;
     }
     
