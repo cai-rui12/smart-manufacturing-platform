@@ -761,15 +761,15 @@ var REAL_PROJECTS = [
   {id:'PRJ-0001', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:92.04, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发总计201项，已完成185项，上线率92%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/丝印字符/沉金/外形加工/电测/FQC包装共11个工序。', leadType:'主导人', nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.内层7/8/9线曝光机未实现通孔码转曝光码，8号蚀刻线MES本周配置', risks:'1.5/7/8号蚀刻线未配置MES，供应商预计本周进厂\n2.阻焊单机曝光机未实现自动转码，四厂测试中\n3.创峰除胶线、超声波清洗线待工艺与IT对接', subSteps:[
     {name:'内层',total:25,done:29,rate:82.86},{name:'压合',total:44,done:43,rate:97.73},{name:'钻孔',total:3,done:2,rate:66.67},{name:'电镀',total:22,done:20,rate:90.91},{name:'树脂塞孔',total:25,done:25,rate:100},{name:'外层',total:8,done:7,rate:87.5},{name:'丝印字符',total:8,done:4,rate:50},{name:'沉金',total:2,done:2,rate:100},{name:'外形加工',total:17,done:17,rate:100},{name:'电测',total:14,done:14,rate:100},{name:'FQC包装',total:3,done:3,rate:100}
   ]},
-  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）'},
+  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）'},relatedProjects:[{name:'生产参数下发',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}]},
   {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系',risks:'暂无重大风险，项目已完成数据采集和入网阶段'},
-  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢'},
-  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大'},
+  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢'},relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}]},
+  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大'},relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}]},
   {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线'},
-  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数'},
-  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难'},
+  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数'},relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'读码追溯系统',status:'进行中'}]},
+  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难'},relatedProjects:[{name:'工序自动过数',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}]},
   {id:'PRJ-0009', name:'自动计划专项', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'自动排产与自动计划项目，覆盖全厂工序。', leadType:'主导人', nextPlan:'1.完成自动排产核心算法开发\n2.推进与MES系统对接\n3.试点工序验证', risks:'项目刚启动，需明确各工序排产规则优先级'},
-  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认'}
+  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认'},relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'自动计划专项',status:'进行中'}]},
 ];
 
 var REAL_WEEKLY_REPORTS = [
@@ -1314,7 +1314,7 @@ var CONFIG_URL = 'https://cai-rui12.github.io/smart-manufacturing-platform/serve
 async function tryConnectServer(url, timeoutMs) {
   try {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 15000) : null;
+    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 3000) : null;
     var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: controller ? controller.signal : undefined});
     if (timeoutId) clearTimeout(timeoutId);
     var json = await res.json();
@@ -1324,6 +1324,15 @@ async function tryConnectServer(url, timeoutMs) {
 }
 
 async function detectServer() {
+  if (location.hostname === 'cai-rui12.github.io' || location.hostname.endsWith('.github.io')) {
+    SERVER_CONFIG.mode = 'offline';
+    SERVER_CONFIG.enabled = false;
+    SERVER_CONFIG.url = '';
+    API_BASE = '';
+    localStorage.setItem('v13_server_url', '');
+    updateSyncStatusBadge('offline', '本地模式');
+    return;
+  }
   updateSyncStatusBadge('syncing', '连接中...');
 
   // 1. 先从GitHub配置文件获取最新隧道URL
@@ -1353,7 +1362,7 @@ async function detectServer() {
   // 依次尝试每个候选URL
   for (var i = 0; i < candidates.length; i++) {
     var url = candidates[i];
-    var result = await tryConnectServer(url, 15000);
+    var result = await tryConnectServer(url, 3000);
     if (result) {
       SERVER_CONFIG.url = url;
       SERVER_CONFIG.enabled = true;
@@ -1372,8 +1381,10 @@ async function detectServer() {
   // 所有候选URL都失败
   SERVER_CONFIG.enabled = false;
   SERVER_CONFIG.mode = 'offline';
+  SERVER_CONFIG.url = '';
+  localStorage.setItem('v13_server_url', '');
   API_BASE = '';
-  updateSyncStatusBadge('offline', '离线');
+  updateSyncStatusBadge('offline', '本地模式');
   addSyncLog('服务器连接失败，请确认后端服务器已在运行（见smart-manufacturing-server目录下的start.bat）');
   localStorage.setItem('v13_server_connect_error', '服务器连接失败，请确认后端服务器已在运行（见smart-manufacturing-server目录下的start.bat）');
 }
@@ -1406,7 +1417,7 @@ async function connectToServer(url) {
   if (url.endsWith('/')) url = url.slice(0, -1);
   updateSyncStatusBadge('syncing', '连接中...');
   addSyncLog('手动连接: ' + url);
-  var result = await tryConnectServer(url, 15000);
+  var result = await tryConnectServer(url, 3000);
   if (result) {
     SERVER_CONFIG.url = url;
     SERVER_CONFIG.enabled = true;
@@ -1418,7 +1429,7 @@ async function connectToServer(url) {
     addSyncLog('手动连接成功: ' + url);
     showToast('连接成功！服务器: ' + url, 'success'); await syncLocalToServer();
   } else {
-    updateSyncStatusBadge('offline', '离线');
+    updateSyncStatusBadge('offline', '本地模式');
     addSyncLog('手动连接失败: ' + url);
     showToast('连接失败，请确认服务器地址正确且服务器正在运行。  当前可用地址： - 外网: https://lens-review-steel-hose.trycloudflare.com - 局域网: http://172.24.20.28:3000 - 本机: http://localhost:3000', 'error');
   }
@@ -1470,7 +1481,7 @@ async function manualConnect(e) {
       addSyncLog('手动连接成功: ' + url.trim());
       syncAllData();
     } else {
-      updateSyncStatusBadge('offline', '离线');
+      updateSyncStatusBadge('offline', '本地模式');
       addSyncLog('手动连接失败: ' + url.trim());
     }
   }
@@ -1561,7 +1572,7 @@ async function saveData(type, data) {
       SERVER_CONFIG.mode = 'offline';
       SERVER_CONFIG.enabled = false;
       API_BASE = '';
-      updateSyncStatusBadge('offline', '离线');
+      updateSyncStatusBadge('offline', '本地模式');
       addSyncLog('后端同步失败，已切换到离线模式: ' + e.message);
     }
   }
@@ -1734,7 +1745,7 @@ async function autoPingServer() {
       if (SERVER_CONFIG.mode === 'online') {
         SERVER_CONFIG.mode = 'offline';
         API_BASE = '';
-        updateSyncStatusBadge('offline', '离线');
+        updateSyncStatusBadge('offline', '本地模式');
         addSyncLog('网络断开，已切换到离线模式');
       }
     }
@@ -1743,7 +1754,7 @@ async function autoPingServer() {
     if (SERVER_CONFIG.mode === 'online') {
       SERVER_CONFIG.mode = 'offline';
       API_BASE = '';
-      updateSyncStatusBadge('offline', '离线');
+      updateSyncStatusBadge('offline', '本地模式');
     }
   }
 }
@@ -2426,6 +2437,7 @@ function submitFormModal(cfg) {
     }
     html += '</div>';
   });
+  if (cfg.extraHtml) html += cfg.extraHtml;
   var footer = '';
   if (cfg.showSaveAndNew) {
     footer += '<button class="btn bo" onclick="saveAndNew()">保存并新建</button>';
@@ -3840,9 +3852,16 @@ function projectPageChange(p) { setPage('project', p); refresh(); }
 function createProject() {
   var today = new Date().toISOString().slice(0,10);
   var peopleNames = PEOPLE_OBJ.map(function(p){return p.name;});
+  var rpCheckboxes = '';
+  var allProjects = getAllProjects();
+  for (var rpi = 0; rpi < allProjects.length; rpi++) {
+    rpCheckboxes += '<label style="display:block;margin-bottom:2px"><input type="checkbox" value="' + escapeHtml(allProjects[rpi].id) + '" class="rp_check"> ' + escapeHtml(allProjects[rpi].name) + '</label>';
+  }
+  var rpHtml = '<div style="margin-top:8px"><label>关联项目（可多选）</label><div id="relatedProjectsCheckboxes" style="max-height:120px;overflow-y:auto;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;font-size:12px;color:#94a3b8">' + rpCheckboxes + '</div></div>';
   submitFormModal({
     title: '新建项目',
     showSaveAndNew: true,
+    extraHtml: rpHtml,
     fields: [
       {key:'name', label:'项目名称', type:'text', required:true, placeholder:'请输入项目名称'},
       {key:'manager', label:'项目经理', type:'select', options:peopleNames, value:currentUser.name},
@@ -3865,6 +3884,17 @@ function createProject() {
         if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
       });
       data.id = 'PRJ-' + String(maxNum + 1).padStart(4, '0');
+      var rpChecks = document.querySelectorAll('.rp_check:checked');
+      var rpArr = [];
+      for (var rci = 0; rci < rpChecks.length; rci++) {
+        var rpId = rpChecks[rci].value;
+        var rpName = '';
+        for (var rj = 0; rj < allProjects.length; rj++) {
+          if (allProjects[rj].id === rpId) { rpName = allProjects[rj].name; break; }
+        }
+        rpArr.push({name: rpName, status: '进行中'});
+      }
+      if (rpArr.length > 0) data.relatedProjects = rpArr;
       var local = lsGet('local_projects', []);
       local.push(data);
       saveLocalProjects(local);
@@ -3913,6 +3943,18 @@ function openProjectDetail(id) {
   if (p.pushConfig) {
     extraFieldsHtml += '<div class="form-field" style="margin-top:8px"><b>推送配置：</b><span style="font-size:12px;color:#94a3b8"> 群组:' + escapeHtml(p.pushConfig.group || '未配置') + ' | 频率:' + escapeHtml(p.pushConfig.frequency || '未配置') + ' | 模板:' + escapeHtml(p.pushConfig.template || '默认') + '</span></div>';
   }
+  var pushConfigHtml = '';
+  pushConfigHtml += '<div style="margin-top:12px;padding:12px;background:rgba(59,130,246,0.05);border:1px solid #1e3a5f;border-radius:8px">';
+  pushConfigHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#60a5fa">推送配置</b>';
+  pushConfigHtml += '<button class="btn" style="font-size:11px;padding:3px 10px" onclick="editProjectPush(\'' + p.id + '\')">配置推送</button>';
+  pushConfigHtml += '</div>';
+  var pc = p.pushConfig || {};
+  pushConfigHtml += '<div style="font-size:12px;color:#94a3b8">';
+  pushConfigHtml += '目标群组：<span style="color:#e2e8f0">' + escapeHtml(pc.group || '未配置') + '</span> | ';
+  pushConfigHtml += '频率：<span style="color:#e2e8f0">' + escapeHtml(pc.frequency || '未配置') + '</span> | ';
+  pushConfigHtml += '状态：<span style="color:' + (pc.enabled ? '#34c724' : '#64748b') + '">' + (pc.enabled ? '已启用' : '未启用') + '</span>';
+  pushConfigHtml += '</div></div>';
+  extraFieldsHtml += pushConfigHtml;
   h += extraFieldsHtml;
 
   // 子步骤展示（V18增强）
@@ -3960,13 +4002,66 @@ function openProjectDetail(id) {
   openMo({title:'项目详情 - ' + p.name, html:h, footer:footer});
 }
 
+function editProjectPush(projectId) {
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) return;
+  var pc = p.pushConfig || {};
+  var groups = lsGet('push_groups', []);
+  var groupOptions = '<option value="">未配置</option>';
+  for (var g = 0; g < groups.length; g++) {
+    groupOptions += '<option value="' + escapeHtml(groups[g].name) + '"' + (pc.group === groups[g].name ? ' selected' : '') + '>' + escapeHtml(groups[g].name) + '</option>';
+  }
+  var html = '<div class="modal-overlay" id="pushConfigModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:450px"><div class="modal-header"><h3>项目推送配置 - ' + escapeHtml(p.name || '') + '</h3><button onclick="document.getElementById(\'pushConfigModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<label>推送群组</label><select id="pc_group" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">' + groupOptions + '</select>';
+  html += '<label>推送频率</label><select id="pc_freq" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="每日"' + (pc.frequency === '每日' ? ' selected' : '') + '>每日</option><option value="每周"' + (pc.frequency === '每周' ? ' selected' : '') + '>每周</option><option value="每月"' + (pc.frequency === '每月' ? ' selected' : '') + '>每月</option><option value="里程碑"' + (pc.frequency === '里程碑' ? ' selected' : '') + '>里程碑触发</option></select>';
+  html += '<label>推送模板</label><select id="pc_template" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="summary"' + (pc.template === 'summary' ? ' selected' : '') + '>进度汇总</option><option value="detail"' + (pc.template === 'detail' ? ' selected' : '') + '>详细报告</option><option value="risk"' + (pc.template === 'risk' ? ' selected' : '') + '>风险预警</option></select>';
+  html += '<label style="margin-top:8px"><input type="checkbox" id="pc_enabled"' + (pc.enabled ? ' checked' : '') + '> 启用定期推送</label>';
+  html += '</div><div class="modal-footer"><button class="btn" onclick="saveProjectPush(\'' + projectId + '\')">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function saveProjectPush(projectId) {
+  var group = document.getElementById('pc_group').value;
+  var freq = document.getElementById('pc_freq').value;
+  var template = document.getElementById('pc_template').value;
+  var enabled = document.getElementById('pc_enabled').checked;
+  var projects = getAllProjects();
+  for (var i = 0; i < projects.length; i++) {
+    if (projects[i].id === projectId) {
+      projects[i].pushConfig = {group: group, frequency: freq, template: template, enabled: enabled};
+      break;
+    }
+  }
+  saveLocalProjects(projects);
+  document.getElementById('pushConfigModal').remove();
+  showToast('推送配置已保存');
+  goToPage('project-all');
+}
+
 function editProject(id) {
   var all = getAllProjects();
   var p = all.find(function(x){ return x.id === id; });
   if (!p) return;
   var peopleNames = PEOPLE_OBJ.map(function(pp){return pp.name;});
+  var rpCheckboxes = '';
+  for (var rpi = 0; rpi < all.length; rpi++) {
+    if (all[rpi].id === id) continue;
+    var checked = '';
+    if (p.relatedProjects) {
+      for (var rpk = 0; rpk < p.relatedProjects.length; rpk++) {
+        if (p.relatedProjects[rpk].name === all[rpi].name) { checked = ' checked'; break; }
+      }
+    }
+    rpCheckboxes += '<label style="display:block;margin-bottom:2px"><input type="checkbox" value="' + escapeHtml(all[rpi].id) + '" class="rp_check"' + checked + '> ' + escapeHtml(all[rpi].name) + '</label>';
+  }
+  var rpHtml = '<div style="margin-top:8px"><label>关联项目（可多选）</label><div id="relatedProjectsCheckboxes" style="max-height:120px;overflow-y:auto;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;font-size:12px;color:#94a3b8">' + rpCheckboxes + '</div></div>';
   submitFormModal({
     title: '编辑项目 - ' + id,
+    extraHtml: rpHtml,
     fields: [
       {key:'name', label:'项目名称', type:'text', value:p.name, required:true},
       {key:'manager', label:'项目经理', type:'select', options:peopleNames, value:p.manager},
@@ -3982,6 +4077,18 @@ function editProject(id) {
       {key:'risks', label:'风险与问题', type:'textarea', rows:2, value:p.risks || '', placeholder:'当前风险和待解决问题...'}
     ],
     onSave: function(data) {
+      var rpChecks = document.querySelectorAll('.rp_check:checked');
+      var rpArr = [];
+      for (var rci = 0; rci < rpChecks.length; rci++) {
+        var rpId = rpChecks[rci].value;
+        var rpName = '';
+        var rpStatus = '进行中';
+        for (var rj = 0; rj < all.length; rj++) {
+          if (all[rj].id === rpId) { rpName = all[rj].name; rpStatus = all[rj].status; break; }
+        }
+        rpArr.push({name: rpName, status: rpStatus});
+      }
+      if (rpArr.length > 0) data.relatedProjects = rpArr;
       var local = lsGet('local_projects', []);
       var idx = local.findIndex(function(x){ return x.id === id; });
       data.id = id;
@@ -6970,7 +7077,7 @@ async function toggleServerConnection() {
     SERVER_CONFIG.mode = 'offline';
     API_BASE = '';
     localStorage.setItem('v13_server_enabled', 'false');
-    updateSyncStatusBadge('offline', '离线');
+    updateSyncStatusBadge('offline', '本地模式');
     addSyncLog('已手动断开服务器连接');
     stopAutoSync();
     refresh();
@@ -9723,8 +9830,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // V13 - 初始化同步状态并自动检测服务器连接
     API_BASE = SERVER_CONFIG.url;
     updateSyncStatusBadge();
-    // V13 - 自动检测服务器连接（静默，不阻塞UI）
-    detectServer();
   } catch(e) {
     console.error('Init error:', e);
     showToast('初始化失败: ' + e.message, 'error'); }
