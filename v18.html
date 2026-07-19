@@ -604,6 +604,7 @@ function viewDecisionDetail(item, time, owner, status, finish) {
 }
 
 function showToast(msg, type) {
+  if (!msg) msg = '操作完成';
   type = type || 'info';
   var container = document.getElementById('toastContainer');
   if (!container) {
@@ -1207,6 +1208,7 @@ var M = [
   {id:'report-push-config',label:'推送配置'},
   {id:'cfg-theme',label:'主题配置'},
   ,{id:'push-manage',label:'推送管理'}
+  ,{id:'schedule-push',label:'定时推送'}
 ]},
 {id:'modules',label:'模块管理',icon:'🧩',children:[
   {id:'module-list',label:'已安装模块'},
@@ -1226,6 +1228,13 @@ var allLabels = {};
 allLabels['module-list'] = '已安装模块';
 allLabels['module-register'] = '注册新模块';
 allLabels['push-manage'] = '推送管理';
+allLabels['schedule-push'] = '定时推送';
+// renderPage 中使用但未在菜单 M 中定义的路由标签
+allLabels['daily-list'] = '日报列表';
+allLabels['weekly-list'] = '周报列表';
+allLabels['monthly-list'] = '月报列表';
+allLabels['task-all'] = '全部任务';
+allLabels['improve-list'] = '改善列表';
 var modalData = null;
 var pageState = {};
 var chartInstances = {};
@@ -1864,7 +1873,7 @@ function mergeData(builtIn, localKey) {
     var local = lsGet(localKey, []);
     var map = {};
     builtIn.forEach(function(item) { map[item.id] = item; });
-    local.forEach(function(item) { map[item.id] = item; });
+    local.forEach(function(item) { if (!item || !item.id || !item.name) return; map[item.id] = item; });
     return Object.values(map);
   } catch(e) { return builtIn; }
 }
@@ -3781,21 +3790,20 @@ function renderProjectList(filterFn, title) {
   }
   h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
-    var filtered = list;
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;margin-top:16px">';
-    for (var pi = 0; pi < filtered.length; pi++) {
-      var p = filtered[pi];
+    for (var pi = 0; pi < pageData.length; pi++) {
+      var p = pageData[pi];
       var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
       var statusColor = p.status === '已完成' ? '#34c724' : p.status === '进行中' ? '#3b82f6' : p.status === '已暂停' ? '#ef4444' : '#f59e0b';
       var statusBg = p.status === '已完成' ? 'rgba(52,199,36,0.1)' : p.status === '进行中' ? 'rgba(59,130,246,0.1)' : p.status === '已暂停' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
       h += '<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'" onclick="openProjectDetail(\'' + p.id + '\')">';
       // 顶部：项目名称+状态
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-      h += '<div><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name) + '</b></div>';
-      h += '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + escapeHtml(p.status) + '</span>';
+      h += '<div><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name || '') + '</b></div>';
+      h += '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + escapeHtml(p.status || '') + '</span>';
       h += '</div>';
       // 负责人
-      h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">负责人：<span style="color:#e2e8f0">' + escapeHtml(p.manager) + '</span>' + (p.leadType ? ' (' + escapeHtml(p.leadType) + ')' : '') + '</div>';
+      h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">负责人：<span style="color:#e2e8f0">' + escapeHtml(p.manager || '') + '</span>' + (p.leadType ? ' (' + escapeHtml(p.leadType) + ')' : '') + '</div>';
       // 进度条
       h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#94a3b8">进度</span><span style="color:' + barColor + ';font-weight:700">' + p.progress + '%</span></div>';
       h += '<div style="background:#334155;border-radius:6px;height:10px"><div style="background:' + barColor + ';height:10px;border-radius:6px;width:' + Math.min(p.progress, 100) + '%;transition:width .5s"></div></div></div>';
@@ -3804,7 +3812,7 @@ function renderProjectList(filterFn, title) {
       // 底部：后续计划摘要
       if (p.nextPlan) {
         var planLines = p.nextPlan.split('\\n');
-        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;font-size:11px;color:#64748b"><b style="color:#60a5fa">后续计划：</b> ' + escapeHtml(planLines[0]) + (planLines.length > 1 ? ' ...' : '') + '</div>';
+        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;font-size:11px;color:#64748b"><b style="color:#60a5fa">后续计划：</b> ' + escapeHtml(planLines[0] || '') + (planLines.length > 1 ? ' ...' : '') + '</div>';
       }
       // 子步骤摘要
       if (p.subSteps && p.subSteps.length > 0) {
@@ -3813,6 +3821,7 @@ function renderProjectList(filterFn, title) {
       h += '</div>';
     }
     h += '</div>';
+    h += renderPagination(total, page, pageSize, 'projectPageChange');
   h += '</div>';
   return h;
 }
@@ -7497,6 +7506,8 @@ function insertTemplateVar(varName) {
 }
 
 function escapeHtml(str) {
+  if (str == null || str === undefined) return '';
+  str = String(str);
   return str.replace(/&/g, '&').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -7642,7 +7653,6 @@ async function loadReportPushConfigFromServer() {
       var local = getReportPushConfig();
       if (!local.webhookUrl && res.data.webhookUrl) {
         saveReportPushConfigLocal(res.data);
-        console.log('[推送配置] 已从服务器加载推送配置');
       }
     }
   } catch(e) {
@@ -9604,6 +9614,7 @@ function renderPage(id) {
     if (id === 'module-list') return renderModuleListPage();
     if (id === 'module-register') return renderModuleRegisterPage();
   if (id === 'push-manage') return renderPushManagePage();
+  if (id === 'schedule-push') return renderSchedulePushPage();
     
     // 默认返回
     return '<div class="cd"><div class="pt">页面开发中</div><p>该页面正在建设中，敬请期待。页面ID: ' + id + '</p></div>';
@@ -9684,7 +9695,7 @@ function initCharts() {
 function refreshData(type) {
   try {
     if (type === 'daily') {
-      // 重新从localStorage加载
+      localData = lsGet('local_daily', []);
     } else if (type === 'weekly') {
       lsSet('local_weekly', lsGet('local_weekly', []));
     } else if (type === 'monthly') {
@@ -9784,6 +9795,134 @@ function doRegisterModule() {
   registerModule({id:id, name:name, icon:icon, version:version, parentId:parentId || null, enabled:true, builtIn:false});
 }
 
+function renderSchedulePushPage() {
+  var config = lsGet('schedule_push_config', {
+    dailyTime: '18:00', dailyEnabled: true, dailyTemplate: '智能制造日报推送\n\n{date}\n\n【项目进度汇总】\n{projects}\n\n{footer}',
+    weeklyTime: '周五 17:00', weeklyEnabled: false, weeklyTemplate: '',
+    projectPushEnabled: true, projectPushCron: '每周一 09:00',
+    groups: ['智能制造组']
+  });
+  var h = '<div class="page-enter"><h3>定时推送配置</h3>';
+  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">配置定时向飞书群组推送项目进度数据的自动化任务。由于飞书API审批受限，采用Bot Webhook方式直接推送。</p>';
+  
+  // 推送方案说明
+  h += '<div class="card" style="margin-bottom:16px;padding:16px">';
+  h += '<h4 style="margin-bottom:8px">自动化方案说明</h4>';
+  h += '<div style="font-size:13px;color:#94a3b8;line-height:1.8">';
+  h += '<p><b style="color:#34c724">数据来源：</b>平台本地项目数据（10个智能制造专项）</p>';
+  h += '<p><b style="color:#34c724">推送通道：</b>飞书Bot Webhook（已验证可用）</p>';
+  h += '<p><b style="color:#34c724">推送方式：</b>平台页面打开时自动检查是否到推送时间，或手动触发</p>';
+  h += '<p><b style="color:#34c724">无需审批：</b>不依赖飞书API权限，不调用bitable接口</p>';
+  h += '</div></div>';
+  
+  // 手动推送按钮
+  h += '<div class="card" style="margin-bottom:16px;padding:16px">';
+  h += '<h4 style="margin-bottom:12px">手动推送</h4>';
+  h += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+  h += '<button class="btn" onclick="manualPush(\'project_summary\')" style="background:#3b82f6">推送项目进度汇总</button>';
+  h += '<button class="btn" onclick="manualPush(\'project_detail\')" style="background:#60a5fa">推送项目详情（含子步骤）</button>';
+  h += '<button class="btn" onclick="manualPush(\'risk_alert\')" style="background:#f59e0b">推送风险预警</button>';
+  h += '<button class="btn" onclick="manualPush(\'daily_report\')" style="background:#34c724">推送日报模板</button>';
+  h += '</div></div>';
+  
+  // 项目进度一览
+  h += '<div class="card" style="padding:16px">';
+  h += '<h4 style="margin-bottom:12px">当前项目进度数据预览</h4>';
+  var projects = getAllProjects();
+  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>编号</th><th>项目</th><th>负责人</th><th>进度</th><th>状态</th></tr></thead><tbody>';
+  for (var i = 0; i < projects.length; i++) {
+    var p = projects[i];
+    var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
+    h += '<tr><td>' + escapeHtml(p.id || '') + '</td><td>' + escapeHtml(p.name || '') + '</td><td>' + escapeHtml(p.manager || '') + '</td>';
+    h += '<td><div style="display:flex;align-items:center;gap:8px"><div style="background:#334155;border-radius:4px;height:8px;flex:1"><div style="background:' + barColor + ';height:8px;border-radius:4px;width:' + Math.min(p.progress||0,100) + '%"></div></div><span style="font-size:11px;color:#94a3b8">' + (p.progress||0) + '%</span></div></td>';
+    h += '<td>' + escapeHtml(p.status || '') + '</td></tr>';
+  }
+  h += '</tbody></table></div>';
+  
+  h += '</div>';
+  return h;
+}
+
+function manualPush(type) {
+  var groups = lsGet('push_groups', []);
+  var targetGroup = null;
+  for (var i = 0; i < groups.length; i++) {
+    if (groups[i].enabled && groups[i].webhookUrl) { targetGroup = groups[i]; break; }
+  }
+  if (!targetGroup) { showToast('没有已启用的推送群组，请先在推送管理中配置', 'error'); return; }
+  
+  var projects = getAllProjects();
+  var content = '';
+  
+  if (type === 'project_summary') {
+    content = '\ud83d\udcca 智能制造专项进度汇总\n';
+    content += '\ud83d\udcc5 更新时间：' + new Date().toLocaleString('zh-CN') + '\n\n';
+    var totalProgress = 0;
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      totalProgress += (p.progress || 0);
+      var icon = (p.progress || 0) >= 100 ? '\u2705' : (p.progress || 0) >= 80 ? '\ud83d\udfe1' : (p.progress || 0) >= 50 ? '\ud83d\udd35' : '\ud83d\udd34';
+      content += icon + ' ' + (p.name || '') + ' - ' + (p.progress || 0) + '% (' + (p.manager || '') + ')\n';
+    }
+    content += '\n\ud83d\udcc8 整体平均进度：' + (projects.length > 0 ? (totalProgress / projects.length).toFixed(1) : 0) + '%';
+  } else if (type === 'project_detail') {
+    content = '\ud83d\udccb 智能制造专项详情\n';
+    content += '\ud83d\udcc5 ' + new Date().toLocaleString('zh-CN') + '\n\n';
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      content += '\u2501\u2501\u2501 ' + (p.name || '') + ' \u2501\u2501\u2501\n';
+      content += '\u8d1f\u8d23\u4eba\uff1a' + (p.manager || '') + (p.leadType ? '(' + p.leadType + ')' : '') + '\n';
+      content += '\u8fdb\u5ea6\uff1a' + (p.progress || 0) + '% | \u72b6\u6001\uff1a' + (p.status || '') + '\n';
+      content += '\u63cf\u8ff0\uff1a' + ((p.description || '').substring(0, 80)) + '\n';
+      if (p.nextPlan) { var lines = (p.nextPlan || '').split('\n'); content += '\u540e\u7eed\u8ba1\u5212\uff1a' + lines[0] + '\n'; }
+      if (p.risks) { var rlines = (p.risks || '').split('\n'); content += '\u98ce\u9669\uff1a' + rlines[0] + '\n'; }
+      content += '\n';
+    }
+  } else if (type === 'risk_alert') {
+    content = '\u26a0\ufe0f 风险预警通知\n';
+    content += '\ud83d\udcc5 ' + new Date().toLocaleString('zh-CN') + '\n\n';
+    var hasRisk = false;
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      if (p.risks && (p.progress || 0) < 80) {
+        hasRisk = true;
+        content += '\ud83d\udd34 ' + (p.name || '') + '（进度' + (p.progress || 0) + '%）\n';
+        content += '   负责人：' + (p.manager || '') + '\n';
+        content += '   风险：' + ((p.risks || '').substring(0, 100)) + '\n\n';
+      }
+    }
+    if (!hasRisk) content += '\u2705 当前无低进度高风险项目';
+  } else if (type === 'daily_report') {
+    content = '\ud83d\udcdd 智能制造工作日报\n';
+    content += '\ud83d\udcc5 ' + new Date().toLocaleDateString('zh-CN') + '\n\n';
+    content += '【项目进度】\n';
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      if ((p.status || '') === '进行中') {
+        content += '\u2022 ' + (p.name || '') + '：' + (p.progress || 0) + '%（' + (p.manager || '') + '）\n';
+      }
+    }
+    content += '\n【低进度预警】\n';
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      if ((p.progress || 0) < 70 && (p.status || '') === '进行中') {
+        content += '\u26a0\ufe0f ' + (p.name || '') + '：' + (p.progress || 0) + '%\n';
+      }
+    }
+    content += '\n由智能制造管理平台自动生成';
+  }
+  
+  showToast('正在推送...');
+  var payload = {msg_type: 'text', content: {text: content}};
+  fetch(targetGroup.webhookUrl, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(r){return r.json()}).then(function(j){
+    if (j.code === 0) showToast('推送成功！已发送到 "' + targetGroup.name + '"');
+    else showToast('推送失败: ' + (j.msg || '未知错误'), 'error');
+  }).catch(function(e){showToast('推送失败: ' + e.message, 'error')});
+}
+
 function renderPushManagePage() {
   var pushGroups = lsGet('push_groups', [
     {id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},
@@ -9799,7 +9938,7 @@ function renderPushManagePage() {
     {key:'custom', label:'自定义推送', desc:'用户手动触发的即时消息'}
   ];
   
-  var h = '<div class="card">';
+  var h = '<div class="page-enter">';
   h += '<h3>推送管理</h3>';
   h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">管理推送群组和推送类型配置。由管理员定义哪些消息推送到哪个群组。</p>';
   
