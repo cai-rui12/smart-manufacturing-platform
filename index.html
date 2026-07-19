@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 ================================================================================
   智能制造组管理平台 V17 - 网页内审报告
   审审日期: 2026-07-19
@@ -2056,16 +2056,34 @@ function migratePasswords() {
   if (!pw) return;
   var changed = false;
   for (var eid in pw) {
-    // If password is not obfuscated (doesn't contain the salt marker pattern), migrate it
-    if (pw[eid] && pw[eid].indexOf(PWD_SALT) === -1 && eid !== '__v17_migrated') {
-      try { atob(pw[eid]); } catch(e) {
-        // Not base64 encoded, needs migration
+    if (pw[eid] && eid !== '__v17_migrated') {
+      // 尝试base64解码，如果失败则说明是明文，需要迁移
+      try {
+        var decoded = atob(pw[eid]);
+        // base64解码成功，检查是否包含salt分隔符（混淆密码的特征）
+        if (decoded.indexOf('|') === -1) {
+          // 虽然是合法base64，但解码后没有分隔符，说明只是巧合的base64明文
+          // 尝试deobfuscate，如果结果与原值不同则说明是真正的混淆密码
+          var deob = deobfuscatePwd(pw[eid]);
+          if (deob === pw[eid]) {
+            // deobfuscate返回的值等于编码值，说明不是真正的混淆密码
+            // 需要迁移
+            pw[eid] = obfuscatePwd(pw[eid]);
+            changed = true;
+          }
+        }
+        // 如果包含'|'，说明已经是混淆密码，无需迁移
+      } catch(e) {
+        // atob失败，确定是明文密码，需要迁移
         pw[eid] = obfuscatePwd(pw[eid]);
         changed = true;
       }
     }
   }
-  if (changed) { lsSet('passwords', pw); }
+  if (changed) {
+    pw['__v17_migrated'] = true;
+    lsSet('passwords', pw);
+  }
 }
 
 // =========================================
@@ -2073,13 +2091,15 @@ function migratePasswords() {
 // =========================================
 function initAuth() {
   try {
+    // V17 Fix: 先迁移旧版本明文密码为混淆存储
+    migratePasswords();
     // V17 Fix: 增量同步密码，确保新增用户也有默认密码
     var pw = lsGet('passwords', null);
     if (!pw) { pw = {}; }
     var pwChanged = false;
     PEOPLE_OBJ.forEach(function(p) {
       if (!pw[p.employeeId]) {
-        pw[p.employeeId] = obfuscatePwd('123456');
+        pw[p.employeeId] = obfuscatePwd('12345678');
         pwChanged = true;
       }
       // V17: migrate non-obfuscated passwords
@@ -2143,9 +2163,45 @@ async function doLogin() {
     if (!eid || !pwd) { showToast('请输入工号和密码', 'warn'); return; }
     var passwords = lsGet('passwords', {});
     var person = PEOPLE_OBJ.find(function(p) { return p.employeeId === eid; });
-    if (!person) { showToast('工号不存在', 'error'); return; }
-    var expectedPwd = passwords[eid] ? deobfuscatePwd(passwords[eid]) : '123456';
-    if (expectedPwd !== pwd) { showToast('密码错误', 'error'); return; }
+    if (!person) { showToast('工号不存在，请检查工号输入', 'error'); return; }
+
+    // V17 Fix: 兼容明文和混淆密码比对
+    var storedPwd = passwords[eid] || '';
+    var matched = false;
+    var needUpgrade = false; // 标记是否需要将明文升级为混淆存储
+
+    if (!storedPwd) {
+      // 没有存储过密码，使用默认密码12345678
+      matched = (pwd === '12345678');
+      needUpgrade = true;
+    } else {
+      // 先尝试混淆密码比对
+      try {
+        var decodedPwd = deobfuscatePwd(storedPwd);
+        if (pwd === decodedPwd) {
+          matched = true;
+        }
+      } catch(e) {
+        // deobfuscatePwd失败，说明存储的不是base64，可能是明文
+      }
+      // 再尝试明文直接比对（向后兼容旧版本明文存储）
+      if (!matched && pwd === storedPwd) {
+        matched = true;
+        needUpgrade = true; // 明文匹配成功，自动升级为混淆存储
+      }
+    }
+
+    if (!matched) { showToast('密码错误，请重试', 'error'); return; }
+
+    // V17 Fix: 记录是否使用默认密码（在升级前检查）
+    var isDefaultPwd = (pwd === '12345678' && !passwords[eid]);
+
+    // 自动升级：将明文密码升级为混淆存储
+    if (needUpgrade) {
+      passwords[eid] = obfuscatePwd(pwd);
+      lsSet('passwords', passwords);
+    }
+
     // V13 - 在线模式下同步验证后端（带3秒超时保护，超时自动降级到本地验证）
     if (SERVER_CONFIG.mode === 'online') {
       try {
@@ -2167,17 +2223,21 @@ async function doLogin() {
         }
       } catch(e) {
         // 后端不可用时降级到本地验证
-        console.error('后端登录验证失败，降级到本地:', e);
+        console.warn('后端登录验证失败，降级到本地验证:', e.message || e);
+        showToast('后端不可达，已使用本地验证登录', 'warn');
       }
     }
     pendingUser = person;
-    if (pwd === '123456' && !passwords[eid]) {
+    if (isDefaultPwd) {
       document.getElementById('loginForm').style.display = 'none';
       document.getElementById('changePwdForm').style.display = 'block';
     } else {
       finishLogin(person);
     }
-  } catch(e) { console.error('doLogin error:', e); }
+  } catch(e) {
+    console.error('doLogin error:', e);
+    showToast('登录过程发生错误，请重试: ' + (e.message || e), 'error');
+  }
 }
 
 function doChangePwd() {
@@ -2188,9 +2248,9 @@ function doChangePwd() {
     if (p1.length > 32) { showToast('密码不能超过32位', 'warn'); return; }
     if (p1 !== p2) { showToast('两次密码不一致', 'warn'); return; }
     var passwords = lsGet('passwords', {});
-    passwords[pendingUser.employeeId] = p1;
+    passwords[pendingUser.employeeId] = obfuscatePwd(p1);
     lsSet('passwords', passwords);
-    showToast('密码修改成功', 'warn');
+    showToast('密码修改成功', 'success');
     finishLogin(pendingUser);
   } catch(e) { console.error('doChangePwd error:', e); }
 }
