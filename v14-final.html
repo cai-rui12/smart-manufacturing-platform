@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -3606,74 +3606,418 @@ function renderEquipByProcess() {
   return h;
 }
 
+// =========================================
+// V14 - 设备验收（完整CRUD）
+// =========================================
+var EQUIP_ACCEPT_DEFAULTS = [
+  {id:'AE001', name:'1#沉铜线自动物流', no:'EQ-CU-001-A', date:'2026-07-15', inspector:'蔡瑞', result:'合格', status:'已验收', vendor:'海康机器人', remark:'各项指标合格，准予验收'},
+  {id:'AE002', name:'2#MCP电镀线', no:'EQ-MCP-002', date:'2026-07-20', inspector:'', result:'', status:'待验收', vendor:'宇宙集团', remark:''},
+  {id:'AE003', name:'AOI检测机2号', no:'EQ-AOI-002', date:'2026-07-25', inspector:'', result:'', status:'待验收', vendor:'奥宝科技', remark:''},
+  {id:'AE004', name:'激光钻机3号', no:'EQ-DRILL-003', date:'2026-08-01', inspector:'', result:'', status:'待验收', vendor:'大族激光', remark:''},
+  {id:'AE005', name:'热压机15号', no:'EQ-PRESS-015', date:'2026-06-30', inspector:'梁辉彬', result:'合格', status:'已验收', vendor:'景津装备', remark:'运行稳定，验收通过'}
+];
+
+function getAllEquipAccepts() { return mergeData(EQUIP_ACCEPT_DEFAULTS, 'local_equip_accepts'); }
+function saveLocalEquipAccepts(arr) { lsSet('local_equip_accepts', arr); }
+
 function renderEquipAccept(status) {
   var title = status === 'done' ? '已验收设备' : '待验收设备';
-  var equips = [
-    {id:'AE001', name:'1#沉铜线自动物流', no:'EQ-CU-001-A', date:'2026-07-15', status: status==='done'?'已验收':'待验收', vendor:'海康机器人'},
-    {id:'AE002', name:'2#MCP电镀线', no:'EQ-MCP-002', date:'2026-07-20', status: status==='done'?'已验收':'待验收', vendor:'宇宙集团'},
-    {id:'AE003', name:'AOI检测机2号', no:'EQ-AOI-002', date:'2026-07-25', status: status==='done'?'已验收':'待验收', vendor:'奥宝科技'},
-    {id:'AE004', name:'激光钻机3号', no:'EQ-DRILL-003', date:'2026-08-01', status: status==='done'?'已验收':'待验收', vendor:'大族激光'},
-    {id:'AE005', name:'热压机15号', no:'EQ-PRESS-015', date:'2026-06-30', status:'已验收', vendor:'景津装备'}
-  ];
-  var list = status === 'done' ? equips.filter(function(e){return e.status==='已验收';}) : equips.filter(function(e){return e.status!=='已验收';});
+  var allEquips = getAllEquipAccepts();
+  var equips = allEquips.slice();
+  // 按状态筛选
+  if (status === 'done') {
+    equips = equips.filter(function(e){return e.status==='已验收';});
+  } else {
+    equips = equips.filter(function(e){return e.status==='待验收';});
+  }
+  // 搜索
+  var search = getSearch('equipAccept');
+  if (search) {
+    equips = equips.filter(function(e) {
+      return (e.name||'').indexOf(search) !== -1 || (e.no||'').indexOf(search) !== -1 || (e.vendor||'').indexOf(search) !== -1 || (e.inspector||'').indexOf(search) !== -1;
+    });
+  }
+  // 结果筛选
+  var resultFilter = getSearch('equipAcceptResult');
+  if (resultFilter && status === 'done') {
+    equips = equips.filter(function(e) { return e.result === resultFilter; });
+  }
   var h = '<div class="page-enter">';
-  h += '<div class="pt">✅ 设备验收 - ' + title + ' <span class="bdg">共 ' + list.length + ' 台</span></div>';
+  h += '<div class="pt">✅ 设备验收 - ' + title + ' <span class="bdg">共 ' + equips.length + ' 台</span></div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">' + equips.length + '</div><div class="kpi-label">验收总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + equips.filter(function(e){return e.status==='已验收';}).length + '</div><div class="kpi-label">已验收</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + equips.filter(function(e){return e.status!=='已验收';}).length + '</div><div class="kpi-label">待验收</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(equips.filter(function(e){return e.status==='已验收';}).length/Math.max(equips.length,1)*100) + '%</div><div class="kpi-label">验收率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + allEquips.length + '</div><div class="kpi-label">验收总数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + allEquips.filter(function(e){return e.status==='已验收';}).length + '</div><div class="kpi-label">已验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + allEquips.filter(function(e){return e.status==='待验收';}).length + '</div><div class="kpi-label">待验收</div></div>';
+  var passRate = allEquips.filter(function(e){return e.status==='已验收';}).length;
+  h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(passRate/Math.max(allEquips.length,1)*100) + '%</div><div class="kpi-label">验收率</div></div>';
+  h += '</div>';
+  h += '<div class="bg">';
+  h += '<input class="fi" style="width:220px" placeholder="搜索设备名称/编号/供应商..." value="' + search + '" oninput="setSearch(\'equipAccept\',this.value);refresh()">';
+  if (status === 'done') {
+    h += '<select class="fi" style="width:130px" onchange="setSearch(\'equipAcceptResult\',this.value);refresh()">';
+    h += '<option value="">全部结果</option>';
+    h += '<option value="合格"' + (resultFilter==='合格'?' selected':'') + '>合格</option>';
+    h += '<option value="不合格"' + (resultFilter==='不合格'?' selected':'') + '>不合格</option>';
+    h += '</select>';
+  }
+  h += '<button class="btn bp" onclick="createEquipAccept()">&#10133; 新增验收</button>';
+  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '<button class="btn bo" onclick="exportCSV(getAllEquipAccepts(), \'设备验收\')">&#128190; 导出</button>';
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>设备名称</th><th>设备编号</th><th>供应商</th><th>计划验收日期</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  list.forEach(function(e) {
-    h += '<tr><td>' + e.name + '</td><td>' + e.no + '</td><td>' + e.vendor + '</td><td>' + e.date + '</td>';
-    h += '<td><span class="t ' + (e.status==='已验收'?'tg':'to') + '">' + e.status + '</span></td>';
-    h += '<td><button class="btn-sm bo">查看</button>';
-    if (e.status !== '已验收') h += ' <button class="btn-sm bp">验收</button>';
-    h += '</td></tr>';
-  });
+  h += '<thead><tr><th>设备名称</th><th>设备编号</th><th>供应商</th><th>验收日期</th><th>验收人员</th><th>验收结果</th><th>状态</th><th>操作</th></tr></thead><tbody>';
+  if (equips.length === 0) {
+    h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
+    equips.forEach(function(e) {
+      h += '<tr><td>' + e.name + '</td><td>' + e.no + '</td><td>' + (e.vendor||'') + '</td><td>' + e.date + '</td>';
+      h += '<td>' + (e.inspector||'-') + '</td>';
+      h += '<td><span class="t ' + (e.result==='合格'?'tg':'tx') + '">' + (e.result||'-') + '</span></td>';
+      h += '<td><span class="t ' + (e.status==='已验收'?'tg':'to') + '">' + e.status + '</span></td>';
+      h += '<td>';
+      h += '<button class="btn-sm bo" onclick="viewEquipAccept(\'' + e.id + '\')">查看</button> ';
+      h += '<button class="btn-sm bp" onclick="editEquipAccept(\'' + e.id + '\')">编辑</button> ';
+      if (e.status !== '已验收') {
+        h += '<button class="btn-sm bp" onclick="doEquipAccept(\'' + e.id + '\')">验收</button> ';
+      }
+      h += '<button class="btn-sm dg" onclick="deleteEquipAccept(\'' + e.id + '\')">删除</button>';
+      h += '</td></tr>';
+    });
+  }
   h += '</tbody></table></div></div>';
   h += '</div>';
   return h;
 }
 
+function createEquipAccept() {
+  var today = new Date().toISOString().slice(0,10);
+  submitFormModal({
+    title: '新增设备验收记录',
+    showSaveAndNew: true,
+    fields: [
+      {key:'name', label:'设备名称', type:'text', required:true, placeholder:'请输入设备名称'},
+      {key:'no', label:'设备编号', type:'text', required:true, placeholder:'请输入设备编号'},
+      {key:'vendor', label:'供应商', type:'text', placeholder:'请输入供应商'},
+      {key:'date', label:'验收日期', type:'date', value:today},
+      {key:'inspector', label:'验收人员', type:'text', placeholder:'请输入验收人员'},
+      {key:'result', label:'验收结果', type:'select', options:['合格','不合格'], value:'合格'},
+      {key:'status', label:'状态', type:'select', options:['待验收','已验收'], value:'待验收'},
+      {key:'remark', label:'备注', type:'textarea', rows:3, placeholder:'请输入备注信息'}
+    ],
+    onSave: function(data) {
+      var all = getAllEquipAccepts();
+      var maxNum = 0;
+      all.forEach(function(e) {
+        var m = String(e.id).match(/AE(\d+)/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+      });
+      data.id = 'AE' + String(maxNum + 1).padStart(3, '0');
+      var local = lsGet('local_equip_accepts', []);
+      local.push(data);
+      saveLocalEquipAccepts(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function viewEquipAccept(id) {
+  var all = getAllEquipAccepts();
+  var e = all.find(function(x){ return x.id === id; });
+  if (!e) return;
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">验收编号</div><div class="ii-value">' + e.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">设备名称</div><div class="ii-value">' + e.name + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">设备编号</div><div class="ii-value">' + e.no + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">供应商</div><div class="ii-value">' + (e.vendor||'-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">验收日期</div><div class="ii-value">' + e.date + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">验收人员</div><div class="ii-value">' + (e.inspector||'-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">验收结果</div><div class="ii-value"><span class="t ' + (e.result==='合格'?'tg':'tr') + '">' + (e.result||'-') + '</span></div></div>';
+  h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + (e.status==='已验收'?'tg':'to') + '">' + e.status + '</span></div></div>';
+  h += '</div>';
+  h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
+  h += '<div class="form-field"><label>备注</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (e.remark || '无') + '</div></div>';
+  var footer = '<button class="btn bp" onclick="editEquipAccept(\'' + e.id + '\')">编辑</button>';
+  if (e.status !== '已验收') {
+    footer += '<button class="btn bp" onclick="doEquipAccept(\'' + e.id + '\');closeMo()">验收</button>';
+  }
+  footer += '<button class="btn dg" onclick="deleteEquipAccept(\'' + e.id + '\');closeMo()">删除</button>';
+  openMo({title:'设备验收详情 - ' + e.name, html:h, footer:footer});
+}
+
+function editEquipAccept(id) {
+  var all = getAllEquipAccepts();
+  var e = all.find(function(x){ return x.id === id; });
+  if (!e) return;
+  submitFormModal({
+    title: '编辑设备验收 - ' + id,
+    fields: [
+      {key:'name', label:'设备名称', type:'text', value:e.name, required:true},
+      {key:'no', label:'设备编号', type:'text', value:e.no, required:true},
+      {key:'vendor', label:'供应商', type:'text', value:e.vendor||''},
+      {key:'date', label:'验收日期', type:'date', value:e.date},
+      {key:'inspector', label:'验收人员', type:'text', value:e.inspector||''},
+      {key:'result', label:'验收结果', type:'select', options:['合格','不合格'], value:e.result||'合格'},
+      {key:'status', label:'状态', type:'select', options:['待验收','已验收'], value:e.status},
+      {key:'remark', label:'备注', type:'textarea', rows:3, value:e.remark||''}
+    ],
+    onSave: function(data) {
+      var local = lsGet('local_equip_accepts', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      data.id = id;
+      if (idx >= 0) local[idx] = data;
+      else local.push(data);
+      saveLocalEquipAccepts(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function doEquipAccept(id) {
+  var all = getAllEquipAccepts();
+  var e = all.find(function(x){ return x.id === id; });
+  if (!e) return;
+  submitFormModal({
+    title: '执行验收 - ' + e.name,
+    fields: [
+      {key:'inspector', label:'验收人员', type:'text', required:true, placeholder:'请输入验收人员', value:e.inspector||currentUser.name},
+      {key:'result', label:'验收结果', type:'select', options:['合格','不合格'], value:'合格'},
+      {key:'status', label:'状态', type:'select', options:['已验收','待验收'], value:'已验收'},
+      {key:'remark', label:'验收备注', type:'textarea', rows:3, placeholder:'请输入验收备注', value:e.remark||''}
+    ],
+    onSave: function(data) {
+      var local = lsGet('local_equip_accepts', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      var merged = Object.assign({}, e, data);
+      merged.id = id;
+      if (idx >= 0) local[idx] = merged;
+      else local.push(merged);
+      saveLocalEquipAccepts(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function deleteEquipAccept(id) {
+  if (!confirm('确定删除此设备验收记录？')) return;
+  var local = lsGet('local_equip_accepts', []);
+  local = local.filter(function(x){ return x.id !== id; });
+  saveLocalEquipAccepts(local);
+  closeMo();
+  refresh();
+}
+
+// =========================================
+// V14 - 备件管理（完整CRUD）
+// =========================================
+var SPARE_DEFAULTS = [
+  {id:'SP001', name:'AGV驱动轮', no:'SP-AGV-001', stock:12, minStock:5, unit:'个', cycle:'6个月', price:1500, location:'A区仓库-01架', status:'正常'},
+  {id:'SP002', name:'提升机链条', no:'SP-LIFT-001', stock:3, minStock:2, unit:'条', cycle:'12个月', price:8000, location:'A区仓库-02架', status:'正常'},
+  {id:'SP003', name:'MCP铜缸阳极', no:'SP-MCP-001', stock:8, minStock:10, unit:'组', cycle:'3个月', price:3200, location:'B区仓库-01架', status:'库存不足'},
+  {id:'SP004', name:'沉金线过滤芯', no:'SP-ENIG-001', stock:20, minStock:15, unit:'支', cycle:'1个月', price:280, location:'B区仓库-03架', status:'正常'},
+  {id:'SP005', name:'热压机热盘', no:'SP-PRESS-001', stock:2, minStock:3, unit:'个', cycle:'24个月', price:25000, location:'C区仓库-01架', status:'库存不足'},
+  {id:'SP006', name:'AOI光源模组', no:'SP-AOI-001', stock:4, minStock:2, unit:'套', cycle:'18个月', price:12000, location:'B区仓库-02架', status:'正常'},
+  {id:'SP007', name:'钻机主轴', no:'SP-DRILL-001', stock:1, minStock:2, unit:'根', cycle:'12个月', price:35000, location:'C区仓库-02架', status:'库存不足'},
+  {id:'SP008', name:'蚀刻线喷嘴', no:'SP-ETCH-001', stock:50, minStock:30, unit:'个', cycle:'6个月', price:120, location:'A区仓库-03架', status:'正常'}
+];
+
+function getAllSpares() { return mergeData(SPARE_DEFAULTS, 'local_spares'); }
+function saveLocalSpares(arr) { lsSet('local_spares', arr); }
+
 function renderSpare(kind) {
   var title = kind === 'cycle' ? '备件更换周期' : '备件库存';
-  var spares = [
-    {id:'SP001', name:'AGV驱动轮', no:'SP-AGV-001', stock:12, minStock:5, unit:'个', cycle:'6个月', price:1500},
-    {id:'SP002', name:'提升机链条', no:'SP-LIFT-001', stock:3, minStock:2, unit:'条', cycle:'12个月', price:8000},
-    {id:'SP003', name:'MCP铜缸阳极', no:'SP-MCP-001', stock:8, minStock:10, unit:'组', cycle:'3个月', price:3200},
-    {id:'SP004', name:'沉金线过滤芯', no:'SP-ENIG-001', stock:20, minStock:15, unit:'支', cycle:'1个月', price:280},
-    {id:'SP005', name:'热压机热盘', no:'SP-PRESS-001', stock:2, minStock:3, unit:'个', cycle:'24个月', price:25000},
-    {id:'SP006', name:'AOI光源模组', no:'SP-AOI-001', stock:4, minStock:2, unit:'套', cycle:'18个月', price:12000},
-    {id:'SP007', name:'钻机主轴', no:'SP-DRILL-001', stock:1, minStock:2, unit:'根', cycle:'12个月', price:35000},
-    {id:'SP008', name:'蚀刻线喷嘴', no:'SP-ETCH-001', stock:50, minStock:30, unit:'个', cycle:'6个月', price:120}
-  ];
+  var allSpares = getAllSpares();
+  var spares = allSpares.slice();
+  // 搜索
+  var search = getSearch('spare');
+  if (search) {
+    spares = spares.filter(function(s) {
+      return (s.name||'').indexOf(search) !== -1 || (s.no||'').indexOf(search) !== -1 || (s.location||'').indexOf(search) !== -1;
+    });
+  }
+  // 状态筛选
+  var statusFilter = getSearch('spareStatus');
+  if (statusFilter) {
+    spares = spares.filter(function(s) {
+      return statusFilter === '库存不足' ? s.stock < s.minStock : s.stock >= s.minStock;
+    });
+  }
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📦 ' + title + ' <span class="bdg">共 ' + spares.length + ' 项</span></div>';
+  h += '<div class="pt">📦 ' + title + ' <span class="bdg">共 ' + allSpares.length + ' 项</span></div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">' + spares.length + '</div><div class="kpi-label">备件种类</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + spares.filter(function(s){return s.stock < s.minStock;}).length + '</div><div class="kpi-label">库存不足</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">¥' + (spares.reduce(function(s,p){return s+p.stock*p.price;},0)/10000).toFixed(1) + '万</div><div class="kpi-label">库存价值</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">8</div><div class="kpi-label">本月更换</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + allSpares.length + '</div><div class="kpi-label">备件种类</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + allSpares.filter(function(s){return s.stock < s.minStock;}).length + '</div><div class="kpi-label">库存不足</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + allSpares.filter(function(s){return s.stock >= s.minStock;}).length + '</div><div class="kpi-label">库存正常</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">¥' + (allSpares.reduce(function(s,p){return s+p.stock*p.price;},0)/10000).toFixed(1) + '万</div><div class="kpi-label">库存价值</div></div>';
   h += '</div>';
-  h += '<div class="bg"><input class="fi" style="width:240px" placeholder="搜索备件..."><button class="btn bp">&#10133; 新增备件</button><button class="btn bo">&#8635; 刷新</button><button class="btn bo">&#128190; 导出</button></div>';
+  h += '<div class="bg">';
+  h += '<input class="fi" style="width:220px" placeholder="搜索备件名称/编号/位置..." value="' + search + '" oninput="setSearch(\'spare\',this.value);refresh()">';
+  h += '<select class="fi" style="width:130px" onchange="setSearch(\'spareStatus\',this.value);refresh()">';
+  h += '<option value="">全部状态</option>';
+  h += '<option value="正常"' + (statusFilter==='正常'?' selected':'') + '>正常</option>';
+  h += '<option value="库存不足"' + (statusFilter==='库存不足'?' selected':'') + '>库存不足</option>';
+  h += '</select>';
+  h += '<button class="btn bp" onclick="createSpare()">&#10133; 新增备件</button>';
+  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  h += '<button class="btn bo" onclick="exportCSV(getAllSpares(), \'备件管理\')">&#128190; 导出</button>';
+  h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>备件编号</th><th>备件名称</th><th>库存</th><th>最低库存</th><th>单位</th>';
+  h += '<thead><tr><th>备件编号</th><th>备件名称</th><th>库存数量</th><th>最低库存</th><th>单位</th><th>存放位置</th>';
   if (kind === 'cycle') h += '<th>更换周期</th>';
   h += '<th>单价</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-  spares.forEach(function(s) {
-    var warn = s.stock < s.minStock;
-    h += '<tr><td>' + s.no + '</td><td>' + s.name + '</td><td>' + s.stock + '</td><td>' + s.minStock + '</td><td>' + s.unit + '</td>';
-    if (kind === 'cycle') h += '<td>' + s.cycle + '</td>';
-    h += '<td>¥' + s.price + '</td>';
-    h += '<td><span class="t ' + (warn?'tr':'tg') + '">' + (warn?'库存不足':'正常') + '</span></td>';
-    h += '<td><button class="btn-sm bo">查看</button> <button class="btn-sm bp">补货</button></td></tr>';
-  });
+  if (spares.length === 0) {
+    var cols = kind === 'cycle' ? 10 : 9;
+    h += '<tr><td colspan="' + cols + '" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
+    spares.forEach(function(s) {
+      var warn = s.stock < s.minStock;
+      h += '<tr><td>' + s.no + '</td><td>' + s.name + '</td><td>' + s.stock + '</td><td>' + s.minStock + '</td><td>' + s.unit + '</td>';
+      h += '<td>' + (s.location||'-') + '</td>';
+      if (kind === 'cycle') h += '<td>' + s.cycle + '</td>';
+      h += '<td>¥' + s.price + '</td>';
+      h += '<td><span class="t ' + (warn?'tr':'tg') + '">' + (warn?'库存不足':'正常') + '</span></td>';
+      h += '<td>';
+      h += '<button class="btn-sm bo" onclick="viewSpare(\'' + s.id + '\')">查看</button> ';
+      h += '<button class="btn-sm bp" onclick="editSpare(\'' + s.id + '\')">编辑</button> ';
+      if (warn) h += '<button class="btn-sm bp" onclick="restockSpare(\'' + s.id + '\')">补货</button> ';
+      h += '<button class="btn-sm dg" onclick="deleteSpare(\'' + s.id + '\')">删除</button>';
+      h += '</td></tr>';
+    });
+  }
   h += '</tbody></table></div></div>';
   h += '</div>';
   return h;
+}
+
+function createSpare() {
+  submitFormModal({
+    title: '新增备件',
+    showSaveAndNew: true,
+    fields: [
+      {key:'name', label:'备件名称', type:'text', required:true, placeholder:'请输入备件名称'},
+      {key:'no', label:'备件编号', type:'text', required:true, placeholder:'请输入备件编号'},
+      {key:'stock', label:'库存数量', type:'number', required:true, placeholder:'0'},
+      {key:'minStock', label:'最低库存', type:'number', required:true, placeholder:'0'},
+      {key:'unit', label:'单位', type:'select', options:['个','条','组','支','套','根','件','片','块'], value:'个'},
+      {key:'location', label:'存放位置', type:'text', placeholder:'如：A区仓库-01架'},
+      {key:'cycle', label:'更换周期', type:'text', placeholder:'如：6个月'},
+      {key:'price', label:'单价(元)', type:'number', placeholder:'0'},
+      {key:'status', label:'状态', type:'select', options:['正常','库存不足'], value:'正常'}
+    ],
+    onSave: function(data) {
+      data.stock = parseInt(data.stock) || 0;
+      data.minStock = parseInt(data.minStock) || 0;
+      data.price = parseInt(data.price) || 0;
+      data.status = data.stock < data.minStock ? '库存不足' : '正常';
+      var all = getAllSpares();
+      var maxNum = 0;
+      all.forEach(function(s) {
+        var m = String(s.id).match(/SP(\d+)/);
+        if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
+      });
+      data.id = 'SP' + String(maxNum + 1).padStart(3, '0');
+      var local = lsGet('local_spares', []);
+      local.push(data);
+      saveLocalSpares(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function viewSpare(id) {
+  var all = getAllSpares();
+  var s = all.find(function(x){ return x.id === id; });
+  if (!s) return;
+  var warn = s.stock < s.minStock;
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">备件编号</div><div class="ii-value">' + s.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">备件名称</div><div class="ii-value">' + s.name + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">内部编号</div><div class="ii-value">' + s.no + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">单位</div><div class="ii-value">' + s.unit + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">库存数量</div><div class="ii-value" style="color:' + (warn?'var(--rd)':'var(--gn)') + ';font-weight:700">' + s.stock + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">最低库存</div><div class="ii-value">' + s.minStock + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">存放位置</div><div class="ii-value">' + (s.location||'-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">更换周期</div><div class="ii-value">' + (s.cycle||'-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">单价</div><div class="ii-value">¥' + s.price + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">库存价值</div><div class="ii-value" style="font-weight:700">¥' + (s.stock * s.price).toLocaleString() + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + (warn?'tr':'tg') + '">' + (warn?'库存不足':'正常') + '</span></div></div>';
+  h += '</div>';
+  if (warn) {
+    h += '<div style="margin-top:12px;padding:10px;background:var(--rd-l);border-radius:8px;font-size:12px;color:var(--rd);font-weight:500">⚠ 库存预警：当前库存(' + s.stock + ')低于最低库存(' + s.minStock + ')，建议及时补货。</div>';
+  }
+  var footer = '<button class="btn bp" onclick="editSpare(\'' + s.id + '\')">编辑</button>';
+  if (warn) footer += '<button class="btn bp" onclick="restockSpare(\'' + s.id + '\');closeMo()">补货</button>';
+  footer += '<button class="btn dg" onclick="deleteSpare(\'' + s.id + '\');closeMo()">删除</button>';
+  openMo({title:'备件详情 - ' + s.name, html:h, footer:footer});
+}
+
+function editSpare(id) {
+  var all = getAllSpares();
+  var s = all.find(function(x){ return x.id === id; });
+  if (!s) return;
+  submitFormModal({
+    title: '编辑备件 - ' + id,
+    fields: [
+      {key:'name', label:'备件名称', type:'text', value:s.name, required:true},
+      {key:'no', label:'备件编号', type:'text', value:s.no, required:true},
+      {key:'stock', label:'库存数量', type:'number', value:s.stock, required:true},
+      {key:'minStock', label:'最低库存', type:'number', value:s.minStock, required:true},
+      {key:'unit', label:'单位', type:'select', options:['个','条','组','支','套','根','件','片','块'], value:s.unit},
+      {key:'location', label:'存放位置', type:'text', value:s.location||''},
+      {key:'cycle', label:'更换周期', type:'text', value:s.cycle||''},
+      {key:'price', label:'单价(元)', type:'number', value:s.price},
+      {key:'status', label:'状态', type:'select', options:['正常','库存不足'], value:s.stock < s.minStock ? '库存不足' : '正常'}
+    ],
+    onSave: function(data) {
+      data.stock = parseInt(data.stock) || 0;
+      data.minStock = parseInt(data.minStock) || 0;
+      data.price = parseInt(data.price) || 0;
+      data.status = data.stock < data.minStock ? '库存不足' : '正常';
+      var local = lsGet('local_spares', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      data.id = id;
+      if (idx >= 0) local[idx] = data;
+      else local.push(data);
+      saveLocalSpares(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function restockSpare(id) {
+  var all = getAllSpares();
+  var s = all.find(function(x){ return x.id === id; });
+  if (!s) return;
+  submitFormModal({
+    title: '备件补货 - ' + s.name,
+    fields: [
+      {key:'stock', label:'补货后库存数量', type:'number', required:true, value:s.stock, placeholder:'请输入补货后的库存数量'},
+      {key:'minStock', label:'最低库存', type:'number', value:s.minStock},
+      {key:'location', label:'存放位置', type:'text', value:s.location||''},
+      {key:'remark', label:'补货备注', type:'textarea', rows:2, placeholder:'如：采购批次、供应商等'}
+    ],
+    onSave: function(data) {
+      data.stock = parseInt(data.stock) || 0;
+      data.minStock = parseInt(data.minStock) || 0;
+      data.status = data.stock < data.minStock ? '库存不足' : '正常';
+      var merged = Object.assign({}, s, data);
+      merged.id = id;
+      var local = lsGet('local_spares', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      if (idx >= 0) local[idx] = merged;
+      else local.push(merged);
+      saveLocalSpares(local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function deleteSpare(id) {
+  if (!confirm('确定删除此备件记录？')) return;
+  var local = lsGet('local_spares', []);
+  local = local.filter(function(x){ return x.id !== id; });
+  saveLocalSpares(local);
+  closeMo();
+  refresh();
 }
 
 // =========================================
