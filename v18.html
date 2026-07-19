@@ -1260,6 +1260,10 @@ var M = [
   {id:'report-push-config',label:'推送配置'},
   {id:'cfg-theme',label:'主题配置'},
 ]},
+{id:'modules',label:'模块管理',icon:'🧩',children:[
+  {id:'module-list',label:'已安装模块'},
+  {id:'module-register',label:'注册新模块'}
+]},
 ];
 
 // =========================================
@@ -1270,6 +1274,9 @@ var pendingUser = null;
 var curPage = 'home';
 var pathMap = {};
 var allLabels = {};
+// 模块管理页面标题映射
+allLabels['module-list'] = '已安装模块';
+allLabels['module-register'] = '注册新模块';
 var modalData = null;
 var pageState = {};
 var chartInstances = {};
@@ -9574,6 +9581,10 @@ function renderPage(id) {
     if (id === 'feishu-config') return renderFeishuConfig();
     if (id === 'report-push-config') return renderReportPushConfig();
     if (id === 'cfg-theme') return renderThemeConfig();
+    
+    // 模块管理
+    if (id === 'module-list') return renderModuleListPage();
+    if (id === 'module-register') return renderModuleRegisterPage();
     
     // 默认返回
     return '<div class="cd"><div class="pt">页面开发中</div><p>该页面正在建设中，敬请期待。页面ID: ' + id + '</p></div>';
