@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 ================================================================================
   智能制造组管理平台 V17 - 网页内审报告
   审审日期: 2026-07-19
@@ -2099,7 +2099,7 @@ function initAuth() {
     var pwChanged = false;
     PEOPLE_OBJ.forEach(function(p) {
       if (!pw[p.employeeId]) {
-        pw[p.employeeId] = obfuscatePwd('123456');
+        pw[p.employeeId] = obfuscatePwd('12345678');
         pwChanged = true;
       }
       // V17: migrate non-obfuscated passwords
@@ -2171,8 +2171,8 @@ async function doLogin() {
     var needUpgrade = false; // 标记是否需要将明文升级为混淆存储
 
     if (!storedPwd) {
-      // 没有存储过密码，使用默认密码123456
-      matched = (pwd === '123456');
+      // 没有存储过密码，使用默认密码12345678
+      matched = (pwd === '12345678');
       needUpgrade = true;
     } else {
       // 先尝试混淆密码比对
@@ -2194,7 +2194,7 @@ async function doLogin() {
     if (!matched) { showToast('密码错误，请重试', 'error'); return; }
 
     // V17 Fix: 记录是否使用默认密码（在升级前检查）
-    var isDefaultPwd = (pwd === '123456' && !passwords[eid]);
+    var isDefaultPwd = (pwd === '12345678' && !passwords[eid]);
 
     // 自动升级：将明文密码升级为混淆存储
     if (needUpgrade) {
