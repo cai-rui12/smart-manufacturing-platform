@@ -1,4 +1,4 @@
-﻿<!--
+<!--
 ================================================================================
   智能制造组管理平台 V17 - 网页内审报告
   审审日期: 2026-07-19
@@ -84,67 +84,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V17</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14">
-// =========================================
-// V17 - 模块管理页面
-// =========================================
-function renderModuleListPage() {
-  var mods = getRegisteredModules();
-  var h = '<div class="page-enter">';
-  h += '<div class="pt">模块管理 <span class="bdg">共 ' + mods.length + ' 个模块</span></div>';
-  h += '<div class="status-bar info">模块注册系统允许动态扩展平台功能。内置模块不可禁用。</div>';
-  h += '<div class="g2">';
-  mods.forEach(function(mod) {
-    h += '<div class="cd" style="border-left:4px solid ' + (mod.builtIn ? 'var(--blue)' : 'var(--gn)') + '">';
-    h += '<div class="ct"><span style="font-size:20px;margin-right:8px">' + (mod.icon || '📦') + '</span> ' + mod.name + ' <span class="bdg" style="margin-left:8px">v' + (mod.version || '1.0') + '</span>';
-    if (mod.builtIn) h += '<span class="t tb" style="margin-left:8px">内置</span>';
-    h += '</div>';
-    h += '<div class="info-grid"><div class="info-item"><div class="ii-label">模块ID</div><div class="ii-value">' + mod.id + '</div></div>';
-    h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + (mod.enabled ? 'tg' : 'tr') + '">' + (mod.enabled ? '已启用' : '已禁用') + '</span></div></div></div>';
-    h += '</div>';
-  });
-  h += '</div>';
-  h += '<div class="cd"><div class="ct">如何注册新模块</div>';
-  h += '<div style="font-size:13px;color:var(--t2);line-height:1.8">';
-  h += '<p>1. 在浏览器控制台调用 <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px">registerModule({id:"my-mod", name:"我的模块", icon:"🔧", version:"1.0", parentId:"config"})</code></p>';
-  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage(&apos;module-register&amp;apos;)" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
-  h += '<p>3. 注册后模块会自动出现在侧边栏菜单中</p>';
-  h += '</div></div>';
-  h += '</div>';
-  return h;
-}
-
-function renderModuleRegisterPage() {
-  var h = '<div class="page-enter">';
-  h += '<div class="pt">注册新模块</div>';
-  h += '<div class="status-bar info">填写模块信息并注册到系统。注册后模块将自动出现在侧边栏菜单中。</div>';
-  h += '<div class="cd" style="max-width:600px">';
-  h += '<div class="form-field"><label>模块ID（英文，唯一标识）</label><input id="mod_id" placeholder="例如: my-module"></div>';
-  h += '<div class="form-field"><label>模块名称</label><input id="mod_name" placeholder="例如: 我的模块"></div>';
-  h += '<div class="form-field"><label>图标（emoji）</label><input id="mod_icon" placeholder="例如: 🔧" value="📦"></div>';
-  h += '<div class="form-field"><label>版本号</label><input id="mod_version" placeholder="例如: 1.0" value="1.0"></div>';
-  h += '<div class="form-field"><label>父菜单ID（可选，挂在哪个菜单下）</label><input id="mod_parent" placeholder="例如: config（留空则为顶级菜单）"></div>';
-  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage(&apos;module-list&apos;)">取消</button></div>';
-  h += '</div></div>';
-  return h;
-}
-
-function doRegisterModule() {
-  var id = document.getElementById('mod_id').value.trim();
-  var name = document.getElementById('mod_name').value.trim();
-  var icon = document.getElementById('mod_icon').value.trim() || '📦';
-  var version = document.getElementById('mod_version').value.trim() || '1.0';
-  var parentId = document.getElementById('mod_parent').value.trim();
-  if (!id || !name) { showToast('模块ID和名称不能为空', 'warn'); return; }
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) { showToast('模块ID只能包含英文、数字、横线和下划线', 'warn'); return; }
-  // Check if already exists
-  var existing = MODULE_REGISTRY.find(function(m){ return m.id === id; });
-  if (existing) { showToast('模块ID "' + id + '" 已存在', 'warn'); return; }
-  registerModule({id:id, name:name, icon:icon, version:version, parentId:parentId || null, enabled:true, builtIn:false});
-}
-
-</script>
+<title>智能制造组管理平台 V18</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -811,7 +752,7 @@ var REAL_PROJECTS = [
     {name:'内层',total:25,done:29,rate:82.86},{name:'压合',total:44,done:43,rate:97.73},{name:'钻孔',total:3,done:2,rate:66.67},{name:'电镀',total:22,done:20,rate:90.91},{name:'树脂塞孔',total:25,done:25,rate:100},{name:'外层',total:8,done:7,rate:87.5},{name:'丝印字符',total:8,done:4,rate:50},{name:'沉金',total:2,done:2,rate:100},{name:'外形加工',total:17,done:17,rate:100},{name:'电测',total:14,done:14,rate:100},{name:'FQC包装',total:3,done:3,rate:100}
   ]},
   {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）'},
-  {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系'},
+  {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系',risks:'暂无重大风险，项目已完成数据采集和入网阶段'},
   {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢'},
   {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大'},
   {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线'},
@@ -7556,7 +7497,7 @@ function insertTemplateVar(varName) {
 }
 
 function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return str.replace(/&/g, '&').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function testReportPushWebhook() {
@@ -9807,7 +9748,7 @@ function renderModuleListPage() {
   h += '<div class="cd"><div class="ct">如何注册新模块</div>';
   h += '<div style="font-size:13px;color:var(--t2);line-height:1.8">';
   h += '<p>1. 在浏览器控制台调用 <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px">registerModule({id:"my-mod", name:"我的模块", icon:"🔧", version:"1.0", parentId:"config"})</code></p>';
-  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage(&apos;module-register&amp;apos;)" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
+  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage(\'module-register\')" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
   h += '<p>3. 注册后模块会自动出现在侧边栏菜单中</p>';
   h += '</div></div>';
   h += '</div>';
@@ -9824,7 +9765,7 @@ function renderModuleRegisterPage() {
   h += '<div class="form-field"><label>图标（emoji）</label><input id="mod_icon" placeholder="例如: 🔧" value="📦"></div>';
   h += '<div class="form-field"><label>版本号</label><input id="mod_version" placeholder="例如: 1.0" value="1.0"></div>';
   h += '<div class="form-field"><label>父菜单ID（可选，挂在哪个菜单下）</label><input id="mod_parent" placeholder="例如: config（留空则为顶级菜单）"></div>';
-  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage(&apos;module-list&apos;)">取消</button></div>';
+  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage(\'module-list\')">取消</button></div>';
   h += '</div></div>';
   return h;
 }
@@ -9913,6 +9854,52 @@ function showAddPushGroup() {
   html += '</div>';
   html += '</div><div class="modal-footer"><button class="btn" onclick="savePushGroup()">保存</button></div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function editPushGroup(id) {
+  var groups = lsGet('push_groups', []);
+  var g = groups.find(function(g){return g.id===id});
+  if (!g) return;
+  var html = '<div class="modal-overlay" id="pushGroupModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>编辑推送群组</h3><button onclick="document.getElementById(\'pushGroupModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="margin-bottom:8px"><label>群组名称</label><input id="pg_name" style="width:100%" value="' + escapeHtml(g.name) + '"></div>';
+  html += '<div style="margin-bottom:8px"><label>Webhook URL</label><input id="pg_url" style="width:100%" value="' + escapeHtml(g.webhookUrl || '') + '" placeholder="飞书群机器人Webhook地址"></div>';
+  html += '<div style="margin-bottom:8px"><label>推送类型（多选）</label>';
+  var types = ['daily','weekly','monthly','project','equipment','improvement','custom'];
+  var typeNames = {daily:'日报',weekly:'周报',monthly:'月报',project:'项目进度',equipment:'设备异常',improvement:'改善提案',custom:'自定义'};
+  for (var i = 0; i < types.length; i++) {
+    var checked = g.types && g.types.indexOf(types[i]) >= 0 ? ' checked' : '';
+    html += '<label style="margin-right:12px;font-size:13px"><input type="checkbox" value="' + types[i] + '" class="pg_type"' + checked + '> ' + typeNames[types[i]] + '</label>';
+  }
+  html += '</div>';
+  html += '<div style="margin-bottom:8px"><label>启用状态</label><select id="pg_enabled" style="width:100%"><option value="true"' + (g.enabled ? ' selected' : '') + '>启用</option><option value="false"' + (!g.enabled ? ' selected' : '') + '>停用</option></select></div>';
+  html += '</div><div class="modal-footer"><button class="btn" onclick="saveEditPushGroup(\'' + id + '\')">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function saveEditPushGroup(id) {
+  var name = document.getElementById('pg_name').value.trim();
+  var url = document.getElementById('pg_url').value.trim();
+  if (!name) { showToast('请输入群组名称', 'error'); return; }
+  var checks = document.querySelectorAll('.pg_type');
+  var types = [];
+  for (var i = 0; i < checks.length; i++) { if (checks[i].checked) types.push(checks[i].value); }
+  var enabled = document.getElementById('pg_enabled').value === 'true';
+  var groups = lsGet('push_groups', []);
+  for (var j = 0; j < groups.length; j++) {
+    if (groups[j].id === id) {
+      groups[j].name = name;
+      groups[j].webhookUrl = url;
+      groups[j].types = types;
+      groups[j].enabled = enabled;
+      break;
+    }
+  }
+  lsSet('push_groups', groups);
+  document.getElementById('pushGroupModal').remove();
+  showToast('群组已更新');
+  goToPage('push-manage');
 }
 
 function savePushGroup() {
