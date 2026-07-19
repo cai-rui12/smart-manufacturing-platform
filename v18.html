@@ -514,7 +514,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 <div class="mo" id="mo"><div class="md"><div class="md-h"><h3 id="mt"></h3><button class="md-x" onclick="closeMo()">&times;</button></div><div class="md-b" id="mb"></div><div class="md-f" id="mf"></div></div></div>
 <script>
 // =========================================
-// V17 - 数据定义 (所有数据使用英文key)
+// V18 - 数据定义 (所有数据使用英文key)
 // =========================================
 
 // =========================================
@@ -1207,7 +1207,7 @@ var M = [
   {id:'feishu-config',label:'飞书配置'},
   {id:'report-push-config',label:'推送配置'},
   {id:'cfg-theme',label:'主题配置'},
-  ,{id:'push-manage',label:'推送管理'}
+  {id:'push-manage',label:'推送管理'}
   ,{id:'schedule-push',label:'定时推送'}
 ]},
 {id:'modules',label:'模块管理',icon:'🧩',children:[
@@ -3811,7 +3811,7 @@ function renderProjectList(filterFn, title) {
       h += '<div style="font-size:12px;color:#94a3b8;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(p.description || '') + '</div>';
       // 底部：后续计划摘要
       if (p.nextPlan) {
-        var planLines = p.nextPlan.split('\\n');
+        var planLines = p.nextPlan.split('\n');
         h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;font-size:11px;color:#64748b"><b style="color:#60a5fa">后续计划：</b> ' + escapeHtml(planLines[0] || '') + (planLines.length > 1 ? ' ...' : '') + '</div>';
       }
       // 子步骤摘要
@@ -4511,7 +4511,6 @@ function renderEquipList(filterFn, title) {
   if (hasPermission('equip-manage','create')) {
     h += '<button class="btn bp" onclick="createEquip()">&#10133; 新增设备</button>';
   }
-  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
   h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
   if (hasPermission('equip-manage','export')) {
     h += '<button class="btn bo" onclick="exportCSV(getAllEquips(), \'设备清单\')">&#128190; 导出</button>';
