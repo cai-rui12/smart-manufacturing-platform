@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fetch CORS Test</title>
+<style>
+body{background:#0f172a;color:#e2e8f0;font-family:monospace;padding:16px;font-size:14px}
+button{padding:12px 24px;font-size:16px;background:#3b82f6;color:#fff;border:none;border-radius:8px;cursor:pointer;margin:8px 0}
+pre{background:#1e293b;padding:12px;border-radius:8px;white-space:pre-wrap;word-break:break-all;margin:8px 0;font-size:12px}
+.ok{color:#34c724}.fail{color:#ef4444}.info{color:#60a5fa}
+</style></head><body>
+<h2>Fetch CORS Diagnostic</h2>
+<button onclick="testFetch()">Test fetch() to tunnel</button>
+<div id="r"><pre>Waiting...</pre></div>
+<script>
+async function testFetch(){
+  const r = document.getElementById('r');
+  r.innerHTML = '<pre class="info">Starting fetch...</pre>';
+  const url = 'https://complications-downloaded-delete-bizarre.trycloudflare.com/api/status';
+  const t0 = Date.now();
+  try {
+    const res = await fetch(url, {mode:'cors', signal: AbortSignal.timeout(20000)});
+    const ms = Date.now() - t0;
+    const text = await res.text();
+    r.innerHTML = '<pre class="ok">SUCCESS! Status: ' + res.status + ' (' + ms + 'ms)\nType: ' + res.type + '\nResponse:\n' + text + '</pre>';
+  } catch(e) {
+    const ms = Date.now() - t0;
+    r.innerHTML = '<pre class="fail">FAILED after ' + ms + 'ms\nError: ' + e.name + ': ' + e.message + '</pre>';
+  }
+}
+</script></body></html>
