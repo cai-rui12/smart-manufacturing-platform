@@ -108,7 +108,7 @@ function renderModuleListPage() {
   h += '<div class="cd"><div class="ct">如何注册新模块</div>';
   h += '<div style="font-size:13px;color:var(--t2);line-height:1.8">';
   h += '<p>1. 在浏览器控制台调用 <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px">registerModule({id:"my-mod", name:"我的模块", icon:"🔧", version:"1.0", parentId:"config"})</code></p>';
-  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage('module-register')" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
+  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage(&apos;module-register&amp;apos;)" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
   h += '<p>3. 注册后模块会自动出现在侧边栏菜单中</p>';
   h += '</div></div>';
   h += '</div>';
@@ -125,7 +125,7 @@ function renderModuleRegisterPage() {
   h += '<div class="form-field"><label>图标（emoji）</label><input id="mod_icon" placeholder="例如: 🔧" value="📦"></div>';
   h += '<div class="form-field"><label>版本号</label><input id="mod_version" placeholder="例如: 1.0" value="1.0"></div>';
   h += '<div class="form-field"><label>父菜单ID（可选，挂在哪个菜单下）</label><input id="mod_parent" placeholder="例如: config（留空则为顶级菜单）"></div>';
-  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage('module-list')">取消</button></div>';
+  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage(&apos;module-list&apos;)">取消</button></div>';
   h += '</div></div>';
   return h;
 }
@@ -9717,7 +9717,7 @@ function renderModuleListPage() {
   h += '<div class="cd"><div class="ct">如何注册新模块</div>';
   h += '<div style="font-size:13px;color:var(--t2);line-height:1.8">';
   h += '<p>1. 在浏览器控制台调用 <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px">registerModule({id:"my-mod", name:"我的模块", icon:"🔧", version:"1.0", parentId:"config"})</code></p>';
-  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage('module-register')" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
+  h += '<p>2. 或前往 <a href="javascript:void(0)" onclick="goToPage(&apos;module-register&amp;apos;)" style="color:var(--blue)">注册新模块</a> 页面填写表单</p>';
   h += '<p>3. 注册后模块会自动出现在侧边栏菜单中</p>';
   h += '</div></div>';
   h += '</div>';
@@ -9734,7 +9734,7 @@ function renderModuleRegisterPage() {
   h += '<div class="form-field"><label>图标（emoji）</label><input id="mod_icon" placeholder="例如: 🔧" value="📦"></div>';
   h += '<div class="form-field"><label>版本号</label><input id="mod_version" placeholder="例如: 1.0" value="1.0"></div>';
   h += '<div class="form-field"><label>父菜单ID（可选，挂在哪个菜单下）</label><input id="mod_parent" placeholder="例如: config（留空则为顶级菜单）"></div>';
-  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage('module-list')">取消</button></div>';
+  h += '<div class="bg"><button class="btn bp" onclick="doRegisterModule()">注册模块</button><button class="btn bo" onclick="goToPage(&apos;module-list&apos;)">取消</button></div>';
   h += '</div></div>';
   return h;
 }
