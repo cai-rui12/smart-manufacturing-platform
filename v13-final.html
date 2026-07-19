@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -2293,14 +2293,39 @@ async function syncDailyToFeishu(id) {
 
 // 推送日报到飞书群（从各组工作汇报和出勤统计表聚合）
 async function sendDailyReportToGroup() {
-  if (SERVER_CONFIG.mode !== 'online') {
-    showToast('请先连接服务器', 'warn');
-    return;
-  }
   var btn = document.getElementById('btnSendDailyReport');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 推送中...'; }
   try {
     var today = new Date().toISOString().split('T')[0];
+    if (SERVER_CONFIG.mode !== 'online') {
+      // 离线降级：从本地数据聚合日报并生成文本摘要
+      var all = getAllDailyReports();
+      var todayReports = all.filter(function(r) { return r.date === today; });
+      if (todayReports.length === 0) {
+        showToast('今日暂无本地日报数据，请先提交日报', 'warn');
+        return;
+      }
+      var totalHours = todayReports.reduce(function(s, r) { return s + (r.workHours || 0); }, 0);
+      var normalCount = todayReports.filter(function(r) { return r.status === '正常'; }).length;
+      var blockedCount = todayReports.filter(function(r) { return r.status === '有阻塞'; }).length;
+      var summaryText = '【' + today + ' 日报聚合摘要（离线模式）】\n';
+      summaryText += '共 ' + todayReports.length + ' 篇日报 | 正常:' + normalCount + ' | 有阻塞:' + blockedCount + ' | 总工时:' + totalHours + 'h\n';
+      summaryText += '─────────────────\n';
+      todayReports.forEach(function(r) {
+        summaryText += '\n👤 ' + r.reporter + '（' + (r.workHours || 0) + 'h）[' + r.status + ']\n';
+        summaryText += '工作：' + (r.content || '').substring(0, 80) + (r.content && r.content.length > 80 ? '...' : '') + '\n';
+        if (r.issues && r.issues !== '无') summaryText += '问题：' + r.issues + '\n';
+      });
+      // 保存到剪贴板并提示
+      try {
+        await navigator.clipboard.writeText(summaryText);
+        showToast('离线模式：日报摘要已生成并复制到剪贴板（' + todayReports.length + '篇），请手动粘贴到飞书群', 'success');
+      } catch(clipErr) {
+        showToast('离线模式：已聚合 ' + todayReports.length + ' 篇日报（总工时' + totalHours + 'h），请连接服务器后推送', 'warn');
+      }
+      return;
+    }
+    // 在线模式：调用后端API
     var resp = await apiRequest('POST', '/api/daily-report/send', { date: today });
     if (resp.code === 0) {
       var workCount = resp.data.work_report_count || 0;
@@ -2312,9 +2337,15 @@ async function sendDailyReportToGroup() {
       }
     } else {
       showToast('推送失败: ' + (resp.msg || '未知错误'), 'error');
+      // 在线推送失败时，降级到离线模式提示
+      var allFallback = getAllDailyReports();
+      var todayFallback = allFallback.filter(function(r) { return r.date === today; });
+      if (todayFallback.length > 0) {
+        showToast('提示：本地有 ' + todayFallback.length + ' 篇今日日报，可断开后重试（将使用离线模式）', 'info');
+      }
     }
   } catch(e) {
-    showToast('推送异常: ' + e.message, 'error');
+    showToast('推送异常: ' + e.message + '，请检查服务器连接', 'error');
     console.error('sendDailyReportToGroup error:', e);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '&#128227; 推送日报到飞书群'; }
@@ -2499,9 +2530,27 @@ function initDailyStatsCharts() {
 
 function renderWeeklyReport() {
   var all = getAllWeeklyReports();
+  var search = getSearch('weekly');
+  var statusFilter = lsGet('weekly_status', '');
+  // 搜索和筛选
+  var list = all.slice();
+  if (search) {
+    list = list.filter(function(w) {
+      return (w.reporter||'').indexOf(search) !== -1 || (w.week||'').indexOf(search) !== -1 || (w.summary||'').indexOf(search) !== -1 || (w.id||'').indexOf(search) !== -1;
+    });
+  }
+  if (statusFilter) {
+    list = list.filter(function(w) { return w.status === statusFilter; });
+  }
+  list.sort(function(a, b) { return (b.weekStartDate || '').localeCompare(a.weekStartDate || ''); });
   var total = all.length;
   var submitted = all.filter(function(w){return w.status==='已提交';}).length;
   var unsubmitted = total - submitted;
+  var filteredTotal = list.length;
+  // 分页
+  var page = getPage('weekly');
+  var pageSize = 10;
+  var pageData = list.slice((page-1)*pageSize, page*pageSize);
   var h = '<div class="page-enter">';
   h += '<div class="pt">📅 周报管理 <span class="bdg">共 ' + total + ' 条</span></div>';
   h += '<div class="status-bar info">周报模块用于汇总每周工作成果和下周计划。</div>';
@@ -2512,31 +2561,150 @@ function renderWeeklyReport() {
   h += '<div class="kpi-card"><div class="kpi-value">' + submitted + '</div><div class="kpi-label">已提交</div></div>';
   h += '</div>';
   h += '<div class="bg">';
+  h += '<input class="fi" style="width:240px" placeholder="搜索周报..." value="' + search + '" oninput="setSearch(\'weekly\',this.value);refresh()">';
+  h += '<select class="fi" style="width:130px" onchange="lsSet(\'weekly_status\',this.value);setPage(\'weekly\',1);refresh()"><option value=""' + (!statusFilter?' selected':'') + '>全部状态</option><option value="已提交"' + (statusFilter==='已提交'?' selected':'') + '>已提交</option><option value="未提交"' + (statusFilter==='未提交'?' selected':'') + '>未提交</option></select>';
+  if (hasPermission('work-manage','create')) {
+    h += '<button class="btn bp" onclick="createWeekly()">&#10133; 新建周报</button>';
+  }
+  h += '<button class="btn bo" onclick="refreshData(\'weekly\')">&#8635; 刷新</button>';
   h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'weekly_reports\',true)">&#9889; 同步飞书</button>';
-  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  if (hasPermission('work-manage','export')) {
+    h += '<button class="btn bo" onclick="exportCSV(getAllWeeklyReports(), \'周报列表\')">&#128190; 导出</button>';
+  }
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>编号</th><th>周次</th><th>汇报人</th><th>提交时间</th><th>状态</th><th>工作时长</th><th>完成率</th><th>操作</th></tr></thead><tbody>';
-  if (all.length === 0) {
-    h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  h += '<thead><tr><th>编号</th><th>周次</th><th>汇报人</th><th>周期</th><th>提交时间</th><th>状态</th><th>工时</th><th>完成率</th><th>操作</th></tr></thead><tbody>';
+  if (pageData.length === 0) {
+    h += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">' + (filteredTotal === 0 && total > 0 ? '无匹配结果' : '暂无数据') + '</td></tr>';
   } else {
-    all.forEach(function(w) {
+    pageData.forEach(function(w) {
       h += '<tr onclick="openWeeklyDetail(\'' + w.id + '\')">';
       h += '<td>' + w.id + '</td>';
       h += '<td>' + w.week + '</td>';
       h += '<td>' + w.reporter + '</td>';
+      h += '<td>' + (w.weekStartDate || '') + ' ~ ' + (w.weekEndDate || '') + '</td>';
       h += '<td>' + (w.time || '-') + '</td>';
       h += '<td><span class="t ' + (w.status==='已提交'?'tg':'tr') + '">' + w.status + '</span></td>';
       h += '<td>' + (w.hours || 0) + 'h</td>';
       h += '<td>' + (w.rate || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openWeeklyDetail(\'' + w.id + '\')">查看</button>';
+      if (hasPermission('work-manage','edit')) {
+        h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editWeekly(\'' + w.id + '\')">编辑</button>';
+      }
       h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncWeeklyToFeishu(\'' + w.id + '\')" title="同步到飞书">飞书</button>';
+      if (hasPermission('work-manage','del')) {
+        h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteWeekly(\'' + w.id + '\')">删除</button>';
+      }
       h += '</td></tr>';
     });
   }
   h += '</tbody></table></div></div>';
+  h += renderPagination(filteredTotal, page, pageSize, 'weeklyPageChange');
   h += '</div>';
   return h;
+}
+
+function weeklyPageChange(p) { setPage('weekly', p); refresh(); }
+
+function createWeekly() {
+  var now = new Date();
+  var weekNum = getWeekNumber(now);
+  var weekRange = getWeekDateRange(now);
+  submitFormModal({
+    title: '新建周报',
+    showSaveAndNew: true,
+    fields: [
+      {key:'week', label:'周次', type:'text', value:'第' + weekNum + '周', required:true},
+      {key:'reporter', label:'汇报人', type:'text', value:currentUser.name, required:true},
+      {key:'weekStartDate', label:'周开始日期', type:'date', value:weekRange.start, required:true},
+      {key:'weekEndDate', label:'周结束日期', type:'date', value:weekRange.end, required:true},
+      {key:'status', label:'状态', type:'select', options:['已提交','未提交'], value:'已提交'},
+      {key:'summary', label:'本周工作总结', type:'textarea', rows:4, required:true, placeholder:'请填写本周主要工作内容...'},
+      {key:'highlights', label:'工作亮点', type:'textarea', rows:3, placeholder:'本周重要成果和亮点'},
+      {key:'problems', label:'问题与解决方案', type:'textarea', rows:3, placeholder:'遇到的问题及解决方案'},
+      {key:'nextPlan', label:'下周工作计划', type:'textarea', rows:3, placeholder:'下周主要工作安排'},
+      {key:'hours', label:'本周工作时长(小时)', type:'number', value:'40'},
+      {key:'progress', label:'整体进度', type:'text', value:'80%', placeholder:'如: 80%'},
+      {key:'rate', label:'完成率', type:'text', value:'85%', placeholder:'如: 85%'}
+    ],
+    onSave: function(data) {
+      var list = getAllWeeklyReports();
+      data.id = 'W' + String(list.length + 1).padStart(3, '0');
+      data.time = new Date().toISOString().slice(0, 10);
+      var local = lsGet('local_weekly', []);
+      local.push(data);
+      saveLocalWeekly(local);
+      saveData('weekly_reports', local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function editWeekly(id) {
+  var all = getAllWeeklyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) return;
+  submitFormModal({
+    title: '编辑周报 - ' + id,
+    fields: [
+      {key:'week', label:'周次', type:'text', value:r.week, required:true},
+      {key:'reporter', label:'汇报人', type:'text', value:r.reporter, required:true},
+      {key:'weekStartDate', label:'周开始日期', type:'date', value:r.weekStartDate, required:true},
+      {key:'weekEndDate', label:'周结束日期', type:'date', value:r.weekEndDate, required:true},
+      {key:'status', label:'状态', type:'select', options:['已提交','未提交'], value:r.status},
+      {key:'summary', label:'本周工作总结', type:'textarea', rows:4, value:r.summary || '', required:true},
+      {key:'highlights', label:'工作亮点', type:'textarea', rows:3, value:r.highlights || ''},
+      {key:'problems', label:'问题与解决方案', type:'textarea', rows:3, value:r.problems || ''},
+      {key:'nextPlan', label:'下周工作计划', type:'textarea', rows:3, value:r.nextPlan || ''},
+      {key:'hours', label:'本周工作时长(小时)', type:'number', value:r.hours || ''},
+      {key:'progress', label:'整体进度', type:'text', value:r.progress || ''},
+      {key:'rate', label:'完成率', type:'text', value:r.rate || ''}
+    ],
+    onSave: function(data) {
+      var local = lsGet('local_weekly', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      data.id = id;
+      data.time = r.time || new Date().toISOString().slice(0, 10);
+      if (idx >= 0) local[idx] = data;
+      else local.push(data);
+      saveLocalWeekly(local);
+      saveData('weekly_reports', local);
+    },
+    onAfter: function() { refresh(); openWeeklyDetail(id); }
+  });
+}
+
+function deleteWeekly(id) {
+  if (!confirm('确定删除此周报？')) return;
+  var local = lsGet('local_weekly', []);
+  local = local.filter(function(x){ return x.id !== id; });
+  saveLocalWeekly(local);
+  saveData('weekly_reports', local);
+  closeMo();
+  refresh();
+}
+
+// 获取ISO周数
+function getWeekNumber(d) {
+  var date = new Date(d.getTime());
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  var week1 = new Date(date.getFullYear(), 0, 4);
+  return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
+// 获取当前周的起止日期
+function getWeekDateRange(d) {
+  var date = new Date(d.getTime());
+  var day = date.getDay() || 7;
+  var start = new Date(date);
+  start.setDate(date.getDate() - day + 1);
+  var end = new Date(start);
+  end.setDate(start.getDate() + 4);
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10)
+  };
 }
 
 function openWeeklyDetail(id) {
@@ -2558,47 +2726,169 @@ function openWeeklyDetail(id) {
   h += '<div class="form-field"><label>下周工作计划</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.nextPlan || '') + '</div></div>';
   var footer = '';
   footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncWeeklyToFeishu(\'' + r.id + '\')">同步到飞书</button>';
+  if (hasPermission('work-manage','edit')) {
+    footer += ' <button class="btn bp" onclick="editWeekly(\'' + r.id + '\')">编辑</button>';
+  }
+  if (hasPermission('work-manage','del')) {
+    footer += ' <button class="btn dg" onclick="deleteWeekly(\'' + r.id + '\')">删除</button>';
+  }
   openMo({title:'周报详情 - ' + r.id, html:h, footer:footer});
 }
 
 function renderMonthlyReport() {
   var all = getAllMonthlyReports();
+  var search = getSearch('monthly');
+  var statusFilter = lsGet('monthly_status', '');
+  // 搜索和筛选
+  var list = all.slice();
+  if (search) {
+    list = list.filter(function(m) {
+      return (m.author||'').indexOf(search) !== -1 || (m.month||'').indexOf(search) !== -1 || (m.name||'').indexOf(search) !== -1 || (m.summary||'').indexOf(search) !== -1 || (m.id||'').indexOf(search) !== -1;
+    });
+  }
+  if (statusFilter) {
+    list = list.filter(function(m) { return m.status === statusFilter; });
+  }
+  list.sort(function(a, b) { return (b.month || '').localeCompare(a.month || ''); });
   var total = all.length;
+  var filteredTotal = list.length;
+  // 分页
+  var page = getPage('monthly');
+  var pageSize = 10;
+  var pageData = list.slice((page-1)*pageSize, page*pageSize);
+  // 动态计算KPI
+  var avgPerformance = total > 0 ? (all.reduce(function(s, m) { return s + parseFloat(m.performance || 0); }, 0) / total).toFixed(0) : 0;
+  var avgTargetRate = total > 0 ? (all.reduce(function(s, m) { return s + parseFloat(m.targetRate || 0); }, 0) / total).toFixed(0) : 0;
   var h = '<div class="page-enter">';
   h += '<div class="pt">📇 月报管理 <span class="bdg">共 ' + total + ' 条</span></div>';
   h += '<div class="status-bar info">月报模块用于汇总月度工作成果和KPI数据。</div>';
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + total + '</div><div class="kpi-label">月报总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">95%</div><div class="kpi-label">KPI完成率</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">142</div><div class="kpi-label">任务完成数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">4.2%</div><div class="kpi-label">设备故障率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + avgPerformance + '%</div><div class="kpi-label">平均绩效</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + avgTargetRate + '%</div><div class="kpi-label">平均目标达成率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(m){return m.status==='已发布';}).length + '</div><div class="kpi-label">已发布</div></div>';
   h += '</div>';
   h += '<div class="bg">';
+  h += '<input class="fi" style="width:240px" placeholder="搜索月报..." value="' + search + '" oninput="setSearch(\'monthly\',this.value);refresh()">';
+  h += '<select class="fi" style="width:130px" onchange="lsSet(\'monthly_status\',this.value);setPage(\'monthly\',1);refresh()"><option value=""' + (!statusFilter?' selected':'') + '>全部状态</option><option value="已发布"' + (statusFilter==='已发布'?' selected':'') + '>已发布</option><option value="草稿"' + (statusFilter==='草稿'?' selected':'') + '>草稿</option><option value="审核中"' + (statusFilter==='审核中'?' selected':'') + '>审核中</option></select>';
+  if (hasPermission('work-manage','create')) {
+    h += '<button class="btn bp" onclick="createMonthly()">&#10133; 新建月报</button>';
+  }
+  h += '<button class="btn bo" onclick="refreshData(\'monthly\')">&#8635; 刷新</button>';
   h += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncAllToFeishu(\'monthly_reports\',true)">&#9889; 同步飞书</button>';
-  h += '<button class="btn bo" onclick="refresh()">&#8635; 刷新</button>';
+  if (hasPermission('work-manage','export')) {
+    h += '<button class="btn bo" onclick="exportCSV(getAllMonthlyReports(), \'月报列表\')">&#128190; 导出</button>';
+  }
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
-  h += '<thead><tr><th>编号</th><th>月份</th><th>报告名称</th><th>编制人</th><th>提交时间</th><th>状态</th><th>KPI达成率</th><th>操作</th></tr></thead><tbody>';
-  if (all.length === 0) {
-    h += '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  h += '<thead><tr><th>编号</th><th>月份</th><th>报告名称</th><th>编制人</th><th>提交时间</th><th>状态</th><th>绩效</th><th>目标达成率</th><th>操作</th></tr></thead><tbody>';
+  if (pageData.length === 0) {
+    h += '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--t3)">' + (filteredTotal === 0 && total > 0 ? '无匹配结果' : '暂无数据') + '</td></tr>';
   } else {
-    all.forEach(function(m) {
+    pageData.forEach(function(m) {
       h += '<tr onclick="openMonthlyDetail(\'' + m.id + '\')">';
       h += '<td>' + m.id + '</td>';
       h += '<td>' + m.month + '</td>';
       h += '<td>' + m.name + '</td>';
       h += '<td>' + m.author + '</td>';
       h += '<td>' + m.time + '</td>';
-      h += '<td><span class="t tg">' + m.status + '</span></td>';
+      h += '<td><span class="t ' + (m.status==='已发布'?'tg': m.status==='审核中'?'to':'tx') + '">' + m.status + '</span></td>';
+      h += '<td>' + (m.performance || '-') + '</td>';
       h += '<td>' + (m.targetRate || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openMonthlyDetail(\'' + m.id + '\')">查看</button>';
+      if (hasPermission('work-manage','edit')) {
+        h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editMonthly(\'' + m.id + '\')">编辑</button>';
+      }
       h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncMonthlyToFeishu(\'' + m.id + '\')" title="同步到飞书">飞书</button>';
+      if (hasPermission('work-manage','del')) {
+        h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteMonthly(\'' + m.id + '\')">删除</button>';
+      }
       h += '</td></tr>';
     });
   }
   h += '</tbody></table></div></div>';
+  h += renderPagination(filteredTotal, page, pageSize, 'monthlyPageChange');
   h += '</div>';
   return h;
+}
+
+function monthlyPageChange(p) { setPage('monthly', p); refresh(); }
+
+function createMonthly() {
+  var now = new Date();
+  var monthStr = now.getFullYear() + '年' + (now.getMonth() + 1) + '月';
+  submitFormModal({
+    title: '新建月报',
+    showSaveAndNew: true,
+    fields: [
+      {key:'month', label:'月份', type:'text', value:monthStr, required:true},
+      {key:'name', label:'报告名称', type:'text', value:monthStr + '设备部月报', required:true},
+      {key:'author', label:'编制人', type:'text', value:currentUser.name, required:true},
+      {key:'status', label:'状态', type:'select', options:['草稿','审核中','已发布'], value:'草稿'},
+      {key:'summary', label:'月度总结', type:'textarea', rows:4, required:true, placeholder:'请填写月度工作总结...'},
+      {key:'keyWork', label:'重点工作进展', type:'textarea', rows:3, placeholder:'本月重点推进的工作'},
+      {key:'results', label:'关键成果', type:'textarea', rows:3, placeholder:'本月取得的关键成果'},
+      {key:'review', label:'回顾与改进', type:'textarea', rows:3, placeholder:'工作中发现的问题及改进方向'},
+      {key:'nextPlan', label:'下月计划', type:'textarea', rows:3, placeholder:'下月主要工作安排'},
+      {key:'hours', label:'月度工作时长', type:'text', value:'160h', placeholder:'如: 160h'},
+      {key:'performance', label:'月度绩效(%)', type:'text', value:'80%', placeholder:'如: 80%'},
+      {key:'targetRate', label:'目标达成率(%)', type:'text', value:'85%', placeholder:'如: 85%'}
+    ],
+    onSave: function(data) {
+      var list = getAllMonthlyReports();
+      data.id = 'M' + String(list.length + 1).padStart(3, '0');
+      data.time = new Date().toISOString().slice(0, 10);
+      var local = lsGet('local_monthly', []);
+      local.push(data);
+      saveLocalMonthly(local);
+      saveData('monthly_reports', local);
+    },
+    onAfter: function() { refresh(); }
+  });
+}
+
+function editMonthly(id) {
+  var all = getAllMonthlyReports();
+  var r = all.find(function(x){ return x.id === id; });
+  if (!r) return;
+  submitFormModal({
+    title: '编辑月报 - ' + id,
+    fields: [
+      {key:'month', label:'月份', type:'text', value:r.month, required:true},
+      {key:'name', label:'报告名称', type:'text', value:r.name, required:true},
+      {key:'author', label:'编制人', type:'text', value:r.author, required:true},
+      {key:'status', label:'状态', type:'select', options:['草稿','审核中','已发布'], value:r.status},
+      {key:'summary', label:'月度总结', type:'textarea', rows:4, value:r.summary || '', required:true},
+      {key:'keyWork', label:'重点工作进展', type:'textarea', rows:3, value:r.keyWork || ''},
+      {key:'results', label:'关键成果', type:'textarea', rows:3, value:r.results || ''},
+      {key:'review', label:'回顾与改进', type:'textarea', rows:3, value:r.review || ''},
+      {key:'nextPlan', label:'下月计划', type:'textarea', rows:3, value:r.nextPlan || ''},
+      {key:'hours', label:'月度工作时长', type:'text', value:r.hours || ''},
+      {key:'performance', label:'月度绩效(%)', type:'text', value:r.performance || ''},
+      {key:'targetRate', label:'目标达成率(%)', type:'text', value:r.targetRate || ''}
+    ],
+    onSave: function(data) {
+      var local = lsGet('local_monthly', []);
+      var idx = local.findIndex(function(x){ return x.id === id; });
+      data.id = id;
+      data.time = r.time || new Date().toISOString().slice(0, 10);
+      if (idx >= 0) local[idx] = data;
+      else local.push(data);
+      saveLocalMonthly(local);
+      saveData('monthly_reports', local);
+    },
+    onAfter: function() { refresh(); openMonthlyDetail(id); }
+  });
+}
+
+function deleteMonthly(id) {
+  if (!confirm('确定删除此月报？')) return;
+  var local = lsGet('local_monthly', []);
+  local = local.filter(function(x){ return x.id !== id; });
+  saveLocalMonthly(local);
+  saveData('monthly_reports', local);
+  closeMo();
+  refresh();
 }
 
 function openMonthlyDetail(id) {
@@ -2623,6 +2913,12 @@ function openMonthlyDetail(id) {
   h += '<div class="form-field"><label>下月计划</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (r.nextPlan || '') + '</div></div>';
   var footer = '';
   footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncMonthlyToFeishu(\'' + r.id + '\')">同步到飞书</button>';
+  if (hasPermission('work-manage','edit')) {
+    footer += ' <button class="btn bp" onclick="editMonthly(\'' + r.id + '\')">编辑</button>';
+  }
+  if (hasPermission('work-manage','del')) {
+    footer += ' <button class="btn dg" onclick="deleteMonthly(\'' + r.id + '\')">删除</button>';
+  }
   openMo({title:'月报详情 - ' + r.id, html:h, footer:footer});
 }
 
@@ -2891,6 +3187,8 @@ function renderProjectList(filterFn, title) {
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openProjectDetail(\'' + p.id + '\')">查看</button>';
       if (hasPermission('project-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editProject(\'' + p.id + '\')">编辑</button>';
+        h += ' <button class="btn-sm" style="background:var(--or);color:#fff" onclick="event.stopPropagation();quickUpdateProgress(\'' + p.id + '\',' + p.progress + ')" title="更新进度">进度</button>';
+        h += ' <button class="btn-sm" style="background:var(--gn);color:#fff" onclick="event.stopPropagation();changeProjectStatus(\'' + p.id + '\')" title="变更状态">状态</button>';
       }
       h += ' <button class="btn-sm" style="background:var(--accent);color:#fff" onclick="event.stopPropagation();syncProjectToFeishu(\'' + p.id + '\')" title="同步到飞书">飞书</button>';
       if (hasPermission('project-manage','del')) {
@@ -3005,6 +3303,70 @@ function deleteProject(id) {
   saveData('projects', local);
   closeMo();
   refresh();
+}
+
+function quickUpdateProgress(id, currentProgress) {
+  var html = '<div class="form-field"><label>项目进度 (%)</label>';
+  html += '<div style="display:flex;align-items:center;gap:12px">';
+  html += '<input type="range" id="qprogress_slider" min="0" max="100" step="5" value="' + currentProgress + '" oninput="document.getElementById(\'qprogress_val\').value=this.value" style="flex:1">';
+  html += '<input type="number" id="qprogress_val" class="fi" style="width:80px" min="0" max="100" value="' + currentProgress + '" oninput="document.getElementById(\'qprogress_slider\').value=this.value">';
+  html += '<span style="color:var(--t3);font-weight:600">%</span>';
+  html += '</div></div>';
+  openMo({title:'更新进度 - ' + id, html:html, footer:'<button class="btn bp" onclick="doQuickUpdateProgress(\'' + id + '\')">保存</button>'});
+}
+
+function doQuickUpdateProgress(id) {
+  var val = parseInt(document.getElementById('qprogress_val').value) || 0;
+  if (val < 0 || val > 100) { showToast('进度必须在0-100之间', 'error'); return; }
+  var local = lsGet('local_projects', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    local[idx].progress = val;
+    if (val >= 100) local[idx].status = '已完成';
+    else if (val > 0 && local[idx].status === '规划中') local[idx].status = '进行中';
+    saveLocalProjects(local);
+    saveData('projects', local);
+  }
+  closeMo();
+  refresh();
+  showToast('项目 ' + id + ' 进度已更新为 ' + val + '%', 'success');
+}
+
+function changeProjectStatus(id) {
+  var all = getAllProjects();
+  var p = all.find(function(x){ return x.id === id; });
+  if (!p) return;
+  var currentStatus = p.status;
+  var statuses = ['规划中','进行中','已完成','已暂停'];
+  var html = '<div class="form-field"><label>当前状态</label>';
+  html += '<div style="padding:8px 12px;background:var(--bg);border-radius:6px;font-size:13px"><span class="t ' + getStatusClass(currentStatus) + '">' + currentStatus + '</span></div></div>';
+  html += '<div class="form-field"><label>变更为新状态</label>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+  statuses.forEach(function(s) {
+    if (s !== currentStatus) {
+      var cls = s==='已完成'?'tg':s==='进行中'?'tb':s==='已暂停'?'tr':'tx';
+      html += '<button class="btn" style="background:var(--bg);border:1.5px solid var(--br)" onclick="doChangeProjectStatus(\'' + id + '\',\'' + s + '\')">';
+      html += '<span class="t ' + cls + '">' + s + '</span></button>';
+    }
+  });
+  html += '</div></div>';
+  openMo({title:'变更状态 - ' + id, html:html, footer:''});
+}
+
+function doChangeProjectStatus(id, newStatus) {
+  var local = lsGet('local_projects', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    var oldStatus = local[idx].status;
+    local[idx].status = newStatus;
+    if (newStatus === '已完成' && (local[idx].progress || 0) < 100) local[idx].progress = 100;
+    if (newStatus === '规划中' && (local[idx].progress || 0) > 0) local[idx].progress = 0;
+    saveLocalProjects(local);
+    saveData('projects', local);
+    closeMo();
+    refresh();
+    showToast('项目 ' + id + ' 状态: ' + oldStatus + ' -> ' + newStatus, 'success');
+  }
 }
 
 function renderMilestone() {
@@ -3157,7 +3519,7 @@ function createMaintain() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('新建保养失败: ' + e.message); }
+  } catch(e) { showToast('新建保养失败: ' + e.message, 'error'); }
 }
 
 function openMaintainDetail(id) {
@@ -3182,7 +3544,7 @@ function openMaintainDetail(id) {
       footer += '<button class="btn bp" onclick="editMaintain(\'' + m.id + '\')">编辑</button>';
     }
     openMo({title:'保养详情 - ' + m.equipName, html:h, footer:footer});
-  } catch(e) { alert('查看详情失败: ' + e.message); }
+  } catch(e) { showToast('查看详情失败: ' + e.message, 'error'); }
 }
 
 function editMaintain(id) {
@@ -3215,7 +3577,7 @@ function editMaintain(id) {
       },
       onAfter: function() { refresh(); openMaintainDetail(id); }
     });
-  } catch(e) { alert('编辑保养失败: ' + e.message); }
+  } catch(e) { showToast('编辑保养失败: ' + e.message, 'error'); }
 }
 
 function deleteMaintain(id) {
@@ -3227,7 +3589,7 @@ function deleteMaintain(id) {
     saveData('maintains', local);
     closeMo();
     refresh();
-  } catch(e) { alert('删除保养失败: ' + e.message); }
+  } catch(e) { showToast('删除保养失败: ' + e.message, 'error'); }
 }
 
 // =========================================
@@ -3349,7 +3711,7 @@ function createRepair() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('新建报修失败: ' + e.message); }
+  } catch(e) { showToast('新建报修失败: ' + e.message, 'error'); }
 }
 
 function openRepairDetail(id) {
@@ -3375,7 +3737,7 @@ function openRepairDetail(id) {
       footer += '<button class="btn bp" onclick="editRepair(\'' + r.id + '\')">编辑</button>';
     }
     openMo({title:'维修详情 - ' + r.equipName, html:h, footer:footer});
-  } catch(e) { alert('查看详情失败: ' + e.message); }
+  } catch(e) { showToast('查看详情失败: ' + e.message, 'error'); }
 }
 
 function editRepair(id) {
@@ -3409,7 +3771,7 @@ function editRepair(id) {
       },
       onAfter: function() { refresh(); openRepairDetail(id); }
     });
-  } catch(e) { alert('编辑维修失败: ' + e.message); }
+  } catch(e) { showToast('编辑维修失败: ' + e.message, 'error'); }
 }
 
 function deleteRepair(id) {
@@ -3421,7 +3783,7 @@ function deleteRepair(id) {
     saveData('repairs', local);
     closeMo();
     refresh();
-  } catch(e) { alert('删除维修失败: ' + e.message); }
+  } catch(e) { showToast('删除维修失败: ' + e.message, 'error'); }
 }
 
 function renderEquipList(filterFn, title) {
@@ -4041,9 +4403,10 @@ function renderImproveList(filterFn, title) {
   h += '<div class="pt">' + (title || '改善列表') + ' <span class="bdg">共 ' + total + ' 条</span></div>';
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.length + '</div><div class="kpi-label">改善总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='已完成';}).length + '</div><div class="kpi-label">已完成</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='进行中';}).length + '</div><div class="kpi-label">进行中</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='待评审';}).length + '</div><div class="kpi-label">待评审</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='待提案';}).length + '</div><div class="kpi-label">待提案</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='实施中';}).length + '</div><div class="kpi-label">实施中</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='验证中';}).length + '</div><div class="kpi-label">验证中</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='已标准化';}).length + '</div><div class="kpi-label">已标准化</div></div>';
   h += '</div>';
   h += '<div class="bg">';
   h += '<input class="fi" style="width:240px" placeholder="搜索改善..." value="' + search + '" oninput="setSearch(\'improve\',this.value);refresh()">';
@@ -4074,6 +4437,7 @@ function renderImproveList(filterFn, title) {
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openImproveDetail(\'' + i.id + '\')">查看</button>';
       if (hasPermission('improve-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editImprove(\'' + i.id + '\')">编辑</button>';
+        h += ' <button class="btn-sm" style="background:var(--pp);color:#fff" onclick="event.stopPropagation();advanceImproveStatus(\'' + i.id + '\')" title="推进到下一阶段">推进</button>';
       }
       if (hasPermission('improve-manage','del')) {
         h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteImprove(\'' + i.id + '\')">删除</button>';
@@ -4092,6 +4456,7 @@ function improvePageChange(p) { setPage('improve', p); refresh(); }
 function createImprove() {
   var today = new Date().toISOString().slice(0,10);
   var depts = ['智能制造组','机电设备组','电子设备组','保养组'];
+  var improveStatuses = ['待提案','实施中','验证中','已标准化','已驳回'];
   submitFormModal({
     title: '新建改善提案',
     showSaveAndNew: true,
@@ -4101,7 +4466,7 @@ function createImprove() {
       {key:'dept', label:'部门', type:'select', options:depts, value:'智能制造组'},
       {key:'date', label:'提案日期', type:'date', value:today},
       {key:'category', label:'分类', type:'select', options:['设备改善','软件改善','流程改善','工艺改善','管理改善','工具改善'], value:'设备改善'},
-      {key:'status', label:'状态', type:'select', options:['待评审','进行中','已完成','已驳回'], value:'待评审'},
+      {key:'status', label:'状态', type:'select', options:improveStatuses, value:'待提案'},
       {key:'effect', label:'预期效果', type:'text', placeholder:'如：效率提升XX%'},
       {key:'description', label:'改善描述', type:'textarea', rows:4, placeholder:'请详细描述改善内容'}
     ],
@@ -4141,6 +4506,7 @@ function openImproveDetail(id) {
   var footer = '';
   if (hasPermission('improve-manage','edit')) {
     footer += '<button class="btn bp" onclick="editImprove(\'' + imp.id + '\')">编辑</button>';
+    footer += ' <button class="btn" style="background:var(--pp);color:#fff" onclick="closeMo();advanceImproveStatus(\'' + imp.id + '\')">推进状态</button>';
   }
   openMo({title:'改善详情 - ' + imp.title, html:h, footer:footer});
 }
@@ -4150,6 +4516,7 @@ function editImprove(id) {
   var imp = all.find(function(x){ return x.id === id; });
   if (!imp) return;
   var depts = ['智能制造组','机电设备组','电子设备组','保养组'];
+  var improveStatuses = ['待提案','实施中','验证中','已标准化','已驳回'];
   submitFormModal({
     title: '编辑改善 - ' + id,
     fields: [
@@ -4158,7 +4525,7 @@ function editImprove(id) {
       {key:'dept', label:'部门', type:'select', options:depts, value:imp.dept},
       {key:'date', label:'提案日期', type:'date', value:imp.date},
       {key:'category', label:'分类', type:'select', options:['设备改善','软件改善','流程改善','工艺改善','管理改善','工具改善'], value:imp.category},
-      {key:'status', label:'状态', type:'select', options:['待评审','进行中','已完成','已驳回'], value:imp.status},
+      {key:'status', label:'状态', type:'select', options:improveStatuses, value:imp.status},
       {key:'effect', label:'预期效果', type:'text', value:imp.effect || ''},
       {key:'description', label:'改善描述', type:'textarea', rows:4, value:imp.description || ''}
     ],
@@ -4185,6 +4552,85 @@ function deleteImprove(id) {
   refresh();
 }
 
+// 改善状态流程：待提案 -> 实施中 -> 验证中 -> 已标准化（或 已驳回）
+var IMPROVE_STATUS_FLOW = ['待提案','实施中','验证中','已标准化'];
+var IMPROVE_STATUS_LABELS = {
+  '待提案': {icon:'📋', color:'tx', desc:'改善提案已提交，等待评审启动'},
+  '实施中': {icon:'🛠', color:'tb', desc:'改善方案已批准，正在实施'},
+  '验证中': {icon:'🔬', color:'to', desc:'改善措施已执行，正在验证效果'},
+  '已标准化': {icon:'✅', color:'tg', desc:'改善效果已确认，已纳入标准流程'},
+  '已驳回': {icon:'❌', color:'tr', desc:'改善提案未通过评审'}
+};
+
+function advanceImproveStatus(id) {
+  var all = getAllImproves();
+  var imp = all.find(function(x){ return x.id === id; });
+  if (!imp) return;
+  var currentStatus = imp.status;
+  var flowIdx = IMPROVE_STATUS_FLOW.indexOf(currentStatus);
+
+  // 生成完整流程展示
+  var html = '<div style="margin-bottom:16px">';
+  html += '<div style="font-size:13px;font-weight:600;color:var(--t2);margin-bottom:12px">改善流程状态</div>';
+  html += '<div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">';
+  IMPROVE_STATUS_FLOW.forEach(function(s, idx) {
+    var info = IMPROVE_STATUS_LABELS[s];
+    var isActive = s === currentStatus;
+    var isDone = flowIdx >= 0 && idx < flowIdx;
+    var borderCls = isActive ? 'border:2px solid var(--blue);background:var(--bl)' : isDone ? 'border:2px solid var(--gn);background:var(--gn-l)' : 'border:2px solid var(--br);background:var(--bg)';
+    html += '<div style="padding:8px 14px;border-radius:8px;text-align:center;min-width:80px;' + borderCls + '">';
+    html += '<div style="font-size:18px">' + info.icon + '</div>';
+    html += '<div style="font-size:12px;font-weight:600;color:' + (isActive?'var(--blue)':isDone?'var(--gn)':'var(--t3)') + '">' + s + '</div>';
+    html += '</div>';
+    if (idx < IMPROVE_STATUS_FLOW.length - 1) {
+      html += '<span style="color:var(--t3);font-size:16px">→</span>';
+    }
+  });
+  html += '</div></div>';
+
+  // 当前状态说明
+  var currentInfo = IMPROVE_STATUS_LABELS[currentStatus] || {desc:''};
+  html += '<div style="padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:16px;font-size:12px;color:var(--t2)">';
+  html += '<span style="font-weight:600">当前:</span> ' + currentStatus + ' - ' + currentInfo.desc + '</div>';
+
+  // 操作按钮
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+  if (flowIdx >= 0 && flowIdx < IMPROVE_STATUS_FLOW.length - 1) {
+    var nextStatus = IMPROVE_STATUS_FLOW[flowIdx + 1];
+    var nextInfo = IMPROVE_STATUS_LABELS[nextStatus];
+    html += '<button class="btn bp" onclick="doAdvanceImproveStatus(\'' + id + '\',\'' + nextStatus + '\')">';
+    html += '推进至: ' + nextStatus + ' ' + nextInfo.icon + '</button>';
+  }
+  if (currentStatus !== '已驳回') {
+    html += '<button class="btn" style="background:var(--rd);color:#fff" onclick="doAdvanceImproveStatus(\'' + id + '\',\'已驳回\')">';
+    html += '驳回提案</button>';
+  }
+  // 允许回退到上一阶段
+  if (flowIdx > 0) {
+    var prevStatus = IMPROVE_STATUS_FLOW[flowIdx - 1];
+    html += '<button class="btn" style="background:var(--br3);color:var(--t)" onclick="doAdvanceImproveStatus(\'' + id + '\',\'' + prevStatus + '\')">';
+    html += '回退至: ' + prevStatus + '</button>';
+  }
+  html += '</div>';
+
+  openMo({title:'改善流程推进 - ' + id, html:html, footer:''});
+}
+
+function doAdvanceImproveStatus(id, newStatus) {
+  var local = lsGet('local_improves', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    var oldStatus = local[idx].status;
+    local[idx].status = newStatus;
+    local[idx].lastStatusChange = new Date().toISOString().slice(0,10);
+    saveLocalImproves(local);
+    saveData('improvements', local);
+    closeMo();
+    refresh();
+    showToast('改善 ' + id + ' 状态: ' + oldStatus + ' -> ' + newStatus, 'success');
+  }
+}
+
 function renderImproveStats(type) {
   var title = type === 'by-person' ? '按人员统计' : '按部门统计';
   var all = getAllImproves();
@@ -4192,9 +4638,9 @@ function renderImproveStats(type) {
   h += '<div class="pt">📊 改善统计 - ' + title + ' <span class="bdg">数据统计</span></div>';
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.length + '</div><div class="kpi-label">改善总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='已完成';}).length + '</div><div class="kpi-label">已完成</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(all.filter(function(i){return i.status==='已完成';}).length/Math.max(all.length,1)*100) + '%</div><div class="kpi-label">完成率</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">¥12万</div><div class="kpi-label">创造效益</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(i){return i.status==='已标准化';}).length + '</div><div class="kpi-label">已标准化</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(all.filter(function(i){return i.status==='已标准化';}).length/Math.max(all.length,1)*100) + '%</div><div class="kpi-label">标准化率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">¥' + Math.round(all.filter(function(i){return i.status==='已标准化';}).length / Math.max(all.length,1) * 12) + '万</div><div class="kpi-label">创造效益</div></div>';
   h += '</div>';
   h += '<div class="g2">';
   h += '<div class="cd"><div class="ct">改善状态分布</div><div class="ch"><canvas id="impChart1"></canvas></div></div>';
@@ -4210,13 +4656,13 @@ function renderImproveStats(type) {
     all.forEach(function(i) {
       deptMap[i.dept] = (deptMap[i.dept] || 0) + 1;
     });
-    h += '<table class="dt"><thead><tr><th>部门</th><th>改善数量</th><th>占比</th><th>已完成</th><th>进行中</th><th>待评审</th></tr></thead><tbody>';
+    h += '<table class="dt"><thead><tr><th>部门</th><th>改善数量</th><th>占比</th><th>已标准化</th><th>实施中</th><th>待提案</th></tr></thead><tbody>';
     Object.keys(deptMap).forEach(function(d) {
       var deptItems = all.filter(function(i){return i.dept===d;});
       h += '<tr><td>' + d + '</td><td>' + deptMap[d] + '</td><td>' + Math.round(deptMap[d]/all.length*100) + '%</td>';
-      h += '<td>' + deptItems.filter(function(i){return i.status==='已完成';}).length + '</td>';
-      h += '<td>' + deptItems.filter(function(i){return i.status==='进行中';}).length + '</td>';
-      h += '<td>' + deptItems.filter(function(i){return i.status==='待评审';}).length + '</td></tr>';
+      h += '<td>' + deptItems.filter(function(i){return i.status==='已标准化';}).length + '</td>';
+      h += '<td>' + deptItems.filter(function(i){return i.status==='实施中';}).length + '</td>';
+      h += '<td>' + deptItems.filter(function(i){return i.status==='待提案';}).length + '</td></tr>';
     });
     h += '</tbody></table>';
   } else {
@@ -4225,12 +4671,12 @@ function renderImproveStats(type) {
       personMap[i.proposer] = (personMap[i.proposer] || 0) + 1;
     });
     var sorted = Object.keys(personMap).sort(function(a,b){return personMap[b]-personMap[a];});
-    h += '<table class="dt"><thead><tr><th>排名</th><th>姓名</th><th>改善数量</th><th>已完成</th><th>进行中</th></tr></thead><tbody>';
+    h += '<table class="dt"><thead><tr><th>排名</th><th>姓名</th><th>改善数量</th><th>已标准化</th><th>实施中</th></tr></thead><tbody>';
     sorted.forEach(function(name, idx) {
       var personItems = all.filter(function(i){return i.proposer===name;});
       h += '<tr><td>' + (idx+1) + '</td><td>' + name + '</td><td>' + personMap[name] + '</td>';
-      h += '<td>' + personItems.filter(function(i){return i.status==='已完成';}).length + '</td>';
-      h += '<td>' + personItems.filter(function(i){return i.status==='进行中';}).length + '</td></tr>';
+      h += '<td>' + personItems.filter(function(i){return i.status==='已标准化';}).length + '</td>';
+      h += '<td>' + personItems.filter(function(i){return i.status==='实施中';}).length + '</td></tr>';
     });
     h += '</tbody></table>';
   }
@@ -4247,13 +4693,14 @@ function initImproveCharts() {
       chartInstances.imp1 = new Chart(c1, {
         type: 'doughnut',
         data: {
-          labels: ['已完成','进行中','待评审','已驳回'],
+          labels: ['已标准化','验证中','实施中','待提案','已驳回'],
           datasets: [{data:[
-            all.filter(function(i){return i.status==='已完成';}).length,
-            all.filter(function(i){return i.status==='进行中';}).length,
-            all.filter(function(i){return i.status==='待评审';}).length,
+            all.filter(function(i){return i.status==='已标准化';}).length,
+            all.filter(function(i){return i.status==='验证中';}).length,
+            all.filter(function(i){return i.status==='实施中';}).length,
+            all.filter(function(i){return i.status==='待提案';}).length,
             all.filter(function(i){return i.status==='已驳回';}).length
-          ], backgroundColor:['#34c724','#3370ff','#ff9800','#f54a45']}]
+          ], backgroundColor:['#34c724','#3370ff','#ff9800','#c4c7cc','#f54a45']}]
         },
         options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
       });
@@ -4262,18 +4709,34 @@ function initImproveCharts() {
     if (c2) {
       if (chartInstances.imp2) chartInstances.imp2.destroy();
       var all = getAllImproves();
-      var deptMap = {};
-      all.forEach(function(i) { deptMap[i.dept] = (deptMap[i.dept] || 0) + 1; });
-      var names = Object.keys(deptMap);
-      var counts = names.map(function(n){return deptMap[n];});
-      chartInstances.imp2 = new Chart(c2, {
-        type: 'bar',
-        data: {
-          labels: names,
-          datasets: [{label:'改善数', data:counts, backgroundColor:'#3370ff', borderRadius:4}]
-        },
-        options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
-      });
+      var isByPerson = curPage === 'improve-by-person';
+      if (isByPerson) {
+        var personMap = {};
+        all.forEach(function(i) { personMap[i.proposer] = (personMap[i.proposer] || 0) + 1; });
+        var sorted = Object.keys(personMap).sort(function(a,b){return personMap[b]-personMap[a];}).slice(0,10);
+        var counts = sorted.map(function(n){return personMap[n];});
+        chartInstances.imp2 = new Chart(c2, {
+          type: 'bar',
+          data: {
+            labels: sorted,
+            datasets: [{label:'改善数', data:counts, backgroundColor:'#8b5cf6', borderRadius:4}]
+          },
+          options: {responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}}
+        });
+      } else {
+        var deptMap = {};
+        all.forEach(function(i) { deptMap[i.dept] = (deptMap[i.dept] || 0) + 1; });
+        var names = Object.keys(deptMap);
+        var counts = names.map(function(n){return deptMap[n];});
+        chartInstances.imp2 = new Chart(c2, {
+          type: 'bar',
+          data: {
+            labels: names,
+            datasets: [{label:'改善数', data:counts, backgroundColor:'#3370ff', borderRadius:4}]
+          },
+          options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}}
+        });
+      }
     }
   } catch(e) {}
 }
@@ -7535,8 +7998,12 @@ function refreshData(type) {
   try {
     if (type === 'daily') {
       // 重新从localStorage加载
+    } else if (type === 'weekly') {
+      lsSet('local_weekly', lsGet('local_weekly', []));
+    } else if (type === 'monthly') {
+      lsSet('local_monthly', lsGet('local_monthly', []));
     }
-    alert('数据已刷新');
+    showToast('数据已刷新', 'success');
     refresh();
   } catch(e) { console.error('refreshData error:', e); }
 }
