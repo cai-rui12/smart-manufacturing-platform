@@ -1231,7 +1231,7 @@ async function connectToServer(url) {
     localStorage.setItem('v13_server_enabled', 'true');
     updateSyncStatusBadge('connected', '已连接');
     addSyncLog('手动连接成功: ' + url);
-    showToast('连接成功！服务器: ' +  url), 'success')    await syncLocalToServer();
+    showToast('连接成功！服务器: ' + url, 'success'); await syncLocalToServer();
   } else {
     updateSyncStatusBadge('offline', '离线');
     addSyncLog('手动连接失败: ' + url);
@@ -1760,7 +1760,8 @@ async function doLogin() {
     var passwords = lsGet('passwords', {});
     var person = PEOPLE_OBJ.find(function(p) { return p.employeeId === eid; });
     if (!person) { showToast('工号不存在', 'error'); return; }
-    if (passwords[eid] && passwords[eid] !== pwd) { showToast('密码错误', 'error'); return; }
+    var expectedPwd = passwords[eid] || '123456';
+    if (expectedPwd !== pwd) { showToast('密码错误', 'error'); return; }
     // V13 - 在线模式下同步验证后端
     if (SERVER_CONFIG.mode === 'online') {
       try {
@@ -5734,7 +5735,7 @@ function renderAutoTaskTemplates() {
 function useTemplate(id) {
   var t = AUTO_TASK_TEMPLATES.find(function(x){return x.id===id;});
   if (!t) return;
-  showToast('使用模板：' +  t.name + '\n可在任务列表中编辑调整。'), 'info')  // 直接创建一个副本
+  showToast('使用模板：' + t.name + '\n可在任务列表中编辑调整。', 'info');  // 直接创建一个副本
   var local = lsGet('local_autotasks', []);
   var maxNum = 0;
   getAllAutoTasks().forEach(function(x) {
@@ -6068,7 +6069,7 @@ function sendMsg() {
   });
   savePushHistory(history.slice(0, 50));
   
-  showToast('消息已推送至 ' +  selectedWebhooks.length + ' 个群组！\n目标：' + targetNames), 'info')  refresh();
+  showToast('消息已推送至 ' + selectedWebhooks.length + ' 个群组！\n目标：' + targetNames, 'info'); refresh();
 }
 
 function viewPushHistoryDetail(id) {
@@ -6424,7 +6425,7 @@ async function importLocalToServer() {
     refresh();
   } catch(e) {
     setSyncStatus('error');
-    showToast('导入失败: ' +  e.message), 'error')  }
+    showToast('导入失败: ' + e.message, 'error'); }
 }
 
 // V13 - 连接/断开服务器切换
@@ -6788,16 +6789,16 @@ async function testTableConnection(type) {
     showToast('请先连接服务器', 'warn');
     return;
   }
-  showToast('测试读取 ' +  type + ' 的前3条记录...'), 'info')  try {
+  showToast('测试读取 ' + type + ' 的前3条记录...', 'info'); try {
     var res = await apiRequest('POST', '/api/sync/read/' + type, {limit: 3});
     if (res.code === 0) {
       var count = res.data ? res.data.length : 0;
-      showToast('测试成功! 读取到 ' +  count + ' 条记录'), 'success')      addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
+      showToast('测试成功! 读取到 ' + count + ' 条记录', 'success'); addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
     } else {
-      showToast('测试失败: ' +  res.msg), 'error')      addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
+      showToast('测试失败: ' + res.msg, 'error'); addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
     }
   } catch(e) {
-    showToast('测试失败: ' +  e.message), 'error')  }
+    showToast('测试失败: ' + e.message, 'error'); }
   refresh();
 }
 
@@ -6856,7 +6857,7 @@ async function readAllFromFeishu() {
   } catch(e) {
     setSyncStatus('error');
     addSyncLog('读取飞书数据失败: ' + e.message);
-    showToast('读取失败: ' +  e.message), 'error')  }
+    showToast('读取失败: ' + e.message, 'error'); }
   refresh();
 }
 
@@ -8929,7 +8930,7 @@ document.addEventListener('DOMContentLoaded', function() {
     detectServer();
   } catch(e) {
     console.error('Init error:', e);
-    showToast('初始化失败: ' +  e.message), 'error')  }
+    showToast('初始化失败: ' + e.message, 'error'); }
 });
 
 // 回车键登录
