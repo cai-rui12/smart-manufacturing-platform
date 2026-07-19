@@ -1127,7 +1127,7 @@ async function apiRequest(method, path, data) {
 // V13 - 页面加载时自动检测服务器连接
 // 依次尝试：动态隧道URL(从config读取) → 固定隧道URL → 局域网IP → 本机localhost
 var SERVER_URL_CANDIDATES = [
-  'https://trembl-manufacturers-certainly-dividend.trycloudflare.com',
+  'https://comparing-tonight-pavilion-debut.trycloudflare.com',
   'http://172.24.20.28:3000',
   'http://localhost:3000'
 ];
@@ -1276,9 +1276,26 @@ function updateSyncStatusBadge(status, text) {
 
 async function manualConnect(e) {
   if (e) e.stopPropagation();
-  updateSyncStatusBadge('syncing', '重连中...');
-  addSyncLog('手动触发服务器连接...');
-  await detectServer();
+  var url = prompt('请输入服务器地址：', SERVER_CONFIG.url || '');
+  if (url && url.trim()) {
+    updateSyncStatusBadge('syncing', '重连中...');
+    addSyncLog('手动连接到: ' + url.trim());
+    var result = await tryConnectServer(url.trim(), 5000);
+    if (result) {
+      SERVER_CONFIG.url = url.trim();
+      SERVER_CONFIG.enabled = true;
+      SERVER_CONFIG.mode = 'online';
+      API_BASE = url.trim();
+      localStorage.setItem('v13_server_url', url.trim());
+      localStorage.setItem('v13_server_enabled', 'true');
+      updateSyncStatusBadge('connected', '已连接');
+      addSyncLog('手动连接成功: ' + url.trim());
+      syncAllData();
+    } else {
+      updateSyncStatusBadge('offline', '离线');
+      addSyncLog('手动连接失败: ' + url.trim());
+    }
+  }
 }
 
 function showConnectionInfo() {
@@ -1735,6 +1752,17 @@ function initAuth() {
     // V14 Fix: 增量同步角色，确保新增用户也有正确角色
     var roles = lsGet('user_roles', null);
     if (!roles) { roles = {}; }
+    // V15 Fix: 强制修正特定工号角色，确保owner不会被旧数据覆盖
+    var OWNER_IDS = ['64135'];
+    var ADMIN_IDS = ['70163', '60714'];
+    var forceFix = false;
+    OWNER_IDS.forEach(function(oid) {
+      if (roles[oid] !== 'owner') { roles[oid] = 'owner'; forceFix = true; }
+    });
+    ADMIN_IDS.forEach(function(aid) {
+      if (!roles[aid] || roles[aid] === 'owner') { roles[aid] = 'admin'; forceFix = true; }
+    });
+    if (forceFix) { lsSet('user_roles', roles); }
     var rolesChanged = false;
     PEOPLE_OBJ.forEach(function(p) {
       var eid = p.employeeId;
