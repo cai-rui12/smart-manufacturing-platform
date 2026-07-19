@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 ================================================================================
   智能制造组管理平台 V18 - 网页内审报告
   审审日期: 2026-07-19
@@ -249,6 +249,8 @@ table.dt tr{transition:var(--tr-fast)}
 /* === Login === */
 .login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0f1e;z-index:9999;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .login-overlay::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(ellipse at 30% 20%,rgba(45,107,229,.15) 0%,transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(139,92,246,.1) 0%,transparent 50%);animation:loginBgPulse 8s ease-in-out infinite alternate}
+.gh-pages-mode #loginOverlay{display:none!important}
+.gh-pages-mode #mainApp{display:flex!important}
 @keyframes loginBgPulse{0%{transform:scale(1) rotate(0deg)}100%{transform:scale(1.05) rotate(3deg)}}
 .login-box{background:rgba(255,255,255,.97);border-radius:20px;padding:44px;width:440px;max-width:92vw;box-shadow:0 24px 80px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.1);position:relative;z-index:1;backdrop-filter:blur(20px);animation:loginBoxIn .5s cubic-bezier(.2,.8,.3,1)}
 @keyframes loginBoxIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -467,6 +469,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 .modal-body input,.modal-body textarea,.modal-body select{width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;box-sizing:border-box;margin-bottom:8px}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px}
 </style>
+<script>if(location.hostname.indexOf('github.io')!==-1)document.documentElement.className+=' gh-pages-mode';</script>
 </head>
 <body>
 <div id="loginOverlay" class="login-overlay">
@@ -522,6 +525,15 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 </div>
 <div class="mo" id="mo"><div class="md"><div class="md-h"><h3 id="mt"></h3><button class="md-x" onclick="closeMo()">&times;</button></div><div class="md-b" id="mb"></div><div class="md-f" id="mf"></div></div></div>
 <script>
+// GitHub Pages: 确保自动登录
+(function(){
+  if (location.hostname.indexOf('github.io') === -1) return;
+  try {
+    var u = {employeeId:'64135',name:'蔡瑞',role:'owner',permissions:['all']};
+    if (typeof currentUser !== 'undefined') currentUser = u;
+    if (typeof lsSet === 'function') lsSet('current_user', u);
+  } catch(e){}
+})();
 // =========================================
 // V18 - 数据定义 (所有数据使用英文key)
 // =========================================
