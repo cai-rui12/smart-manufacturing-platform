@@ -2150,6 +2150,7 @@ function initAuth() {
       document.getElementById('mainApp').style.display = 'flex';
       document.getElementById('userLabel').textContent = currentUser.name + ' (' + ROLE_NAMES[currentUser.role] + ')';
       refresh();
+    detectServer();
       // V17: Start auto-ping for online/offline detection
       startAutoPing();
     }
