@@ -813,6 +813,19 @@ var REAL_PROJECTS = [
   {id:'PRJ-0004', name:'智能巡检项目', manager:'蔡瑞', status:'进行中', progress:50, startDate:'2026-03-01', endDate:'2026-10-31', budget:1200000, members:'蔡瑞,湛子昂,刘洪文', description:'智能巡检系统推广项目，覆盖内层/外层/阻焊/沉金等工序'},
   {id:'PRJ-0005', name:'自动排产项目', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-11-30', budget:800000, members:'黄广生,梁辉彬,郑绪友', description:'自动排产与自动计划项目进度跟踪'},
   {id:'PRJ-0006', name:'OEE提升项目', manager:'丁洋', status:'规划中', progress:10, startDate:'2026-06-01', endDate:'2026-12-31', budget:600000, members:'丁洋,蔡佳琪', description:'设备综合效率OEE提升专项项目'}
+  ,{id:'PRJ-0007', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:97.08, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发专项，总计201项已完成185项（原数据）/171项已完成166项（最新）。涵盖内层/层压/钻孔/电镀/树脂塞孔/外层/阻焊字符/沉金/外形加工/电测/FQC包装共11个工序。', subSteps:[
+    {name:'内层',total:25,done:29,rate:82.86},
+    {name:'层压',total:44,done:43,rate:97.73},
+    {name:'钻孔',total:3,done:2,rate:66.67},
+    {name:'电镀',total:22,done:20,rate:90.91},
+    {name:'树脂塞孔',total:25,done:25,rate:100},
+    {name:'外层',total:8,done:7,rate:87.5},
+    {name:'阻焊字符',total:8,done:4,rate:50},
+    {name:'沉金',total:2,done:2,rate:100},
+    {name:'外形加工',total:17,done:17,rate:100},
+    {name:'电测',total:14,done:14,rate:100},
+    {name:'FQC包装',total:3,done:3,rate:100}
+  ]}
 ];
 
 var REAL_WEEKLY_REPORTS = [
@@ -3840,7 +3853,14 @@ function renderProjectList(filterFn, title) {
     pageData.forEach(function(p) {
       h += '<tr onclick="openProjectDetail(\'' + p.id + '\')">';
       h += '<td>' + p.id + '</td>';
-      h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + p.name + '</td>';
+      h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + p.name;
+      if (p.subSteps && p.subSteps.length > 0) {
+        var sDone = 0, sAll = 0;
+        for (var ssi = 0; ssi < p.subSteps.length; ssi++) { sDone += p.subSteps[ssi].done; sAll += p.subSteps[ssi].total; }
+        var sRate = sAll > 0 ? (sDone / sAll * 100).toFixed(1) : 0;
+        h += '<div style="font-size:11px;color:var(--t3);margin-top:2px">子工序 ' + sDone + '/' + sAll + ' (' + sRate + '%)</div>';
+      }
+      h += '</td>';
       h += '<td>' + p.manager + '</td>';
       h += '<td><span class="t ' + getStatusClass(p.status) + '">' + p.status + '</span></td>';
       h += '<td style="min-width:120px"><div class="pb"><div class="pf ' + getProgressClass(p.progress) + '" style="width:' + p.progress + '%"></div></div><div style="font-size:11px;color:var(--t3);margin-top:2px">' + p.progress + '%</div></td>';
@@ -3919,6 +3939,44 @@ function openProjectDetail(id) {
   h += '<div class="form-field"><label>项目名称</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;font-weight:600">' + p.name + '</div></div>';
   h += '<div class="form-field"><label>项目成员</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px">' + (p.members || '-') + '</div></div>';
   h += '<div class="form-field"><label>项目描述</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (p.description || '') + '</div></div>';
+
+  // 子步骤展示（V18增强）
+  var stepsHtml = '';
+  if (p.subSteps && p.subSteps.length > 0) {
+    stepsHtml += '<div style="margin-top:16px"><h4 style="margin-bottom:8px">子工序进度</h4>';
+    stepsHtml += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>工序</th><th>总数</th><th>已完成</th><th>完成率</th><th>进度条</th></tr></thead><tbody>';
+    var totalDone = 0, totalAll = 0;
+    for (var si = 0; si < p.subSteps.length; si++) {
+      var s = p.subSteps[si];
+      totalDone += s.done; totalAll += s.total;
+      var barColor = s.rate >= 100 ? '#34c724' : s.rate >= 80 ? '#f59e0b' : s.rate < 60 ? '#ef4444' : '#3b82f6';
+      stepsHtml += '<tr><td>' + s.name + '</td><td>' + s.total + '</td><td>' + s.done + '</td><td>' + s.rate + '%</td><td><div style="background:#334155;border-radius:4px;height:8px;min-width:80px"><div style="background:' + barColor + ';height:8px;border-radius:4px;width:' + Math.min(s.rate,100) + '%"></div></div></td></tr>';
+    }
+    stepsHtml += '<tr style="font-weight:bold;background:rgba(52,199,36,0.1)"><td>合计</td><td>' + totalAll + '</td><td>' + totalDone + '</td><td>' + (totalAll > 0 ? (totalDone/totalAll*100).toFixed(2) : 0) + '%</td><td><div style="background:#334155;border-radius:4px;height:8px;min-width:80px"><div style="background:#34c724;height:8px;border-radius:4px;width:' + (totalAll > 0 ? Math.min(totalDone/totalAll*100,100) : 0) + '%"></div></div></td></tr>';
+    stepsHtml += '</tbody></table></div>';
+
+    // 甘特图（V18增强）
+    stepsHtml += '<div style="margin-top:16px"><h4 style="margin-bottom:8px">甘特图</h4>';
+    stepsHtml += '<div style="overflow-x:auto"><div style="min-width:500px">';
+    var maxTotal = 0;
+    for (var si2 = 0; si2 < p.subSteps.length; si2++) { if (p.subSteps[si2].total > maxTotal) maxTotal = p.subSteps[si2].total; }
+    for (var si3 = 0; si3 < p.subSteps.length; si3++) {
+      var gs = p.subSteps[si3];
+      var barW = maxTotal > 0 ? (gs.done / maxTotal * 100) : 0;
+      var bgW = maxTotal > 0 ? (gs.total / maxTotal * 100) : 0;
+      var gColor = gs.rate >= 100 ? '#34c724' : gs.rate >= 80 ? '#f59e0b' : gs.rate < 60 ? '#ef4444' : '#3b82f6';
+      stepsHtml += '<div style="display:flex;align-items:center;margin-bottom:4px;font-size:12px">';
+      stepsHtml += '<div style="width:80px;flex-shrink:0;text-align:right;padding-right:8px;white-space:nowrap">' + gs.name + '</div>';
+      stepsHtml += '<div style="flex:1;position:relative;height:20px">';
+      stepsHtml += '<div style="position:absolute;left:0;top:0;width:' + bgW + '%;height:20px;background:rgba(255,255,255,0.05);border:1px solid #334155;border-radius:3px"></div>';
+      stepsHtml += '<div style="position:absolute;left:0;top:0;width:' + Math.min(barW, bgW) + '%;height:20px;background:' + gColor + ';border-radius:3px;opacity:0.85"></div>';
+      stepsHtml += '<span style="position:absolute;right:4px;top:0;line-height:20px;color:#94a3b8;font-size:11px">' + gs.done + '/' + gs.total + '</span>';
+      stepsHtml += '</div></div>';
+    }
+    stepsHtml += '</div></div></div>';
+  }
+
+  h += stepsHtml;
   var footer = '';
   footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')">同步到飞书</button>';
   if (hasPermission('project-manage','edit')) {
