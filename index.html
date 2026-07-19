@@ -1480,7 +1480,7 @@ function updateSyncStatusBadge(status, text) {
 
 async function manualConnect(e) {
   if (e) e.stopPropagation();
-  var url = prompt('请输入服务器地址：', SERVER_CONFIG.url || '');
+  var url = SERVER_CONFIG.url || 'https://one-rug-investigations-lexington.trycloudflare.com';
   if (url && url.trim()) {
     updateSyncStatusBadge('syncing', '重连中...');
     addSyncLog('手动连接到: ' + url.trim());
