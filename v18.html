@@ -2163,6 +2163,26 @@ async function doLogin() {
     var pwd = document.getElementById('loginPwd').value.trim();
     if (!eid || !pwd) { showToast('请输入工号和密码', 'warn'); return; }
 
+  // 本地验证优先：先尝试本地登录，成功则直接跳过服务器
+  var _lid = document.getElementById('loginId').value.trim();
+  var _lpwd = document.getElementById('loginPwd').value;
+  // 搜索内置用户列表
+  var _found = null;
+  for (var _uk in PEOPLE_OBJ) {
+    var _up = PEOPLE_OBJ[_uk];
+    if (_up && _up.employeeId === _lid) {
+      // 密码验证：支持 12345678 默认密码、明文密码、混淆密码
+      if (_lpwd === '12345678' || _lpwd === (_up.password || '') || _lpwd === _up.rawPassword) {
+        _found = _up;
+        break;
+      }
+    }
+  }
+  if (_found) {
+    finishLogin(_found);
+    return;
+  }
+
     // 离线模式：GitHub Pages 或无服务器时，本地验证登录
     if (location.hostname.indexOf('github.io') !== -1 || !SERVER_CONFIG.enabled) {
       if (eid === '64135' && pwd === '12345678') {
