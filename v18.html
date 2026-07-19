@@ -1340,7 +1340,7 @@ var CONFIG_URL = 'https://cai-rui12.github.io/smart-manufacturing-platform/serve
 async function tryConnectServer(url, timeoutMs) {
   try {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 5000) : null;
+    var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 15000) : null;
     var res = await fetch(url + '/api/status', {method:'GET', headers:{'Content-Type':'application/json'}, signal: controller ? controller.signal : undefined});
     if (timeoutId) clearTimeout(timeoutId);
     var json = await res.json();
@@ -1379,7 +1379,7 @@ async function detectServer() {
   // 依次尝试每个候选URL
   for (var i = 0; i < candidates.length; i++) {
     var url = candidates[i];
-    var result = await tryConnectServer(url);
+    var result = await tryConnectServer(url, 15000);
     if (result) {
       SERVER_CONFIG.url = url;
       SERVER_CONFIG.enabled = true;
@@ -1432,7 +1432,7 @@ async function connectToServer(url) {
   if (url.endsWith('/')) url = url.slice(0, -1);
   updateSyncStatusBadge('syncing', '连接中...');
   addSyncLog('手动连接: ' + url);
-  var result = await tryConnectServer(url, 8000);
+  var result = await tryConnectServer(url, 15000);
   if (result) {
     SERVER_CONFIG.url = url;
     SERVER_CONFIG.enabled = true;
@@ -1743,7 +1743,7 @@ function stopAutoPing() {
 async function autoPingServer() {
   if (!SERVER_CONFIG.url) return;
   try {
-    var res = await tryConnectServer(SERVER_CONFIG.url, 3000);
+    var res = await tryConnectServer(SERVER_CONFIG.url, 10000);
     if (res) {
       // Was offline, now online -> replay queue
       if (SERVER_CONFIG.mode === 'offline') {
