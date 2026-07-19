@@ -359,6 +359,17 @@ table.dt tr{transition:var(--tr-fast)}
 ::selection{background:rgba(45,107,229,.15);color:var(--t)}
 *:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
 input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
+
+/* === Toast Notification === */
+.toast-container{position:fixed;top:16px;right:16px;z-index:10000;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.15);animation:toastIn .35s cubic-bezier(.2,.8,.3,1);min-width:260px;max-width:420px;line-height:1.5}
+.toast.success{background:linear-gradient(135deg,#2db84d,#34c724)}
+.toast.error{background:linear-gradient(135deg,#e84855,#f07080)}
+.toast.warn{background:linear-gradient(135deg,#e68a17,#f0a840)}
+.toast.info{background:linear-gradient(135deg,#2f6be5,#4a85f5)}
+.toast.removing{animation:toastOut .3s ease-in forwards}
+@keyframes toastIn{from{opacity:0;transform:translateX(100px) scale(.9)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes toastOut{from{opacity:1;transform:translateX(0) scale(1)}to{opacity:0;transform:translateX(100px) scale(.9)}}
 </style>
 </head>
 <body>
@@ -418,6 +429,116 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 // =========================================
 // V10 - 数据定义 (所有数据使用英文key)
 // =========================================
+
+// =========================================
+// Toast 通知函数
+// =========================================
+
+// =========================================
+// 周期任务 - 标记完成
+// =========================================
+function markCycleTaskDone(taskId) {
+  showToast('周期任务 ' + taskId + ' 已标记为完成', 'success');
+}
+
+// =========================================
+// 设备按工序筛选
+// =========================================
+function filterEquipByProcess(processName) {
+  var all = getAllEquips();
+  var filtered = all.filter(function(e){ return e.process === processName; });
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">' + processName + ' 设备列表 <span class="bdg">共 ' + filtered.length + ' 台</span></div>';
+  h += '<div class="bg"><button class="btn bo" onclick="refresh()">&#8635; 返回</button></div>';
+  h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
+  h += '<thead><tr><th>设备编号</th><th>设备名称</th><th>状态</th><th>位置</th><th>操作</th></tr></thead><tbody>';
+  if (filtered.length === 0) {
+    h += '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--t3)">该工序暂无设备</td></tr>';
+  } else {
+    filtered.forEach(function(e) {
+      h += '<tr><td>' + e.equipNo + '</td><td>' + e.name + '</td><td><span class="t ' + getStatusClass(e.status) + '">' + e.status + '</span></td><td>' + e.location + '</td>';
+      h += '<td><button class="btn-sm bo" onclick="openEquipDetail(\'' + e.id + '\')">查看</button></td></tr>';
+    });
+  }
+  h += '</tbody></table></div></div>';
+  h += '</div>';
+  document.getElementById('mainContent').innerHTML = h;
+}
+
+// =========================================
+// 主题色切换
+// =========================================
+function applyThemeColor(colorVal, colorName) {
+  document.documentElement.style.setProperty('--blue', colorVal);
+  document.documentElement.style.setProperty('--blue-h', colorVal);
+  document.documentElement.style.setProperty('--accent', colorVal);
+  showToast('主题色已切换为' + colorName, 'success');
+}
+
+// =========================================
+// 执行日志详情
+// =========================================
+function viewLogDetail(logId) {
+  var logs = lsGet('auto_task_logs', []);
+  var l = logs.find(function(x){ return x.id === logId; });
+  if (!l) { showToast('日志不存在', 'warn'); return; }
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">日志ID</div><div class="ii-value">' + l.id + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">任务名称</div><div class="ii-value">' + (l.taskName || '-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">执行时间</div><div class="ii-value">' + (l.time || '-') + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">执行状态</div><div class="ii-value"><span class="t ' + (l.status==='成功'?'tg':'tr') + '">' + (l.status || '-') + '</span></div></div>';
+  h += '</div>';
+  h += '<div class="form-field" style="margin-top:12px"><label>执行结果</label><div style="padding:10px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-wrap">' + (l.result || '无') + '</div></div>';
+  openMo({title:'执行日志详情', html:h});
+}
+
+// =========================================
+// 清空执行日志
+// =========================================
+function clearAutoTaskLogs() {
+  if (!confirm('确定清空所有执行日志？')) return;
+  lsSet('auto_task_logs', []);
+  showToast('日志已清空', 'success');
+  refresh();
+}
+
+// =========================================
+// 决策跟踪详情
+// =========================================
+function viewDecisionDetail(item, time, owner, status, finish) {
+  var h = '<div class="info-grid">';
+  h += '<div class="info-item"><div class="ii-label">决策事项</div><div class="ii-value">' + item + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">决策时间</div><div class="ii-value">' + time + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">责任人</div><div class="ii-value">' + owner + '</div></div>';
+  h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + getStatusClass(status) + '">' + status + '</span></div></div>';
+  h += '<div class="info-item"><div class="ii-label">完成时间</div><div class="ii-value">' + finish + '</div></div>';
+  h += '</div>';
+  openMo({title:'决策详情', html:h});
+}
+
+function showToast(msg, type) {
+  type = type || 'info';
+  var container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  var iconMap = {success:'\u2705', error:'\u274c', warn:'\u26a0\ufe0f', info:'\u2139\ufe0f'};
+  toast.innerHTML = '<span>' + (iconMap[type] || iconMap.info) + '</span><span>' + msg.replace(/\n/g, '<br>') + '</span>';
+  container.appendChild(toast);
+  var duration = Math.max(2500, Math.min(msg.length * 120, 5000));
+  setTimeout(function() {
+    toast.classList.add('removing');
+    setTimeout(function() {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }, duration);
+}
+
 var P = [
   ["范庆亮","本部","东城五厂设备部副经理","部门领导","部门全面管理、安全、6S、设备运行统筹","","13652604366","70163"],
   ["袁忠强","本部","经理助理（见习）","部门领导","部门日常管理、任务分配、进度跟踪、异常协调","范庆亮","679980","60714"],
@@ -1092,7 +1213,7 @@ async function syncLocalToServer() {
 // V13 - 增强版 updateSyncStatusBadge，支持直接设置状态
 
 async function connectToServer(url) {
-  if (!url || !url.trim()) { alert('请输入服务器地址'); return; }
+  if (!url || !url.trim()) { showToast('请输入服务器地址', 'warn'); return; }
   url = url.trim();
   if (url.endsWith('/')) url = url.slice(0, -1);
   updateSyncStatusBadge('syncing', '连接中...');
@@ -1107,12 +1228,12 @@ async function connectToServer(url) {
     localStorage.setItem('v13_server_enabled', 'true');
     updateSyncStatusBadge('connected', '已连接');
     addSyncLog('手动连接成功: ' + url);
-    alert('连接成功！服务器: ' + url);
+    showToast('连接成功！服务器: ', 'success') + url);
     await syncLocalToServer();
   } else {
     updateSyncStatusBadge('offline', '离线');
     addSyncLog('手动连接失败: ' + url);
-    alert('连接失败，请确认服务器地址正确且服务器正在运行。\n\n当前可用地址：\n- 外网: https://lens-review-steel-hose.trycloudflare.com\n- 局域网: http://172.24.20.28:3000\n- 本机: http://localhost:3000');
+    showToast('连接失败，请确认服务器地址正确且服务器正在运行。  当前可用地址： - 外网: https://lens-review-steel-hose.trycloudflare.com - 局域网: http://172.24.20.28:3000 - 本机: http://localhost:3000', 'error');
   }
 }
 
@@ -1159,7 +1280,7 @@ function showConnectionInfo() {
   info.push('如果手机4G无法连接，请尝试：');
   info.push('1. 电脑和手机连接同一WiFi');
   info.push('2. 或点击"重连"按钮重新检测');
-  alert(info.join('\n'));
+  showToast(info.join(' '), 'info');
 }
 
 // V13 - 数据类型到localStorage key的映射（必须与前端各模块的存取key一致）
@@ -1617,11 +1738,11 @@ async function doLogin() {
   try {
     var eid = document.getElementById('loginId').value.trim();
     var pwd = document.getElementById('loginPwd').value.trim();
-    if (!eid || !pwd) { alert('请输入工号和密码'); return; }
+    if (!eid || !pwd) { showToast('请输入工号和密码', 'warn'); return; }
     var passwords = lsGet('passwords', {});
     var person = PEOPLE_OBJ.find(function(p) { return p.employeeId === eid; });
-    if (!person) { alert('工号不存在'); return; }
-    if (passwords[eid] && passwords[eid] !== pwd) { alert('密码错误'); return; }
+    if (!person) { showToast('工号不存在', 'error'); return; }
+    if (passwords[eid] && passwords[eid] !== pwd) { showToast('密码错误', 'error'); return; }
     // V13 - 在线模式下同步验证后端
     if (SERVER_CONFIG.mode === 'online') {
       try {
@@ -1654,12 +1775,12 @@ function doChangePwd() {
   try {
     var p1 = document.getElementById('newPwd').value;
     var p2 = document.getElementById('newPwd2').value;
-    if (!p1 || p1.length < 6) { alert('密码至少6位'); return; }
-    if (p1 !== p2) { alert('两次密码不一致'); return; }
+    if (!p1 || p1.length < 6) { showToast('密码至少6位', 'warn'); return; }
+    if (p1 !== p2) { showToast('两次密码不一致', 'warn'); return; }
     var passwords = lsGet('passwords', {});
     passwords[pendingUser.employeeId] = p1;
     lsSet('passwords', passwords);
-    alert('密码修改成功');
+    showToast('密码修改成功', 'warn');
     finishLogin(pendingUser);
   } catch(e) { console.error('doChangePwd error:', e); }
 }
@@ -1757,6 +1878,22 @@ function onMenuClick(id) {
 function goToPage(id) {
   curPage = id;
   refresh();
+}
+
+// 全局消息提示（替代alert）
+function showMsg(text, duration) {
+  duration = duration || 2000;
+  var el = document.getElementById('globalMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'globalMsg';
+    el.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:99999;padding:10px 24px;background:#333;color:#fff;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.opacity = '1';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(function() { el.style.opacity = '0'; }, duration);
 }
 
 function refresh() {
@@ -1863,12 +2000,12 @@ function saveForm() {
       var el = document.getElementById('ff_' + i);
       var val = el ? el.value : '';
       data[f.key] = val;
-      if (f.required && !val) { alert(f.label + ' 不能为空'); return; }
+      if (f.required && !val) { showToast(f.label + ' 不能为空', 'warn'); return; }
     }
     if (cfg.onSave) cfg.onSave(data);
     closeMo();
     if (cfg.onAfter) cfg.onAfter();
-  } catch(e) { alert('保存失败: ' + e.message); }
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
 }
 
 function saveAndNew() {
@@ -1881,7 +2018,7 @@ function saveAndNew() {
       var el = document.getElementById('ff_' + i);
       var val = el ? el.value : '';
       data[f.key] = val;
-      if (f.required && !val) { alert(f.label + ' 不能为空'); return; }
+      if (f.required && !val) { showToast(f.label + ' 不能为空', 'warn'); return; }
     }
     if (cfg.onSave) cfg.onSave(data);
     // 重置表单
@@ -1890,11 +2027,11 @@ function saveAndNew() {
       if (el) el.value = f.type === 'select' ? (f.options[0] || '') : '';
     });
     if (cfg.onAfter) cfg.onAfter();
-  } catch(e) { alert('保存失败: ' + e.message); }
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
 }
 
 function exportCSV(data, filename) {
-  if (!data || !data.length) { alert('没有数据'); return; }
+  if (!data || !data.length) { showToast('没有数据', 'info'); return; }
   var keys = Object.keys(data[0]);
   var csv = keys.join(',') + '\n';
   data.forEach(function(row) {
@@ -1941,8 +2078,8 @@ function exportAllData() {
       homeConfig: lsGet('home_config', {})
     };
     exportJSON(data, 'v9_all_data_backup');
-    alert('数据导出成功！');
-  } catch(e) { alert('导出失败: ' + e.message); }
+    showToast('数据导出成功！', 'success');
+  } catch(e) { showToast('导出失败: ', 'error') + e.message); }
 }
 
 function importAllData() {
@@ -1971,14 +2108,14 @@ function importAllData() {
           if (data.userRoles) lsSet('user_roles', data.userRoles);
           if (data.permissionMatrix) lsSet('permission_matrix', data.permissionMatrix);
           if (data.homeConfig) lsSet('home_config', data.homeConfig);
-          alert('导入成功！');
+          showToast('导入成功！', 'success');
           refresh();
-        } catch(err) { alert('导入失败: ' + err.message); }
+        } catch(err) { showToast('导入失败: ', 'error') + err.message); }
       };
       reader.readAsText(file);
     };
     input.click();
-  } catch(e) { alert('导入失败: ' + e.message); }
+  } catch(e) { showToast('导入失败: ', 'error') + e.message); }
 }
 
 // V13 - 清除本地数据并从服务器恢复
@@ -1992,9 +2129,9 @@ async function clearLocalAndRestore() {
     if (SERVER_CONFIG.mode === 'online') {
       await doFullSync();
     }
-    alert('本地数据已清除' + (SERVER_CONFIG.mode === 'online' ? '，已从服务器恢复' : '。由于未连接服务器，数据将为内置默认值'));
+    showToast('本地数据已清除', 'info') + (SERVER_CONFIG.mode === 'online' ? '，已从服务器恢复' : '。由于未连接服务器，数据将为内置默认值'));
     refresh();
-  } catch(e) { alert('操作失败: ' + e.message); }
+  } catch(e) { showToast('操作失败: ', 'error') + e.message); }
 }
 
 function renderPagination(total, page, pageSize, callback) {
@@ -3126,7 +3263,7 @@ function renderCycleTask(cycleType) {
     h += '<tr><td>' + t.id + '</td><td>' + t.desc + '</td><td>' + t.owner + '</td><td>' + t.cycle + '</td>';
     h += '<td><span class="t ' + getStatusClass(t.status) + '">' + t.status + '</span></td>';
     h += '<td style="min-width:120px"><div class="pb"><div class="pf ' + getProgressClass(t.progress) + '" style="width:' + t.progress + '%"></div></div></td>';
-    h += '<td><button class="btn-sm bo" onclick="alert(\'查看详情\')">查看</button> <button class="btn-sm bp" onclick="alert(\'标记完成\')">完成</button></td></tr>';
+    h += '<td><button class="btn-sm bo" onclick="showToast(\'任务编号: ' + t.id + '\\n任务名称: ' + t.desc + '\\n负责人: ' + t.owner + '\\n周期: ' + t.cycle + '\\n当前进度: ' + t.progress + '%\', \'info\')">查看</button> <button class="btn-sm bp" onclick="markCycleTaskDone(\'' + t.id + '\')">完成</button></td></tr>';
   });
   h += '</tbody></table></div>';
   h += '</div>';
@@ -3951,7 +4088,7 @@ function renderEquipByProcess() {
   h += '<div class="pt">🔧 按工序分类 <span class="bdg">' + Object.keys(processes).length + ' 个工序</span></div>';
   h += '<div class="kpi-row">';
   Object.keys(processes).forEach(function(p) {
-    h += '<div class="kpi-card" onclick="alert(\'' + p + ' 设备详情\')"><div class="kpi-value">' + processes[p].length + '</div><div class="kpi-label">' + p + '</div></div>';
+    h += '<div class="kpi-card" onclick="filterEquipByProcess(\'' + p + '\')"><div class="kpi-value">' + processes[p].length + '</div><div class="kpi-label">' + p + '</div></div>';
   });
   h += '</div>';
   Object.keys(processes).forEach(function(p) {
@@ -4801,7 +4938,7 @@ function renderOrgDept(dept) {
         // 组员
         h += '<div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:8px">';
         groupMembers.forEach(function(m) {
-          h += '<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:#fff;border:1px solid var(--br);border-radius:16px;cursor:pointer" onclick="alert(\'' + m.name + '\\n岗位：' + m.position + '\\n工号：' + m.employeeId + '\')" title="点击查看详情">';
+          h += '<div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:#fff;border:1px solid var(--br);border-radius:16px;cursor:pointer" onclick="viewPersonDetail(\'' + m.employeeId + '\')" title="点击查看详情">';
           h += '<div class="person-avatar" style="width:22px;height:22px;font-size:10px">' + m.initials + '</div>';
           h += '<span style="font-size:12px">' + m.name + '</span>';
           h += '</div>';
@@ -4844,7 +4981,7 @@ function viewPersonDetail(employeeId) {
     h += '</div>';
     h += '<div class="form-field" style="margin-top:12px"><label>职责范围</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6">' + p.scope + '</div></div>';
     openMo({title:'人员详情 - ' + p.name, html:h});
-  } catch(e) { alert('查看详情失败: ' + e.message); }
+  } catch(e) { showToast('查看详情失败: ', 'error') + e.message); }
 }
 
 function renderPeopleList() {
@@ -4877,7 +5014,7 @@ function renderPeopleList() {
   pageData.forEach(function(p) {
     h += '<tr><td>' + p.employeeId + '</td><td>' + p.name + '</td><td>' + p.dept + '</td><td>' + p.position + '</td><td>' + p.group + '</td>';
     h += '<td>' + (p.supervisor || '-') + '</td><td>' + (p.phone || '-') + '</td>';
-    h += '<td><button class="btn-sm bo" onclick="alert(\'查看: ' + p.name + '\')">详情</button></td></tr>';
+    h += '<td><button class="btn-sm bo" onclick="viewPersonDetail(\'' + p.employeeId + '\')">详情</button></td></tr>';
   });
   h += '</tbody></table></div></div>';
   h += renderPagination(total, page, pageSize, 'peoplePageChange');
@@ -4957,7 +5094,7 @@ function renderSkillMatrix() {
 
 function editSkillLevel(personId, skillName, currentLevel) {
   try {
-    if (!hasPermission('org-manage','edit')) { alert('您没有编辑权限'); return; }
+    if (!hasPermission('org-manage','edit')) { showToast('您没有编辑权限', 'info'); return; }
     var p = PEOPLE_OBJ.find(function(x){ return x.employeeId === personId; });
     var name = p ? p.name : personId;
     submitFormModal({
@@ -4970,11 +5107,11 @@ function editSkillLevel(personId, skillName, currentLevel) {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('编辑技能失败: ' + e.message); }
+  } catch(e) { showToast('编辑技能失败: ', 'error') + e.message); }
 }
 
 function refreshSkillMatrix() {
-  try { refresh(); } catch(e) { alert('刷新失败: ' + e.message); }
+  try { refresh(); } catch(e) { showToast('刷新失败: ', 'error') + e.message); }
 }
 
 function resetSkillMatrix() {
@@ -4982,7 +5119,7 @@ function resetSkillMatrix() {
     if (!confirm('确定重置技能矩阵为默认数据？此操作不可撤销。')) return;
     saveSkillMatrix(DEFAULT_SKILL_MATRIX);
     refresh();
-  } catch(e) { alert('重置失败: ' + e.message); }
+  } catch(e) { showToast('重置失败: ', 'error') + e.message); }
 }
 
 function renderDocLibrary() {
@@ -5072,7 +5209,7 @@ function uploadDoc() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('上传文档失败: ' + e.message); }
+  } catch(e) { showToast('上传文档失败: ', 'error') + e.message); }
 }
 
 function viewDocDetail(id) {
@@ -5091,14 +5228,14 @@ function viewDocDetail(id) {
     h += '</div></div>';
     h += '<div class="form-field"><label>文档描述</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6">' + (d.desc || '') + '</div></div>';
     openMo({title:'文档详情 - ' + d.name, html:h});
-  } catch(e) { alert('查看文档失败: ' + e.message); }
+  } catch(e) { showToast('查看文档失败: ', 'error') + e.message); }
 }
 
 function downloadDoc(id) {
   try {
     var all = getAllDocs();
     var d = all.find(function(x){ return x.id === id; });
-    if (!d) { alert('文档不存在'); return; }
+    if (!d) { showToast('文档不存在', 'error'); return; }
     var content = d.content || '';
     if (!content) {
       content = '文档名称: ' + d.name + '\n';
@@ -5124,14 +5261,14 @@ function downloadDoc(id) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
-  } catch(e) { alert('下载失败: ' + e.message); }
+  } catch(e) { showToast('下载失败: ', 'error') + e.message); }
 }
 
 function downloadScript(id) {
   try {
     var all = getAllScripts();
     var s = all.find(function(x){ return x.id === id; });
-    if (!s) { alert('脚本不存在'); return; }
+    if (!s) { showToast('脚本不存在', 'error'); return; }
     var content = '#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n';
     content += '# ' + s.name + '\n';
     content += '# 功能: ' + s.desc + '\n';
@@ -5147,7 +5284,7 @@ function downloadScript(id) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(link.href);
-  } catch(e) { alert('下载失败: ' + e.message); }
+  } catch(e) { showToast('下载失败: ', 'error') + e.message); }
 }
 
 function viewScriptCode(id) {
@@ -5160,7 +5297,7 @@ function viewScriptCode(id) {
     h += '<div class="form-field"><label>描述</label><div style="font-size:12px;color:var(--t2)">' + s.desc + '</div></div>';
     h += '<div class="form-field"><label>代码预览</label><pre style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:300px">// ' + s.name + '\n// 功能: ' + s.desc + '\n// 日期: ' + s.date + '\n\nprint("Hello, World!")</pre></div>';
     openMo({title:'脚本代码 - ' + s.name, html:h});
-  } catch(e) { alert('查看代码失败: ' + e.message); }
+  } catch(e) { showToast('查看代码失败: ', 'error') + e.message); }
 }
 
 function renderToolLibrary() {
@@ -5466,7 +5603,7 @@ function copyAutoTask(id) {
   local.push(newTask);
   saveLocalAutoTasks(local);
   saveData('auto_tasks', local); // V13 - 实时同步后端
-  alert('复制成功！');
+  showToast('复制成功！', 'success');
   refresh();
 }
 
@@ -5509,7 +5646,7 @@ function renderAutoTaskTemplates() {
 function useTemplate(id) {
   var t = AUTO_TASK_TEMPLATES.find(function(x){return x.id===id;});
   if (!t) return;
-  alert('使用模板：' + t.name + '\n可在任务列表中编辑调整。');
+  showToast('使用模板：', 'info') + t.name + '\n可在任务列表中编辑调整。');
   // 直接创建一个副本
   var local = lsGet('local_autotasks', []);
   var maxNum = 0;
@@ -5552,14 +5689,14 @@ function renderAutoTaskLogs() {
   h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + logs.filter(function(l){return l.status!=='成功';}).length + '</div><div class="kpi-label">失败</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(logs.filter(function(l){return l.status==='成功';}).length/Math.max(logs.length,1)*100) + '%</div><div class="kpi-label">成功率</div></div>';
   h += '</div>';
-  h += '<div class="bg"><input class="fi" style="width:240px" placeholder="搜索日志..."><button class="btn bo">&#8635; 刷新</button><button class="btn bo" onclick="lsSet(\'auto_task_logs\',[]);alert(\'日志已清空\');refresh()">清空日志</button></div>';
+  h += '<div class="bg"><input class="fi" style="width:240px" placeholder="搜索日志..."><button class="btn bo">&#8635; 刷新</button><button class="btn bo" onclick="clearAutoTaskLogs()">清空日志</button></div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>日志ID</th><th>任务名称</th><th>执行时间</th><th>状态</th><th>执行结果</th><th>操作</th></tr></thead><tbody>';
   logs.slice(0, 20).forEach(function(l) {
     h += '<tr><td>' + l.id + '</td><td>' + l.taskName + '</td><td>' + l.time + '</td>';
     h += '<td><span class="t ' + (l.status==='成功'?'tg':'tr') + '">' + l.status + '</span></td>';
     h += '<td style="max-width:300px" class="text-overflow-ellipsis">' + l.result + '</td>';
-    h += '<td><button class="btn-sm bo" onclick="alert(\'' + l.result + '\')">详情</button></td></tr>';
+    h += '<td><button class="btn-sm bo" onclick="viewLogDetail(\'' + l.id + '\')">详情</button></td></tr>';
   });
   h += '</tbody></table></div></div>';
   h += '</div>';
@@ -5757,7 +5894,7 @@ function createMsgTemplate() {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('新增模板失败: ' + e.message); }
+  } catch(e) { showToast('新增模板失败: ', 'error') + e.message); }
 }
 
 function editMsgTemplate(id) {
@@ -5789,7 +5926,7 @@ function editMsgTemplate(id) {
       },
       onAfter: function() { refresh(); }
     });
-  } catch(e) { alert('编辑模板失败: ' + e.message); }
+  } catch(e) { showToast('编辑模板失败: ', 'error') + e.message); }
 }
 
 function deleteMsgTemplate(id) {
@@ -5798,7 +5935,7 @@ function deleteMsgTemplate(id) {
     var templates = getMsgTemplates().filter(function(t){ return t.id !== id; });
     saveMsgTemplates(templates);
     refresh();
-  } catch(e) { alert('删除模板失败: ' + e.message); }
+  } catch(e) { showToast('删除模板失败: ', 'error') + e.message); }
 }
 
 function useMsgTemplate(id) {
@@ -5823,13 +5960,13 @@ function previewMsg() {
 
 function sendMsg() {
   if (selectedWebhooks.length === 0) {
-    alert('请至少选择一个推送群组！');
+    showToast('请至少选择一个推送群组！', 'warn');
     return;
   }
   var title = document.getElementById('msgTitle') ? document.getElementById('msgTitle').value : '';
   var content = document.getElementById('msgContent') ? document.getElementById('msgContent').value : '';
   if (!content) {
-    alert('请输入消息内容！');
+    showToast('请输入消息内容！', 'warn');
     return;
   }
   var webhooks = getWebhooks();
@@ -5849,7 +5986,7 @@ function sendMsg() {
   });
   savePushHistory(history.slice(0, 50));
   
-  alert('消息已推送至 ' + selectedWebhooks.length + ' 个群组！\n目标：' + targetNames);
+  showToast('消息已推送至 ', 'info') + selectedWebhooks.length + ' 个群组！\n目标：' + targetNames);
   refresh();
 }
 
@@ -5866,7 +6003,7 @@ function viewPushHistoryDetail(id) {
     html += '</div>';
     html += '<div class="form-field" style="margin-top:12px"><label>消息内容</label><div style="padding:10px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-wrap">' + h.content + '</div></div>';
     openMo({title:'推送详情', html:html});
-  } catch(e) { alert('查看详情失败: ' + e.message); }
+  } catch(e) { showToast('查看详情失败: ', 'error') + e.message); }
 }
 
 function resendPush(id) {
@@ -5886,9 +6023,9 @@ function resendPush(id) {
       content: h.content
     });
     savePushHistory(history.slice(0, 50));
-    alert('重发成功！');
+    showToast('重发成功！', 'success');
     refresh();
-  } catch(e) { alert('重发失败: ' + e.message); }
+  } catch(e) { showToast('重发失败: ', 'error') + e.message); }
 }
 
 function clearPushHistory() {
@@ -5961,7 +6098,7 @@ function renderMemberManage() {
         h += '<button class="btn-sm dg" onclick="removeMember(\'' + p.employeeId + '\')">删除</button>';
       }
     } else {
-      h += '<button class="btn-sm bo" onclick="alert(\'查看\')">查看</button>';
+      h += '<button class="btn-sm bo" onclick="viewPersonDetail(\'' + p.employeeId + '\')">查看</button>';
     }
     h += '</td></tr>';
   });
@@ -5998,7 +6135,7 @@ function changeMemberRole(eid) {
       if (roleKey) {
         roles[eid] = roleKey;
         lsSet('user_roles', roles);
-        alert('角色修改成功！');
+        showToast('角色修改成功！', 'success');
       }
     },
     onAfter: function() { refresh(); }
@@ -6010,13 +6147,13 @@ function resetMemberPwd(eid) {
   var passwords = lsGet('passwords', {});
   passwords[eid] = '123456';
   lsSet('passwords', passwords);
-  alert('密码已重置为 123456');
+  showToast('密码已重置为 123456', 'warn');
   refresh();
 }
 
 function removeMember(eid) {
   if (!confirm('确定删除此成员？')) return;
-  alert('演示版本暂不支持删除成员（人员来自组织架构）');
+  showToast('演示版本暂不支持删除成员（人员来自组织架构）', 'info');
 }
 
 function renderPermConfig() {
@@ -6099,7 +6236,7 @@ function togglePerm(moduleId, action, role, checked) {
 function resetPermMatrix() {
   if (!confirm('确定恢复默认权限配置？')) return;
   savePermissionMatrix(DEFAULT_PERMISSION_MATRIX);
-  alert('已恢复默认权限配置');
+  showToast('已恢复默认权限配置', 'success');
   refresh();
 }
 
@@ -6176,7 +6313,7 @@ function toggleQuickCard(id) {
 // V13 - 导入本地数据到服务器
 async function importLocalToServer() {
   if (SERVER_CONFIG.mode !== 'online') {
-    alert('请先连接到后端服务器');
+    showToast('请先连接到后端服务器', 'warn');
     return;
   }
   if (!confirm('确定将所有本地数据导入到服务器？\n\n这将把本地数据推送到服务器，服务器上已有的同名数据将被覆盖。')) return;
@@ -6202,11 +6339,11 @@ async function importLocalToServer() {
       }
     }
     setSyncStatus('synced');
-    alert('数据已成功导入到服务器！');
+    showToast('数据已成功导入到服务器！', 'success');
     refresh();
   } catch(e) {
     setSyncStatus('error');
-    alert('导入失败: ' + e.message);
+    showToast('导入失败: ', 'error') + e.message);
   }
 }
 
@@ -6266,7 +6403,7 @@ function refreshTunnelUrls() {
 // V13 - 增强testServerConnection
 function testServerConnection() {
   var url = document.getElementById('feishuServerUrl').value.trim();
-  if (!url) { alert('请输入服务器地址'); return; }
+  if (!url) { showToast('请输入服务器地址', 'warn'); return; }
   var resultDiv = document.getElementById('serverConnResult');
   if (resultDiv) resultDiv.innerHTML = '<span style="color:var(--or)">&#9201; 正在测试连接...</span>';
  fetch(url + '/api/status', {
@@ -6568,22 +6705,22 @@ function resetTableMappingsToDefault() {
 
 async function testTableConnection(type) {
   if (SERVER_CONFIG.mode !== 'online') {
-    alert('请先连接服务器');
+    showToast('请先连接服务器', 'warn');
     return;
   }
-  alert('测试读取 ' + type + ' 的前3条记录...');
+  showToast('测试读取 ', 'info') + type + ' 的前3条记录...');
   try {
     var res = await apiRequest('POST', '/api/sync/read/' + type, {limit: 3});
     if (res.code === 0) {
       var count = res.data ? res.data.length : 0;
-      alert('测试成功! 读取到 ' + count + ' 条记录');
+      showToast('测试成功! 读取到 ', 'success') + count + ' 条记录');
       addSyncLog('测试连接 ' + type + ' 成功，读取 ' + count + ' 条');
     } else {
-      alert('测试失败: ' + res.msg);
+      showToast('测试失败: ', 'error') + res.msg);
       addSyncLog('测试连接 ' + type + ' 失败: ' + res.msg);
     }
   } catch(e) {
-    alert('测试失败: ' + e.message);
+    showToast('测试失败: ', 'error') + e.message);
   }
   refresh();
 }
@@ -6596,7 +6733,7 @@ function saveFeishuCredentials() {
   if (SERVER_CONFIG.mode === 'online') {
     apiRequest('POST', '/api/config', {appId: appId, appSecret: appSecret});
   }
-  alert('凭证已保存');
+  showToast('凭证已保存', 'success');
   addSyncLog('飞书凭证已保存');
 }
 
@@ -6616,13 +6753,13 @@ function saveTableMappings() {
   if (SERVER_CONFIG.mode === 'online') {
     apiRequest('POST', '/api/config', {tableMappings: mappings});
   }
-  alert('映射配置已保存');
+  showToast('映射配置已保存', 'success');
   addSyncLog('多维表格映射配置已保存');
 }
 
 async function readAllFromFeishu() {
   if (SERVER_CONFIG.mode !== 'online') {
-    alert('请先连接服务器');
+    showToast('请先连接服务器', 'warn');
     return;
   }
   setSyncStatus('syncing');
@@ -6639,11 +6776,11 @@ async function readAllFromFeishu() {
       }
     }
     setSyncStatus('synced');
-    alert('全部数据读取完成!');
+    showToast('全部数据读取完成!', 'info');
   } catch(e) {
     setSyncStatus('error');
     addSyncLog('读取飞书数据失败: ' + e.message);
-    alert('读取失败: ' + e.message);
+    showToast('读取失败: ', 'error') + e.message);
   }
   refresh();
 }
@@ -6976,7 +7113,7 @@ function renderThemeConfig() {
   ];
   h += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
   colors.forEach(function(c) {
-    h += '<div style="text-align:center;cursor:pointer" onclick="alert(\'主题色：' + c.name + '\')">';
+    h += '<div style="text-align:center;cursor:pointer" onclick="applyThemeColor(\'' + c.val + '\', \'' + c.name + '\')">';
     h += '<div style="width:48px;height:48px;border-radius:8px;background:' + c.val + ';margin-bottom:4px;border:2px solid ' + (c.active?'var(--t)':'transparent') + '"></div>';
     h += '<div style="font-size:11px;color:var(--t2)">' + c.name + '</div>';
     h += '</div>';
@@ -7420,74 +7557,335 @@ function calcAttendanceChartData(data) {
 // =========================================
 // V10 - 战略规划页面
 // =========================================
+
+// 年度总结 - 差异化内容数据
+var strategySummaryData = {
+  'summary-equip': {
+    title: '设备安装总结',
+    banner: '回顾2025年，设备安装团队顺利完成一二期大规模设备导入，共1021台设备成功投产运行。',
+    gradient: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+    kpis: [
+      {value:'1021', label:'设备总数'},
+      {value:'320台', label:'新增设备'},
+      {value:'99.2%', label:'安装合格率'},
+      {value:'15天', label:'平均安装周期'}
+    ],
+    items: [
+      {time:'2025年Q1', content:'完成一期设备安装调试，共180台设备投产，涵盖钻孔、锣板等关键工序'},
+      {time:'2025年Q2', content:'完成二期设备导入，新增140台设备，电镀线全线贯通'},
+      {time:'2025年Q3', content:'三期扩建设备开始进场，完成AGV调度系统与设备接口联调'},
+      {time:'2025年Q4', content:'全年设备安装总结归档，建立标准化安装流程SOP 12份'}
+    ],
+    chart1Title: '各工序设备安装完成率',
+    chart1Labels: ['钻孔','锣板','电镀','沉铜','防焊','测试'],
+    chart1Target: [95,95,90,90,95,95],
+    chart1Actual: [98,97,96,94,99,97],
+    chart2Title: '季度设备装机量',
+    chart2Labels: ['Q1','Q2','Q3','Q4'],
+    chart2D1: {label:'新增装机', data:[180,140,85,35], color:'#3370ff'},
+    chart2D2: {label:'累计装机', data:[180,320,620,1021], color:'#34c724'}
+  },
+  'summary-smart': {
+    title: '智能制造总结',
+    banner: '2025年智能制造全面推进，从智能巡检到AGV调度，从数字化管理到预测性维护，各项智能化指标显著提升。',
+    gradient: 'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)',
+    kpis: [
+      {value:'95.8%', label:'设备稼动率'},
+      {value:'32项', label:'自动化项目'},
+      {value:'25%', label:'物流效率提升'},
+      {value:'80%', label:'智能巡检覆盖'}
+    ],
+    items: [
+      {time:'2025年Q1', content:'智能巡检系统一期上线，覆盖电镀/沉铜工序，实现设备状态实时监控'},
+      {time:'2025年Q2', content:'AGV调度系统V2.0升级，路径优化算法重构，物流效率提升25%'},
+      {time:'2025年Q3', content:'MES系统集成设备数据采集模块，打通生产-设备数据链路'},
+      {time:'2025年Q4', content:'预测性维护模型V1.0验证完成，关键设备故障预测准确率达85%'}
+    ],
+    chart1Title: '智能化项目推进进度',
+    chart1Labels: ['智能巡检','AGV调度','MES集成','预测维护','数字孪生','数据中台'],
+    chart1Target: [100,100,100,100,100,100],
+    chart1Actual: [90,85,70,40,20,30],
+    chart1IsBar: false,
+    chart2Title: '各季度智能化投入与收益(万元)',
+    chart2Labels: ['Q1','Q2','Q3','Q4'],
+    chart2D1: {label:'投入', data:[50,65,80,45], color:'#ff9800'},
+    chart2D2: {label:'收益', data:[20,45,90,120], color:'#34c724'}
+  },
+  'summary-manage': {
+    title: '基础管理总结',
+    banner: '2025年基础管理持续强化，制度建设、流程优化、安全管理全面推进，管理效能稳步提升。',
+    gradient: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
+    kpis: [
+      {value:'12份', label:'新增SOP'},
+      {value:'98.5%', label:'制度执行率'},
+      {value:'0起', label:'安全事故'},
+      {value:'96分', label:'内审评分'}
+    ],
+    items: [
+      {time:'2025年Q1', content:'完成设备管理制度V2.0修订，新增预防性维护管理流程'},
+      {time:'2025年Q2', content:'安全管理体系认证通过年度审核，发现3项轻微不符合已整改'},
+      {time:'2025年Q3', content:'建立设备备件标准化管理体系，备件周转率提升30%'},
+      {time:'2025年Q4', content:'年度管理评审完成，制定2026年管理改善计划8项'}
+    ],
+    chart1Title: '管理指标达成情况',
+    chart1Labels: ['制度执行','SOP覆盖率','培训完成率','备件周转','安全达标','内审评分'],
+    chart1Target: [95,90,100,80,100,95],
+    chart1Actual: [98.5,92,98,85,100,96],
+    chart2Title: '月度管理巡检得分趋势',
+    chart2Labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+    chart2D1: {label:'巡检得分', data:[88,90,91,93,92,94,95,94,96,95,96,97], color:'#3370ff'},
+    chart2D2: {label:'目标线', data:[90,90,90,90,90,90,90,90,90,90,90,90], color:'#34c724', dash:true}
+  },
+  'summary-improve': {
+    title: '持续改善总结',
+    banner: '2025年持续改善文化深入人心，全年改善提案156件，创造经济效益约200万元，多项改善成果获得公司级表彰。',
+    gradient: 'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
+    kpis: [
+      {value:'156件', label:'改善提案'},
+      {value:'200万', label:'创造效益'},
+      {value:'78%', label:'实施率'},
+      {value:'45人', label:'参与人数'}
+    ],
+    items: [
+      {time:'2025年Q1', content:'推行"每日一改善"活动，Q1收到改善提案28件，实施率65%'},
+      {time:'2025年Q2', content:'举办首届改善提案大赛，评选优秀提案12件，建立改善积分激励机制'},
+      {time:'2025年Q3', content:'改善提案数量稳步增长至月均42件，跨部门联合改善项目启动5项'},
+      {time:'2025年Q4', content:'年度改善成果汇编发布，建立改善知识库，录入优秀案例67件'}
+    ],
+    chart1Title: '改善提案来源分布',
+    chart1Labels: ['设备组','机电组','电子组','保养组','跨部门','管理层'],
+    chart1Target: [],
+    chart1Actual: [38,32,28,25,22,11],
+    chart1IsBar: true,
+    chart1SingleColor: ['#3370ff','#ff9800','#34c724','#7c3aed','#f5576c','#00bcd4'],
+    chart2Title: '各季度改善提案与实施趋势',
+    chart2Labels: ['Q1','Q2','Q3','Q4'],
+    chart2D1: {label:'提案数', data:[28,35,42,51], color:'#3370ff'},
+    chart2D2: {label:'实施数', data:[18,24,35,45], color:'#34c724'}
+  }
+};
+
+function getStrategySummaryContent(type) {
+  // 从localStorage读取用户自定义内容，如果没有则返回null
+  try {
+    var saved = localStorage.getItem('strategy-summary-' + type);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+}
+
+function saveStrategySummaryContent(type, content) {
+  try {
+    localStorage.setItem('strategy-summary-' + type, JSON.stringify(content));
+  } catch(e) {}
+}
+
 function renderStrategySummary(type) {
-  var titles = {'summary-equip':'设备安装总结','summary-smart':'智能制造总结','summary-manage':'基础管理总结','summary-improve':'持续改善总结'};
-  var title = titles[type] || '年度总结';
+  var defaultData = strategySummaryData[type] || strategySummaryData['summary-smart'];
+  var customContent = getStrategySummaryContent(type);
+  var title = defaultData.title;
+  var banner = customContent ? customContent.banner : defaultData.banner;
+  var gradient = defaultData.gradient;
+  var kpis = customContent ? customContent.kpis : defaultData.kpis;
+  var items = customContent ? customContent.items : defaultData.items;
+
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📅 2025年' + title + ' <span class="bdg">年度回顾</span></div>';
-  h += '<div class="welcome-banner" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%)">';
+  h += '<div class="pt" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  h += '<div>📅 2025年' + title + ' <span class="bdg">年度回顾</span></div>';
+  h += '<div style="display:flex;gap:6px"><button class="btn-sm bp" onclick="editStrategySummary(\'' + type + '\')">编辑内容</button>';
+  h += '<button class="btn-sm bo" onclick="resetStrategySummary(\'' + type + '\')">恢复默认</button></div></div>';
+  h += '<div class="welcome-banner" style="background:' + gradient + '">';
   h += '<h2 style="font-size:20px">2025年度' + title + '</h2>';
-  h += '<p>回顾2025年，我们取得了显著的成绩，同时也明确了未来的改进方向。</p>';
+  h += '<p>' + banner + '</p>';
   h += '<div class="wb-icon">📊</div></div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">1021</div><div class="kpi-label">设备总数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">95.8%</div><div class="kpi-label">设备稼动率</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">156</div><div class="kpi-label">改善提案</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">32项</div><div class="kpi-label">自动化项目</div></div>';
+  kpis.forEach(function(k) {
+    h += '<div class="kpi-card"><div class="kpi-value">' + k.value + '</div><div class="kpi-label">' + k.label + '</div></div>';
+  });
   h += '</div>';
   h += '<div class="cd"><div class="ct">主要成果</div>';
   h += '<div class="timeline">';
-  var items = [
-    {time:'2025年Q1', content:'完成一二期设备安装调试，共320台设备投产'},
-    {time:'2025年Q2', content:'智能巡检系统一期上线，覆盖电镀/沉铜工序'},
-    {time:'2025年Q3', content:'AGV调度系统升级，物流效率提升25%'},
-    {time:'2025年Q4', content:'全年改善提案156件，创造效益约200万元'}
-  ];
   items.forEach(function(i) {
     h += '<div class="timeline-item"><div class="tl-time">' + i.time + '</div><div class="tl-content">' + i.content + '</div></div>';
   });
   h += '</div></div>';
   h += '<div class="g2">';
-  h += '<div class="cd"><div class="ct">关键指标完成情况</div><div class="ch"><canvas id="ssChart1"></canvas></div></div>';
-  h += '<div class="cd"><div class="ct">各季度数据对比</div><div class="ch"><canvas id="ssChart2"></canvas></div></div>';
+  h += '<div class="cd"><div class="ct">' + defaultData.chart1Title + '</div><div class="ch"><canvas id="ssChart1"></canvas></div></div>';
+  h += '<div class="cd"><div class="ct">' + defaultData.chart2Title + '</div><div class="ch"><canvas id="ssChart2"></canvas></div></div>';
   h += '</div>';
   h += '</div>';
   return h;
 }
 
+function editStrategySummary(type) {
+  var defaultData = strategySummaryData[type] || strategySummaryData['summary-smart'];
+  var customContent = getStrategySummaryContent(type);
+  var content = customContent || {
+    banner: defaultData.banner,
+    kpis: defaultData.kpis,
+    items: defaultData.items
+  };
+
+  var kpiHtml = '';
+  content.kpis.forEach(function(k, idx) {
+    kpiHtml += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+    kpiHtml += '<input type="text" value="' + k.value + '" data-role="kpi-val" data-idx="' + idx + '" placeholder="数值" style="width:80px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    kpiHtml += '<input type="text" value="' + k.label + '" data-role="kpi-label" data-idx="' + idx + '" placeholder="标签" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    kpiHtml += '<button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button></div>';
+  });
+
+  var itemHtml = '';
+  content.items.forEach(function(item, idx) {
+    itemHtml += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+    itemHtml += '<input type="text" value="' + item.time + '" data-role="item-time" data-idx="' + idx + '" placeholder="时间" style="width:100px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    itemHtml += '<input type="text" value="' + item.content + '" data-role="item-content" data-idx="' + idx + '" placeholder="内容" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    itemHtml += '<button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button></div>';
+  });
+
+  var modal = '<div id="strategyEditModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:640px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">编辑 - ' + defaultData.title + '</h3>';
+  modal += '<button class="btn-sm bd" onclick="closeStrategyEditModal()">关闭</button></div>';
+
+  modal += '<div style="margin-bottom:16px"><label style="font-weight:bold;display:block;margin-bottom:6px">概述文案</label>';
+  modal += '<textarea id="editBanner" rows="3" style="width:100%;padding:8px;border:1px solid var(--br);border-radius:6px;font-size:13px;resize:vertical">' + content.banner + '</textarea></div>';
+
+  modal += '<div style="margin-bottom:16px"><label style="font-weight:bold;display:block;margin-bottom:6px">KPI指标</label>';
+  modal += '<div id="kpiEditor">' + kpiHtml + '</div>';
+  modal += '<button class="btn-sm bp" style="margin-top:6px" onclick="addKpiRow()">+ 添加KPI</button></div>';
+
+  modal += '<div style="margin-bottom:16px"><label style="font-weight:bold;display:block;margin-bottom:6px">主要成果时间线</label>';
+  modal += '<div id="itemEditor">' + itemHtml + '</div>';
+  modal += '<button class="btn-sm bp" style="margin-top:6px" onclick="addItemRow()">+ 添加条目</button></div>';
+
+  modal += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--br)">';
+  modal += '<button class="btn-sm bd" onclick="closeStrategyEditModal()">取消</button>';
+  modal += '<button class="btn-sm bp" onclick="saveStrategySummaryEdit(\'' + type + '\')">保存</button></div>';
+  modal += '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function addKpiRow() {
+  var container = document.getElementById('kpiEditor');
+  if (!container) return;
+  var idx = container.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+  div.innerHTML = '<input type="text" value="" data-role="kpi-val" data-idx="' + idx + '" placeholder="数值" style="width:80px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="kpi-label" data-idx="' + idx + '" placeholder="标签" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button>';
+  container.appendChild(div);
+}
+
+function addItemRow() {
+  var container = document.getElementById('itemEditor');
+  if (!container) return;
+  var idx = container.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+  div.innerHTML = '<input type="text" value="" data-role="item-time" data-idx="' + idx + '" placeholder="时间" style="width:100px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="item-content" data-idx="' + idx + '" placeholder="内容" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button>';
+  container.appendChild(div);
+}
+
+function saveStrategySummaryEdit(type) {
+  var banner = document.getElementById('editBanner').value.trim();
+  if (!banner) { showMsg('概述文案不能为空'); return; }
+  var kpis = [];
+  var kpiEls = document.querySelectorAll('#kpiEditor > div');
+  kpiEls.forEach(function(el) {
+    var val = el.querySelector('[data-role="kpi-val"]').value.trim();
+    var label = el.querySelector('[data-role="kpi-label"]').value.trim();
+    if (val && label) kpis.push({value: val, label: label});
+  });
+  var items = [];
+  var itemEls = document.querySelectorAll('#itemEditor > div');
+  itemEls.forEach(function(el) {
+    var time = el.querySelector('[data-role="item-time"]').value.trim();
+    var content = el.querySelector('[data-role="item-content"]').value.trim();
+    if (time && content) items.push({time: time, content: content});
+  });
+  if (kpis.length === 0) { showMsg('至少需要1个KPI指标'); return; }
+  if (items.length === 0) { showMsg('至少需要1条成果记录'); return; }
+  saveStrategySummaryContent(type, {banner: banner, kpis: kpis, items: items});
+  closeStrategyEditModal();
+  refresh();
+  showMsg('保存成功');
+}
+
+function resetStrategySummary(type) {
+  localStorage.removeItem('strategy-summary-' + type);
+  refresh();
+  showMsg('已恢复为默认内容');
+}
+
+function closeStrategyEditModal() {
+  var modal = document.getElementById('strategyEditModal');
+  if (modal) modal.remove();
+}
+
 function initStrategySummaryCharts() {
   try {
+    var defaultData = strategySummaryData[curPage] || strategySummaryData['summary-smart'];
     var c1 = document.getElementById('ssChart1');
     if (c1) {
       if (chartInstances.ss1) chartInstances.ss1.destroy();
-      chartInstances.ss1 = new Chart(c1, {
-        type: 'bar',
-        data: {
-          labels: ['设备稼动率','故障率','改善提案','自动化率','培训完成率'],
-          datasets: [
-            {label:'目标', data:[95, 3, 120, 40, 100], backgroundColor:'#e8f0ff', borderRadius:4},
-            {label:'实际', data:[95.8, 4.2, 156, 45, 98], backgroundColor:'#3370ff', borderRadius:4}
-          ]
-        },
-        options: {responsive:true, maintainAspectRatio:false, indexAxis:'y'}
-      });
+      var chart1Config;
+      if (defaultData.chart1IsBar && defaultData.chart1SingleColor) {
+        // 单数据集多色柱状图（如改善来源分布）
+        chart1Config = {
+          type: 'bar',
+          data: {
+            labels: defaultData.chart1Labels,
+            datasets: [{label: defaultData.chart1Title, data: defaultData.chart1Actual, backgroundColor: defaultData.chart1SingleColor, borderRadius:4}]
+          },
+          options: {responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}}}
+        };
+      } else if (defaultData.chart1Target && defaultData.chart1Target.length > 0) {
+        // 目标vs实际对比图
+        chart1Config = {
+          type: 'bar',
+          data: {
+            labels: defaultData.chart1Labels,
+            datasets: [
+              {label:'目标', data: defaultData.chart1Target, backgroundColor:'#e8f0ff', borderRadius:4},
+              {label:'实际', data: defaultData.chart1Actual, backgroundColor:'#3370ff', borderRadius:4}
+            ]
+          },
+          options: {responsive:true, maintainAspectRatio:false, indexAxis:'y'}
+        };
+      } else {
+        // 线图（进度类）
+        chart1Config = {
+          type: 'line',
+          data: {
+            labels: defaultData.chart1Labels,
+            datasets: [{label:'完成率(%)', data: defaultData.chart1Actual, borderColor:'#3370ff', backgroundColor:'rgba(51,112,255,0.1)', fill:true, tension:0.3}]
+          },
+          options: {responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true, max:100}}}
+        };
+      }
+      chartInstances.ss1 = new Chart(c1, chart1Config);
     }
     var c2 = document.getElementById('ssChart2');
     if (c2) {
       if (chartInstances.ss2) chartInstances.ss2.destroy();
+      var d1 = defaultData.chart2D1;
+      var d2 = defaultData.chart2D2;
+      var datasets2 = [
+        {label: d1.label, data: d1.data, borderColor: d1.color, backgroundColor: d1.color + '22', fill: true, tension:0.3}
+      ];
+      if (d2) {
+        datasets2.push({
+          label: d2.label, data: d2.data, borderColor: d2.color, borderDash: d2.dash ? [5,5] : undefined, tension:0.3, fill: false, yAxisID: d2.data[0] > 100 ? 'y1' : undefined
+        });
+      }
+      var chart2Opts = {responsive:true, maintainAspectRatio:false};
+      if (d2 && d2.data[0] > 100) {
+        chart2Opts.scales = {y:{beginAtZero:true, position:'left'}, y1:{beginAtZero:true, position:'right', grid:{display:false}}};
+      }
       chartInstances.ss2 = new Chart(c2, {
         type: 'line',
-        data: {
-          labels: ['Q1','Q2','Q3','Q4'],
-          datasets: [
-            {label:'设备稼动率(%)', data:[92, 94, 95, 96], borderColor:'#3370ff', tension:0.3},
-            {label:'改善提案数', data:[28, 35, 42, 51], borderColor:'#34c724', tension:0.3, yAxisID:'y1'}
-          ]
-        },
-        options: {
-          responsive:true, maintainAspectRatio:false,
-          scales: {y:{beginAtZero:true, position:'left'}, y1:{beginAtZero:true, position:'right', grid:{display:false}}}
-        }
+        data: {labels: defaultData.chart2Labels, datasets: datasets2},
+        options: chart2Opts
       });
     }
   } catch(e) {}
@@ -7601,35 +7999,234 @@ function initKpiCharts() {
   } catch(e) {}
 }
 
+// 白皮书 - 差异化内容数据
+var whitepaperData = {
+  'wp-smart-maint': {
+    title: '智能化维护方向',
+    subtitle: '智能化维护白皮书 - 构建预测性维护体系',
+    gradient: 'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',
+    items: [
+      {time:'短期目标(1年内)', content:'完成智能巡检系统二期建设，覆盖电镀、沉铜、钻孔三大核心工序，设备状态监控覆盖率提升至80%以上'},
+      {time:'中期目标(2-3年)', content:'全面推进预测性维护模型应用，建立设备健康评分体系，设备故障率降低30%，非计划停机减少40%'},
+      {time:'长期目标(3-5年)', content:'建成数字化设备全生命周期管理平台，实现从安装、运行、维护到报废的全程数据驱动决策'}
+    ],
+    cards: [
+      {icon:'🤖', title:'智能巡检升级', desc:'部署AI视觉检测+振动分析+热成像三合一巡检方案，替代人工巡检90%以上的常规检查项目'},
+      {icon:'📊', title:'预测性维护模型', desc:'基于设备历史数据和实时传感器数据，构建故障预测模型，实现"先知先觉"的维护模式'},
+      {icon:'🔗', title:'数据中台建设', desc:'搭建设备数据中台，整合MES、SCADA、CMMS等多系统数据，消除数据孤岛'},
+      {icon:'📱', title:'移动运维平台', desc:'开发移动端运维APP，实现工单派发、维修记录、知识库查询等全流程移动化'}
+    ]
+  },
+  'wp-cost-ctrl': {
+    title: '成本控制',
+    subtitle: '成本控制白皮书 - 精益化运营降本增效',
+    gradient: 'linear-gradient(135deg,#f093fb 0%,#f5576c 100%)',
+    items: [
+      {time:'短期目标(1年内)', content:'建立备件消耗定额管理，优化库存结构，减少呆滞备件占比至5%以下，年度备件成本降低15%'},
+      {time:'中期目标(2-3年)', content:'实施设备能耗精细化管理系统，单位产值能耗降低10%，维护人力成本优化20%'},
+      {time:'长期目标(3-5年)', content:'构建全成本管理模型，实现设备TCO(总拥有成本)可视化，年度运营成本降低25%'}
+    ],
+    cards: [
+      {icon:'💰', title:'备件管理优化', desc:'建立ABC分类管理+安全库存动态调整机制，引入供应商VMI模式，减少库存资金占用30%'},
+      {icon:'⚡', title:'能耗精细化管理', desc:'安装设备级电表，建立能耗基准数据库，识别能耗异常设备，开展节能改造专项'},
+      {icon:'🔧', title:'外协维修管控', desc:'建立外协维修准入和考核机制，比价采购降低维修外包成本，年度节省维修费用50万'},
+      {icon:'📈', title:'成本指标体系', desc:'建立设备维护成本KPI体系，按工序/产线/设备三级维度进行成本核算与分析'}
+    ]
+  },
+  'wp-train': {
+    title: '人员培养',
+    subtitle: '人员培养白皮书 - 打造复合型智能制造人才梯队',
+    gradient: 'linear-gradient(135deg,#4facfe 0%,#00f2fe 100%)',
+    items: [
+      {time:'短期目标(1年内)', content:'完成全员技能矩阵评估，制定个性化培训计划，核心技术岗位持证率提升至90%'},
+      {time:'中期目标(2-3年)', content:'建立内部讲师制度和师徒结对机制，培养3-5名智能设备维护专家，团队多技能覆盖率80%'},
+      {time:'长期目标(3-5年)', content:'构建完善的"初级-中级-高级-专家"四级人才培养体系，实现关键岗位人才梯队100%覆盖'}
+    ],
+    cards: [
+      {icon:'📚', title:'分层培训体系', desc:'按新员工、普通技工、高级技工、技术专家四个层级，设计差异化培训课程与考核标准'},
+      {icon:'👨‍🏫', title:'内部讲师制度', desc:'选拔技术骨干担任内部讲师，每季度开展专项技术分享，建立内部知识库和案例库'},
+      {icon:'🏆', title:'技能竞赛机制', desc:'每年举办PLC编程、设备维修、改善提案等技能竞赛，以赛促学，激发学习热情'},
+      {icon:'🎓', title:'外部交流学习', desc:'定期组织行业展会参观、标杆工厂学习、专业技术培训，引入外部先进经验'}
+    ]
+  },
+  'wp-culture': {
+    title: '部门文化',
+    subtitle: '部门文化白皮书 - 建设积极向上的学习型团队',
+    gradient: 'linear-gradient(135deg,#43e97b 0%,#38f9d7 100%)',
+    items: [
+      {time:'短期目标(1年内)', content:'建立部门文化宣导机制，开展"每日一改善"活动，每月评选改善之星，提升团队凝聚力'},
+      {time:'中期目标(2-3年)', content:'形成具有部门特色的"精益求精、安全第一、持续创新"核心价值观，员工满意度达90%以上'},
+      {time:'长期目标(3-5年)', content:'打造公司级标杆团队文化，建立文化传播机制，将优秀经验向其他部门辐射推广'}
+    ],
+    cards: [
+      {icon:'💬', title:'开放沟通文化', desc:'建立定期沟通机制：晨会分享、周会总结、月度回顾，确保信息透明、问题及时反馈'},
+      {icon:'🎯', title:'目标导向文化', desc:'推行OKR目标管理，将部门目标层层分解到个人，实现目标对齐和进度可视化管理'},
+      {icon:'🤝', title:'协作共赢文化', desc:'打破工序壁垒，推行跨工序协作项目，建立"问题不过夜"的快速响应机制'},
+      {icon:'🌟', title:'认可激励文化', desc:'建立多维度认可体系：即时表扬、月度之星、年度表彰，让每一份贡献都被看见'}
+    ]
+  },
+  'wp-ten-projects': {
+    title: '十大项目规划',
+    subtitle: '2026年度十大重点项目规划白皮书',
+    gradient: 'linear-gradient(135deg,#fa709a 0%,#fee140 100%)',
+    items: [
+      {time:'第一阶段(1-3月)', content:'启动智能巡检四期、MES设备模块升级、AGV三期扩容三大项目，组建项目团队并完成方案评审'},
+      {time:'第二阶段(4-6月)', content:'推进预测性维护试点、备件管理数字化、能耗监控平台建设，中期验收评估'},
+      {time:'第三阶段(7-12月)', content:'完成数字孪生原型验证、智能诊断系统上线、设备管理知识库建设，年度总结与下年度规划'}
+    ],
+    cards: [
+      {icon:'1️⃣', title:'智能巡检四期', desc:'新增AOI检测设备和压合工序的智能巡检覆盖，巡检覆盖率达到90%，减少人工巡检工时200h/月'},
+      {icon:'2️⃣', title:'MES设备模块升级', desc:'设备数据采集从秒级升级到毫秒级，新增设备OEE实时计算和异常自动报警功能'},
+      {icon:'3️⃣', title:'AGV调度优化', desc:'新增10台AGV，升级路径规划算法，支持动态避障和跨楼层调度，物流效率再提升15%'},
+      {icon:'4️⃣', title:'预测性维护试点', desc:'选取20台关键设备部署传感器，建立故障预测模型，试点验证后逐步推广'}
+    ]
+  }
+};
+
+function getWhitepaperContent(type) {
+  try {
+    var saved = localStorage.getItem('whitepaper-' + type);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+}
+
+function saveWhitepaperContent(type, content) {
+  try {
+    localStorage.setItem('whitepaper-' + type, JSON.stringify(content));
+  } catch(e) {}
+}
+
 function renderWhitepaper(type) {
-  var titles = {
-    'wp-smart-maint':'智能化维护方向',
-    'wp-cost-ctrl':'成本控制',
-    'wp-train':'人员培养',
-    'wp-culture':'部门文化',
-    'wp-ten-projects':'十大项目规划'
-  };
-  var title = titles[type] || '白皮书重点';
+  var defaultData = whitepaperData[type] || whitepaperData['wp-smart-maint'];
+  var customContent = getWhitepaperContent(type);
+  var title = defaultData.title;
+  var subtitle = defaultData.subtitle;
+  var gradient = defaultData.gradient;
+  var items = customContent ? customContent.items : defaultData.items;
+  var cards = customContent ? customContent.cards : defaultData.cards;
+
   var h = '<div class="page-enter">';
-  h += '<div class="pt">📖 白皮书 - ' + title + ' <span class="bdg">战略规划</span></div>';
+  h += '<div class="pt" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  h += '<div>📖 白皮书 - ' + title + ' <span class="bdg">战略规划</span></div>';
+  h += '<div style="display:flex;gap:6px"><button class="btn-sm bp" onclick="editWhitepaper(\'' + type + '\')">编辑内容</button>';
+  h += '<button class="btn-sm bo" onclick="resetWhitepaper(\'' + type + '\')">恢复默认</button></div></div>';
+  h += '<div class="welcome-banner" style="background:' + gradient + '">';
+  h += '<h2 style="font-size:20px">' + subtitle + '</h2>';
+  h += '<p>本白皮书系统阐述了' + title + '的战略规划，明确各阶段目标与关键举措。</p>';
+  h += '<div class="wb-icon">📖</div></div>';
   h += '<div class="cd"><div class="ct">' + title + '核心内容</div>';
   h += '<div class="timeline">';
-  var items = [
-    {time:'短期目标(1年内)', content:'建立智能巡检系统，覆盖80%以上关键设备，实现设备状态实时监控'},
-    {time:'中期目标(2-3年)', content:'全面推进预测性维护，设备故障率降低30%，维护成本降低20%'},
-    {time:'长期目标(3-5年)', content:'建成智能化工厂，实现设备全生命周期管理，打造行业标杆'}
-  ];
   items.forEach(function(i) {
     h += '<div class="timeline-item"><div class="tl-time">' + i.time + '</div><div class="tl-content">' + i.content + '</div></div>';
   });
   h += '</div></div>';
-  h += '<div class="g2">';
-  h += '<div class="fc"><div class="ic">🎯</div><h4>核心目标</h4><p>以智能化、自动化为手段，提升设备综合效率，降低运营成本，打造行业领先的智能制造能力。</p></div>';
-  h += '<div class="fc"><div class="ic">📋</div><h4>关键举措</h4><p>推进智能巡检、预测性维护、自动化物流、数字化管理四大方向，分阶段实施落地。</p></div>';
-  h += '<div class="fc"><div class="ic">👥</div><h4>人才培养</h4><p>建立分层培训体系，培养复合型技术人才，打造学习型组织，提升团队整体能力。</p></div>';
-  h += '<div class="fc"><div class="ic">💡</div><h4>持续改善</h4><p>建立全员改善文化，鼓励创新提案，营造积极向上的部门文化氛围。</p></div>';
+  h += '<div class="cd"><div class="ct">关键举措</div><div class="g2">';
+  cards.forEach(function(c) {
+    h += '<div class="fc"><div class="ic">' + c.icon + '</div><h4>' + c.title + '</h4><p>' + c.desc + '</p></div>';
+  });
   h += '</div></div>';
+  h += '</div>';
   return h;
+}
+
+function editWhitepaper(type) {
+  var defaultData = whitepaperData[type] || whitepaperData['wp-smart-maint'];
+  var customContent = getWhitepaperContent(type);
+  var content = customContent || {items: defaultData.items, cards: defaultData.cards};
+
+  var itemHtml = '';
+  content.items.forEach(function(item, idx) {
+    itemHtml += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+    itemHtml += '<input type="text" value="' + item.time + '" data-role="wp-item-time" data-idx="' + idx + '" placeholder="时间阶段" style="width:120px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    itemHtml += '<input type="text" value="' + item.content + '" data-role="wp-item-content" data-idx="' + idx + '" placeholder="内容" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    itemHtml += '<button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button></div>';
+  });
+
+  var cardHtml = '';
+  content.cards.forEach(function(c, idx) {
+    cardHtml += '<div style="border:1px solid var(--br);border-radius:6px;padding:12px;margin-bottom:10px">';
+    cardHtml += '<div style="display:flex;gap:8px;margin-bottom:6px">';
+    cardHtml += '<input type="text" value="' + c.icon + '" data-role="wp-card-icon" data-idx="' + idx + '" placeholder="图标" style="width:50px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    cardHtml += '<input type="text" value="' + c.title + '" data-role="wp-card-title" data-idx="' + idx + '" placeholder="标题" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+    cardHtml += '<button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div>';
+    cardHtml += '<textarea data-role="wp-card-desc" data-idx="' + idx + '" rows="2" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical">' + c.desc + '</textarea>';
+    cardHtml += '</div>';
+  });
+
+  var modal = '<div id="whitepaperEditModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:700px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">编辑 - ' + defaultData.title + '</h3>';
+  modal += '<button class="btn-sm bd" onclick="closeWhitepaperEditModal()">关闭</button></div>';
+
+  modal += '<div style="margin-bottom:16px"><label style="font-weight:bold;display:block;margin-bottom:6px">核心时间线</label>';
+  modal += '<div id="wpItemEditor">' + itemHtml + '</div>';
+  modal += '<button class="btn-sm bp" style="margin-top:6px" onclick="addWpItemRow()">+ 添加时间线</button></div>';
+
+  modal += '<div style="margin-bottom:16px"><label style="font-weight:bold;display:block;margin-bottom:6px">关键举措</label>';
+  modal += '<div id="wpCardEditor">' + cardHtml + '</div>';
+  modal += '<button class="btn-sm bp" style="margin-top:6px" onclick="addWpCardRow()">+ 添加举措</button></div>';
+
+  modal += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--br)">';
+  modal += '<button class="btn-sm bd" onclick="closeWhitepaperEditModal()">取消</button>';
+  modal += '<button class="btn-sm bp" onclick="saveWhitepaperEdit(\'' + type + '\')">保存</button></div>';
+  modal += '</div></div>';
+
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function addWpItemRow() {
+  var container = document.getElementById('wpItemEditor');
+  if (!container) return;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+  div.innerHTML = '<input type="text" value="" data-role="wp-item-time" placeholder="时间阶段" style="width:120px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="wp-item-content" placeholder="内容" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button>';
+  container.appendChild(div);
+}
+
+function addWpCardRow() {
+  var container = document.getElementById('wpCardEditor');
+  if (!container) return;
+  var idx = container.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'border:1px solid var(--br);border-radius:6px;padding:12px;margin-bottom:10px';
+  div.innerHTML = '<div style="display:flex;gap:8px;margin-bottom:6px"><input type="text" value="" data-role="wp-card-icon" placeholder="图标" style="width:50px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="wp-card-title" placeholder="标题" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div><textarea data-role="wp-card-desc" rows="2" placeholder="详细描述" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical"></textarea>';
+  container.appendChild(div);
+}
+
+function saveWhitepaperEdit(type) {
+  var items = [];
+  var itemEls = document.querySelectorAll('#wpItemEditor > div');
+  itemEls.forEach(function(el) {
+    var time = el.querySelector('[data-role="wp-item-time"]').value.trim();
+    var content = el.querySelector('[data-role="wp-item-content"]').value.trim();
+    if (time && content) items.push({time: time, content: content});
+  });
+  var cards = [];
+  var cardEls = document.querySelectorAll('#wpCardEditor > div');
+  cardEls.forEach(function(el) {
+    var icon = el.querySelector('[data-role="wp-card-icon"]').value.trim() || '📌';
+    var title = el.querySelector('[data-role="wp-card-title"]').value.trim();
+    var desc = el.querySelector('[data-role="wp-card-desc"]').value.trim();
+    if (title && desc) cards.push({icon: icon, title: title, desc: desc});
+  });
+  if (items.length === 0) { showMsg('至少需要1条时间线'); return; }
+  if (cards.length === 0) { showMsg('至少需要1个关键举措'); return; }
+  saveWhitepaperContent(type, {items: items, cards: cards});
+  closeWhitepaperEditModal();
+  refresh();
+  showMsg('保存成功');
+}
+
+function resetWhitepaper(type) {
+  localStorage.removeItem('whitepaper-' + type);
+  refresh();
+  showMsg('已恢复为默认内容');
+}
+
+function closeWhitepaperEditModal() {
+  var modal = document.getElementById('whitepaperEditModal');
+  if (modal) modal.remove();
 }
 
 function renderTrackPage(type) {
@@ -7657,15 +8254,43 @@ function renderTrackPage(type) {
       {item:'招聘3名自动化工程师', time:'2026-07-01', owner:'王飞', status:'进行中', finish:'-'},
       {item:'设备保养外包评估', time:'2026-07-05', owner:'吴宇技', status:'待开始', finish:'-'}
     ];
-    decisions.forEach(function(d) {
+    decisions.forEach(function(d, idx) {
       h += '<tr><td>' + d.item + '</td><td>' + d.time + '</td><td>' + d.owner + '</td>';
       h += '<td><span class="t ' + getStatusClass(d.status) + '">' + d.status + '</span></td><td>' + d.finish + '</td>';
-      h += '<td><button class="btn-sm bo">详情</button></td></tr>';
+      h += '<td><button class="btn-sm bo" onclick="showDecisionDetail(' + idx + ')">详情</button></td></tr>';
     });
     h += '</tbody></table></div>';
   }
   h += '</div>';
   return h;
+}
+
+// 决策跟踪详情弹窗
+var trackDecisions = [
+  {item:'增加AGV调度系统预算', time:'2026-06-15', owner:'蔡瑞', status:'已完成', finish:'2026-06-20', desc:'因三期扩产导致AGV调度压力增大，需增加10台AGV设备及配套调度系统升级，总预算约180万元。经过技术评审和成本分析，已通过审批并完成采购。'},
+  {item:'推进智能巡检四期项目', time:'2026-06-20', owner:'黄广生', status:'进行中', finish:'-', desc:'智能巡检四期计划覆盖AOI检测设备和压合工序，预计投入45万元。目前已完成设备选型和方案评审，正在进行供应商商务谈判，预计8月底完成设备安装。'},
+  {item:'招聘3名自动化工程师', time:'2026-07-01', owner:'王飞', status:'进行中', finish:'-', desc:'因2026年自动化项目增加（AGV扩容、MES升级、预测性维护等），现有人员不足。已发布招聘需求，目前收到简历15份，完成初试5人，待复试评估。'},
+  {item:'设备保养外包评估', time:'2026-07-05', owner:'吴宇技', status:'待开始', finish:'-', desc:'评估将部分设备日常保养工作外包的可行性，包括：常规保养、润滑油更换、皮带更换等标准化作业。预计可释放3-5名保养人员投入到高技术含量的维修工作中。'}
+];
+
+function showDecisionDetail(idx) {
+  var d = trackDecisions[idx];
+  if (!d) return;
+  var modal = '<div id="decisionDetailModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">决策详情</h3>';
+  modal += '<button class="btn-sm bd" onclick="document.getElementById(\'decisionDetailModal\').remove()">关闭</button></div>';
+  modal += '<h4 style="margin:0 0 12px;color:var(--blue)">' + d.item + '</h4>';
+  modal += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">决策时间</div><div style="font-weight:bold">' + d.time + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">责任人</div><div style="font-weight:bold">' + d.owner + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">状态</div><div style="font-weight:bold">' + d.status + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">完成时间</div><div style="font-weight:bold">' + d.finish + '</div></div>';
+  modal += '</div>';
+  modal += '<div style="background:#f9fafb;padding:12px;border-radius:8px;border-left:3px solid var(--blue)">';
+  modal += '<div style="font-weight:bold;margin-bottom:6px">决策背景与详情</div><p style="font-size:14px;line-height:1.6;margin:0;color:var(--t)">' + (d.desc || '暂无详细描述') + '</p></div>';
+  modal += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modal);
 }
 
 function initTrackKpiCharts() {
@@ -7688,66 +8313,91 @@ function initTrackKpiCharts() {
   } catch(e) {}
 }
 
+// 文化建设 - 默认数据
+var cultureDefaultData = {
+  'culture-slogan': [
+    {slogan:'智能制造，精益求精', desc:'团队核心理念'},
+    {slogan:'安全第一，预防为主', desc:'安全文化'},
+    {slogan:'每天进步一点点', desc:'改善文化'},
+    {slogan:'设备如人，用心呵护', desc:'设备管理理念'},
+    {slogan:'问题不过夜，改善不停步', desc:'工作作风'},
+    {slogan:'一人百步，不如百人一步', desc:'团队协作'}
+  ],
+  'culture-contest': [
+    {name:'PLC编程大赛', time:'2026-08-15', target:'全体技术人员', status:'报名中', desc:'考察PLC程序设计、调试和故障排除能力，分为初赛（理论）和决赛（实操）两个阶段，设置一、二、三等奖各1名。'},
+    {name:'设备维修技能比武', time:'2026-09-20', target:'机电/电子组', status:'筹备中', desc:'模拟真实设备故障场景，参赛者需在限定时间内完成故障诊断、部件更换和设备调试全流程。'},
+    {name:'改善提案大赛', time:'2026-10-10', target:'全员', status:'筹备中', desc:'展示年度优秀改善提案，从创新性、实施效果、推广价值三个维度进行评审，前三名获得奖励。'},
+    {name:'安全知识竞赛', time:'2026-06-30', target:'全员', status:'已完成', desc:'涵盖消防安全、设备操作安全、化学品管理等内容，采用抢答形式进行，共57人参加，设备组获得冠军。'}
+  ],
+  'culture-teambuild': [
+    {name:'春季户外拓展', time:'2026-03-15', place:'东莞松山湖', people:50, status:'已完成', desc:'团队协作挑战、定向越野、烧烤聚会，有效提升了团队凝聚力。'},
+    {name:'端午聚餐', time:'2026-06-10', place:'公司食堂', people:57, status:'已完成', desc:'包粽子比赛+端午知识问答，弘扬传统文化的同时增进同事感情。'},
+    {name:'秋季运动会', time:'2026-10-20', place:'公司运动场', people:57, status:'计划中', desc:'设置篮球、羽毛球、拔河、趣味接力等项目，按工序组队参赛。'},
+    {name:'年终晚会', time:'2026-12-31', place:'酒店宴会厅', people:57, status:'计划中', desc:'年度颁奖+文艺表演+抽奖互动，回顾一年成果，展望新年愿景。'}
+  ],
+  'culture-quotes': [
+    {quote:'设备是生产的武器，保养是胜利的保障。', author:'吴宇技'},
+    {quote:'问题不可怕，可怕的是看不到问题。', author:'范庆亮'},
+    {quote:'把简单的事做好就是不简单。', author:'袁忠强'},
+    {quote:'改善无止境，创新无边界。', author:'蔡瑞'},
+    {quote:'安全是最大的效益，事故是最大的浪费。', author:'颜志羡'},
+    {quote:'今天的努力，是明天的底气。', author:'黄广生'}
+  ]
+};
+
+function getCultureContent(type) {
+  try {
+    var saved = localStorage.getItem('culture-' + type);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+}
+
+function saveCultureContent(type, data) {
+  try {
+    localStorage.setItem('culture-' + type, JSON.stringify(data));
+  } catch(e) {}
+}
+
 function renderCulturePage(type) {
   var titles = {'culture-slogan':'口号墙','culture-contest':'技能竞赛','culture-teambuild':'团建计划','culture-quotes':'金句集锦'};
   var title = titles[type] || '文化建设';
   var h = '<div class="page-enter">';
-  h += '<div class="pt">🌟 ' + title + ' <span class="bdg">文化建设</span></div>';
+  h += '<div class="pt" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
+  h += '<div>🌟 ' + title + ' <span class="bdg">文化建设</span></div>';
+  h += '<div style="display:flex;gap:6px"><button class="btn-sm bp" onclick="editCulturePage(\'' + type + '\')">编辑内容</button>';
+  h += '<button class="btn-sm bo" onclick="resetCulturePage(\'' + type + '\')">恢复默认</button></div></div>';
   
   if (type === 'culture-slogan') {
+    var slogans = getCultureContent(type) || cultureDefaultData['culture-slogan'];
     h += '<div class="g2">';
-    var slogans = [
-      {slogan:'智能制造，精益求精', desc:'团队核心理念'},
-      {slogan:'安全第一，预防为主', desc:'安全文化'},
-      {slogan:'每天进步一点点', desc:'改善文化'},
-      {slogan:'设备如人，用心呵护', desc:'设备管理理念'},
-      {slogan:'问题不过夜，改善不停步', desc:'工作作风'},
-      {slogan:'一人百步，不如百人一步', desc:'团队协作'}
-    ];
     slogans.forEach(function(s) {
       h += '<div class="fc" style="text-align:center"><div class="ic">💬</div><h4 style="color:var(--blue)">' + s.slogan + '</h4><p>' + s.desc + '</p></div>';
     });
     h += '</div>';
   } else if (type === 'culture-contest') {
+    var contests = getCultureContent(type) || cultureDefaultData['culture-contest'];
     h += '<div class="cd"><div class="ct">2026年度技能竞赛计划</div>';
     h += '<table class="dt"><thead><tr><th>竞赛名称</th><th>时间</th><th>参赛对象</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-    var contests = [
-      {name:'PLC编程大赛', time:'2026-08-15', target:'全体技术人员', status:'报名中'},
-      {name:'设备维修技能比武', time:'2026-09-20', target:'机电/电子组', status:'筹备中'},
-      {name:'改善提案大赛', time:'2026-10-10', target:'全员', status:'筹备中'},
-      {name:'安全知识竞赛', time:'2026-06-30', target:'全员', status:'已完成'}
-    ];
-    contests.forEach(function(c) {
+    contests.forEach(function(c, idx) {
       h += '<tr><td>' + c.name + '</td><td>' + c.time + '</td><td>' + c.target + '</td>';
       h += '<td><span class="t ' + (c.status==='已完成'?'tg':c.status==='报名中'?'tb':'to') + '">' + c.status + '</span></td>';
-      h += '<td><button class="btn-sm bo">详情</button></td></tr>';
+      h += '<td><button class="btn-sm bo" onclick="showContestDetail(' + idx + ')">详情</button></td></tr>';
     });
     h += '</tbody></table></div>';
   } else if (type === 'culture-teambuild') {
+    var events = getCultureContent(type) || cultureDefaultData['culture-teambuild'];
     h += '<div class="cd"><div class="ct">2026年度团建计划</div>';
     h += '<table class="dt"><thead><tr><th>活动名称</th><th>时间</th><th>地点</th><th>参与人数</th><th>状态</th><th>操作</th></tr></thead><tbody>';
-    var events = [
-      {name:'春季户外拓展', time:'2026-03-15', place:'东莞松山湖', people:50, status:'已完成'},
-      {name:'端午聚餐', time:'2026-06-10', place:'公司食堂', people:57, status:'已完成'},
-      {name:'秋季运动会', time:'2026-10-20', place:'公司运动场', people:57, status:'计划中'},
-      {name:'年终晚会', time:'2026-12-31', place:'酒店宴会厅', people:57, status:'计划中'}
-    ];
-    events.forEach(function(e) {
+    events.forEach(function(e, idx) {
       h += '<tr><td>' + e.name + '</td><td>' + e.time + '</td><td>' + e.place + '</td><td>' + e.people + '人</td>';
       h += '<td><span class="t ' + (e.status==='已完成'?'tg':'to') + '">' + e.status + '</span></td>';
-      h += '<td><button class="btn-sm bo">详情</button></td></tr>';
+      h += '<td><button class="btn-sm bo" onclick="showTeambuildDetail(' + idx + ')">详情</button></td></tr>';
     });
     h += '</tbody></table></div>';
   } else {
+    var quotes = getCultureContent(type) || cultureDefaultData['culture-quotes'];
     h += '<div class="g2">';
-    var quotes = [
-      {quote:'设备是生产的武器，保养是胜利的保障。', author:'吴宇技'},
-      {quote:'问题不可怕，可怕的是看不到问题。', author:'范庆亮'},
-      {quote:'把简单的事做好就是不简单。', author:'袁忠强'},
-      {quote:'改善无止境，创新无边界。', author:'蔡瑞'},
-      {quote:'安全是最大的效益，事故是最大的浪费。', author:'颜志羡'},
-      {quote:'今天的努力，是明天的底气。', author:'黄广生'}
-    ];
     quotes.forEach(function(q) {
       h += '<div class="fc"><div class="ic">💡</div><p style="font-style:italic;font-size:14px;color:var(--t);line-height:1.6">"' + q.quote + '"</p><p style="text-align:right;color:var(--t3);font-size:12px;margin-top:8px">—— ' + q.author + '</p></div>';
     });
@@ -7755,6 +8405,180 @@ function renderCulturePage(type) {
   }
   h += '</div>';
   return h;
+}
+
+// 技能竞赛详情弹窗
+function showContestDetail(idx) {
+  var contests = getCultureContent('culture-contest') || cultureDefaultData['culture-contest'];
+  var c = contests[idx];
+  if (!c) return;
+  var modal = '<div id="contestDetailModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">' + c.name + '</h3>';
+  modal += '<button class="btn-sm bd" onclick="document.getElementById(\'contestDetailModal\').remove()">关闭</button></div>';
+  modal += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">时间</div><div style="font-weight:bold">' + c.time + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">参赛对象</div><div style="font-weight:bold">' + c.target + '</div></div>';
+  modal += '</div>';
+  modal += '<div style="margin-bottom:16px"><span style="display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:bold;';
+  modal += c.status === '已完成' ? 'background:#e8f5e9;color:#2e7d32' : c.status === '报名中' ? 'background:#e3f2fd;color:#1565c0' : 'background:#fff3e0;color:#e65100';
+  modal += '">' + c.status + '</span></div>';
+  modal += '<div style="background:#f9fafb;padding:12px;border-radius:8px;border-left:3px solid var(--blue)">';
+  modal += '<div style="font-weight:bold;margin-bottom:6px">活动介绍</div><p style="font-size:14px;line-height:1.6;margin:0;color:var(--t)">' + (c.desc || '暂无详细描述') + '</p></div>';
+  modal += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+// 团建详情弹窗
+function showTeambuildDetail(idx) {
+  var events = getCultureContent('culture-teambuild') || cultureDefaultData['culture-teambuild'];
+  var e = events[idx];
+  if (!e) return;
+  var modal = '<div id="teambuildDetailModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">' + e.name + '</h3>';
+  modal += '<button class="btn-sm bd" onclick="document.getElementById(\'teambuildDetailModal\').remove()">关闭</button></div>';
+  modal += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">时间</div><div style="font-weight:bold">' + e.time + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">地点</div><div style="font-weight:bold">' + e.place + '</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">参与人数</div><div style="font-weight:bold">' + e.people + '人</div></div>';
+  modal += '<div style="padding:8px;background:#f5f7fa;border-radius:6px"><div style="color:var(--t3);font-size:12px">状态</div><div style="font-weight:bold;color:' + (e.status==='已完成'?'var(--gn)':'var(--or)') + '">' + e.status + '</div></div>';
+  modal += '</div>';
+  modal += '<div style="background:#f9fafb;padding:12px;border-radius:8px;border-left:3px solid var(--green)">';
+  modal += '<div style="font-weight:bold;margin-bottom:6px">活动简介</div><p style="font-size:14px;line-height:1.6;margin:0;color:var(--t)">' + (e.desc || '暂无详细描述') + '</p></div>';
+  modal += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+// 文化建设编辑弹窗
+function editCulturePage(type) {
+  var data = getCultureContent(type) || cultureDefaultData[type] || [];
+  var titles = {'culture-slogan':'口号墙','culture-contest':'技能竞赛','culture-teambuild':'团建计划','culture-quotes':'金句集锦'};
+  var title = titles[type] || '文化建设';
+
+  var editArea = '<div id="cultureEditArea">';
+  if (type === 'culture-slogan') {
+    data.forEach(function(s, idx) {
+      editArea += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+      editArea += '<input type="text" value="' + s.slogan + '" data-role="c-slogan" placeholder="口号" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<input type="text" value="' + s.desc + '" data-role="c-desc" placeholder="描述" style="width:120px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button></div>';
+    });
+  } else if (type === 'culture-contest') {
+    data.forEach(function(c, idx) {
+      editArea += '<div style="border:1px solid var(--br);border-radius:6px;padding:10px;margin-bottom:10px">';
+      editArea += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+      editArea += '<input type="text" value="' + c.name + '" data-role="c-name" placeholder="竞赛名称" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<input type="text" value="' + c.time + '" data-role="c-time" placeholder="时间" style="width:110px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div>';
+      editArea += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+      editArea += '<input type="text" value="' + c.target + '" data-role="c-target" placeholder="参赛对象" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<select data-role="c-status" style="width:80px;padding:4px;border:1px solid var(--br);border-radius:4px;font-size:13px"><option ' + (c.status==='筹备中'?'selected':'') + '>筹备中</option><option ' + (c.status==='报名中'?'selected':'') + '>报名中</option><option ' + (c.status==='已完成'?'selected':'') + '>已完成</option></select>';
+      editArea += '</div>';
+      editArea += '<textarea data-role="c-detail" rows="2" placeholder="活动详细描述" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical">' + (c.desc||'') + '</textarea>';
+      editArea += '</div>';
+    });
+  } else if (type === 'culture-teambuild') {
+    data.forEach(function(e, idx) {
+      editArea += '<div style="border:1px solid var(--br);border-radius:6px;padding:10px;margin-bottom:10px">';
+      editArea += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+      editArea += '<input type="text" value="' + e.name + '" data-role="c-name" placeholder="活动名称" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<input type="text" value="' + e.time + '" data-role="c-time" placeholder="时间" style="width:110px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div>';
+      editArea += '<div style="display:flex;gap:6px;margin-bottom:6px">';
+      editArea += '<input type="text" value="' + e.place + '" data-role="c-place" placeholder="地点" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<input type="text" value="' + e.people + '" data-role="c-people" placeholder="人数" style="width:60px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<select data-role="c-status" style="width:80px;padding:4px;border:1px solid var(--br);border-radius:4px;font-size:13px"><option ' + (e.status==='计划中'?'selected':'') + '>计划中</option><option ' + (e.status==='已完成'?'selected':'') + '>已完成</option></select>';
+      editArea += '</div>';
+      editArea += '<textarea data-role="c-detail" rows="2" placeholder="活动简介" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical">' + (e.desc||'') + '</textarea>';
+      editArea += '</div>';
+    });
+  } else {
+    data.forEach(function(q, idx) {
+      editArea += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">';
+      editArea += '<input type="text" value="' + q.quote + '" data-role="c-quote" placeholder="金句" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<input type="text" value="' + q.author + '" data-role="c-author" placeholder="作者" style="width:80px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px">';
+      editArea += '<button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button></div>';
+    });
+  }
+  editArea += '</div>';
+
+  var modal = '<div id="cultureEditModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  modal += '<div style="background:#fff;border-radius:12px;padding:24px;width:90%;max-width:640px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">';
+  modal += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:18px">编辑 - ' + title + '</h3>';
+  modal += '<button class="btn-sm bd" onclick="document.getElementById(\'cultureEditModal\').remove()">关闭</button></div>';
+  modal += editArea;
+  modal += '<button class="btn-sm bp" style="margin-top:8px" onclick="addCultureRow(\'' + type + '\')">+ 添加条目</button>';
+  modal += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid var(--br)">';
+  modal += '<button class="btn-sm bd" onclick="document.getElementById(\'cultureEditModal\').remove()">取消</button>';
+  modal += '<button class="btn-sm bp" onclick="saveCultureEdit(\'' + type + '\')">保存</button></div>';
+  modal += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', modal);
+}
+
+function addCultureRow(type) {
+  var container = document.getElementById('cultureEditArea');
+  if (!container) return;
+  var div = document.createElement('div');
+  if (type === 'culture-slogan') {
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+    div.innerHTML = '<input type="text" value="" data-role="c-slogan" placeholder="口号" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="c-desc" placeholder="描述" style="width:120px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button>';
+  } else if (type === 'culture-contest') {
+    div.style.cssText = 'border:1px solid var(--br);border-radius:6px;padding:10px;margin-bottom:10px';
+    div.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:6px"><input type="text" value="" data-role="c-name" placeholder="竞赛名称" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="c-time" placeholder="时间" style="width:110px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div><div style="display:flex;gap:6px;margin-bottom:6px"><input type="text" value="" data-role="c-target" placeholder="参赛对象" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><select data-role="c-status" style="width:80px;padding:4px;border:1px solid var(--br);border-radius:4px;font-size:13px"><option>筹备中</option><option>报名中</option><option>已完成</option></select></div><textarea data-role="c-detail" rows="2" placeholder="活动详细描述" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical"></textarea>';
+  } else if (type === 'culture-teambuild') {
+    div.style.cssText = 'border:1px solid var(--br);border-radius:6px;padding:10px;margin-bottom:10px';
+    div.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:6px"><input type="text" value="" data-role="c-name" placeholder="活动名称" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="c-time" placeholder="时间" style="width:110px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.parentElement.remove()">删除</button></div><div style="display:flex;gap:6px;margin-bottom:6px"><input type="text" value="" data-role="c-place" placeholder="地点" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="57" data-role="c-people" placeholder="人数" style="width:60px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><select data-role="c-status" style="width:80px;padding:4px;border:1px solid var(--br);border-radius:4px;font-size:13px"><option>计划中</option><option>已完成</option></select></div><textarea data-role="c-detail" rows="2" placeholder="活动简介" style="width:100%;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:12px;resize:vertical"></textarea>';
+  } else {
+    div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
+    div.innerHTML = '<input type="text" value="" data-role="c-quote" placeholder="金句" style="flex:1;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><input type="text" value="" data-role="c-author" placeholder="作者" style="width:80px;padding:4px 8px;border:1px solid var(--br);border-radius:4px;font-size:13px"><button class="btn-sm bd" onclick="this.parentElement.remove()">删除</button>';
+  }
+  container.appendChild(div);
+}
+
+function saveCultureEdit(type) {
+  var container = document.getElementById('cultureEditArea');
+  if (!container) return;
+  var rows = container.children;
+  var result = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    if (type === 'culture-slogan') {
+      var slogan = row.querySelector('[data-role="c-slogan"]').value.trim();
+      var desc = row.querySelector('[data-role="c-desc"]').value.trim();
+      if (slogan) result.push({slogan: slogan, desc: desc || ''});
+    } else if (type === 'culture-contest') {
+      var name = row.querySelector('[data-role="c-name"]').value.trim();
+      var time = row.querySelector('[data-role="c-time"]').value.trim();
+      var target = row.querySelector('[data-role="c-target"]').value.trim();
+      var status = row.querySelector('[data-role="c-status"]').value;
+      var detail = row.querySelector('[data-role="c-detail"]').value.trim();
+      if (name && time) result.push({name: name, time: time, target: target, status: status, desc: detail});
+    } else if (type === 'culture-teambuild') {
+      var name2 = row.querySelector('[data-role="c-name"]').value.trim();
+      var time2 = row.querySelector('[data-role="c-time"]').value.trim();
+      var place = row.querySelector('[data-role="c-place"]').value.trim();
+      var people = parseInt(row.querySelector('[data-role="c-people"]').value) || 0;
+      var status2 = row.querySelector('[data-role="c-status"]').value;
+      var detail2 = row.querySelector('[data-role="c-detail"]').value.trim();
+      if (name2 && time2) result.push({name: name2, time: time2, place: place, people: people, status: status2, desc: detail2});
+    } else {
+      var quote = row.querySelector('[data-role="c-quote"]').value.trim();
+      var author = row.querySelector('[data-role="c-author"]').value.trim();
+      if (quote) result.push({quote: quote, author: author || '佚名'});
+    }
+  }
+  if (result.length === 0) { showMsg('至少需要1条记录'); return; }
+  saveCultureContent(type, result);
+  document.getElementById('cultureEditModal').remove();
+  refresh();
+  showMsg('保存成功');
+}
+
+function resetCulturePage(type) {
+  localStorage.removeItem('culture-' + type);
+  refresh();
+  showMsg('已恢复为默认内容');
 }
 
 // =========================================
@@ -8021,7 +8845,7 @@ document.addEventListener('DOMContentLoaded', function() {
     detectServer();
   } catch(e) {
     console.error('Init error:', e);
-    alert('初始化失败: ' + e.message);
+    showToast('初始化失败: ', 'error') + e.message);
   }
 });
 
