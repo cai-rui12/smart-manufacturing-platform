@@ -1,6 +1,6 @@
 <!--
 ================================================================================
-  智能制造组管理平台 V17 - 网页内审报告
+  智能制造组管理平台 V18 - 网页内审报告
   审审日期: 2026-07-19
   审审范围: V15前端代码全面内审
 ================================================================================
@@ -474,7 +474,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
     <div class="login-logo">
       <div class="logo-icon">&#9881;</div>
       <h2>智能制造组管理平台</h2>
-      <p>V17 - 工号登录系统</p>
+      <p>V18 - 工号登录系统</p>
     </div>
     <div id="loginForm">
       <div class="login-fg">
@@ -503,7 +503,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 </div>
 <div id="mainApp" class="app" style="display:none">
   <div id="sb" class="sb">
-    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V17</span></div>
+    <div class="sb-h"><span class="lo">&#9881; 智能制造组管理平台</span><span class="v">V18</span></div>
     <div class="sb-b" id="sbContent"></div>
   </div>
   <div class="mn">
@@ -2076,6 +2076,21 @@ function migratePasswords() {
 // =========================================
 function initAuth() {
   try {
+    // V18 Fix: GitHub Pages 部署时，自动使用工号64135登录（只读模式），跳过登录页
+    if (location.hostname === 'cai-rui12.github.io' || location.hostname.endsWith('.github.io')) {
+      var fakeUser = {employeeId: '64135', name: '蔡瑞', role: 'owner'};
+      currentUser = fakeUser;
+      lsSet('current_user', fakeUser);
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'flex';
+      document.getElementById('userLabel').textContent = fakeUser.name + ' (' + ROLE_NAMES[fakeUser.role] + ')';
+      curPage = 'home';
+      refresh();
+      detectServer();
+      startAutoPing();
+      return;
+    }
+
     // V17 Fix: 先迁移旧版本明文密码为混淆存储
     migratePasswords();
     // V17 Fix: 增量同步密码，确保新增用户也有默认密码
