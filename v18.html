@@ -1337,7 +1337,7 @@ var SERVER_URL_CANDIDATES = [
 // 从GitHub读取最新的隧道URL（动态，每次服务器重启后会自动更新）
 var CONFIG_URL = 'https://cai-rui12.github.io/smart-manufacturing-platform/server-config.json';
 
-async function tryConnectServer(url, timeoutMs) {
+async async async function tryConnectServer(url, timeoutMs) {
   try {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timeoutId = controller ? setTimeout(function() { controller.abort(); }, timeoutMs || 15000) : null;
