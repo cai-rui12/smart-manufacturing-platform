@@ -807,25 +807,25 @@ var REAL_TASKS = [
 ];
 
 var REAL_PROJECTS = [
-  {id:'PRJ-0001', name:'三期自动化', manager:'蔡瑞', status:'规划中', progress:0, startDate:'2026-07-01', endDate:'2026-12-31', budget:5000000, members:'蔡瑞,梁辉彬,黄广生', description:'三期自动化设备引进与验收项目，包括AGV、立体库、提升机等设备'},
-  {id:'PRJ-0002', name:'21台追加设备验收进度', manager:'蔡瑞', status:'进行中', progress:35, startDate:'2026-05-01', endDate:'2026-08-31', budget:2000000, members:'蔡瑞,梁辉彬', description:'二期追加20台自动化设备验收进度跟踪'},
-  {id:'PRJ-0003', name:'一二期自动化设备验收', manager:'蔡瑞', status:'进行中', progress:43.3, startDate:'2026-01-01', endDate:'2026-09-30', budget:8000000, members:'蔡瑞,梁辉彬,黄广生,丁洋', description:'东城五厂一二期新设备验收全流程跟踪，全厂1021台设备，已完成442台（43.3%）'},
-  {id:'PRJ-0004', name:'智能巡检项目', manager:'蔡瑞', status:'进行中', progress:50, startDate:'2026-03-01', endDate:'2026-10-31', budget:1200000, members:'蔡瑞,湛子昂,刘洪文', description:'智能巡检系统推广项目，覆盖内层/外层/阻焊/沉金等工序'},
-  {id:'PRJ-0005', name:'自动排产项目', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-11-30', budget:800000, members:'黄广生,梁辉彬,郑绪友', description:'自动排产与自动计划项目进度跟踪'},
-  {id:'PRJ-0006', name:'OEE提升项目', manager:'丁洋', status:'规划中', progress:10, startDate:'2026-06-01', endDate:'2026-12-31', budget:600000, members:'丁洋,蔡佳琪', description:'设备综合效率OEE提升专项项目'}
-  ,{id:'PRJ-0007', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:97.08, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发专项，总计201项已完成185项（原数据）/171项已完成166项（最新）。涵盖内层/层压/钻孔/电镀/树脂塞孔/外层/阻焊字符/沉金/外形加工/电测/FQC包装共11个工序。', subSteps:[
-    {name:'内层',total:25,done:29,rate:82.86},
-    {name:'层压',total:44,done:43,rate:97.73},
-    {name:'钻孔',total:3,done:2,rate:66.67},
-    {name:'电镀',total:22,done:20,rate:90.91},
-    {name:'树脂塞孔',total:25,done:25,rate:100},
-    {name:'外层',total:8,done:7,rate:87.5},
-    {name:'阻焊字符',total:8,done:4,rate:50},
-    {name:'沉金',total:2,done:2,rate:100},
-    {name:'外形加工',total:17,done:17,rate:100},
-    {name:'电测',total:14,done:14,rate:100},
-    {name:'FQC包装',total:3,done:3,rate:100}
-  ]}
+  {id:'PRJ-0001', name:'三期自动化', manager:'蔡瑞', status:'规划中', progress:0, startDate:'2026-07-01', endDate:'2026-12-31', budget:5000000, members:'蔡瑞,梁辉彬,黄广生', description:'三期自动化设备引进与验收项目，包括AGV、立体库、提升机等设备', nextPlan:'1.完成AGV和立体库设备选型\n2.推进提升机采购审批\n3.启动设备安装场地规划'},
+  {id:'PRJ-0002', name:'21台追加设备验收进度', manager:'蔡瑞', status:'进行中', progress:35, startDate:'2026-05-01', endDate:'2026-08-31', budget:2000000, members:'蔡瑞,梁辉彬', description:'二期追加20台自动化设备验收进度跟踪', nextPlan:'1.加快推进剩余设备验收\n2.完成验收报告整理\n3.推进设备移交生产部门'},
+  {id:'PRJ-0003', name:'一二期自动化设备验收', manager:'蔡瑞', status:'进行中', progress:43.3, startDate:'2026-01-01', endDate:'2026-09-30', budget:8000000, members:'蔡瑞,梁辉彬,黄广生,丁洋', description:'东城五厂一二期新设备验收全流程跟踪，全厂1021台设备，已完成442台（43.3%）', nextPlan:'1.按计划推进设备验收，目标9月30日前完成全部1021台\n2.重点跟进内层和外层工序设备\n3.整理验收资料归档'},
+  {id:'PRJ-0004', name:'智能巡检项目', manager:'蔡瑞', status:'进行中', progress:50, startDate:'2026-03-01', endDate:'2026-10-31', budget:1200000, members:'蔡瑞,湛子昂,刘洪文', description:'智能巡检系统推广项目，覆盖内层/外层/阻焊/沉金等工序', nextPlan:'1.推广智能巡检到更多工序\n2.优化巡检算法准确率\n3.建立巡检数据看板'},
+  {id:'PRJ-0005', name:'自动排产项目', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-11-30', budget:800000, members:'黄广生,梁辉彬,郑绪友', description:'自动排产与自动计划项目进度跟踪', nextPlan:'1.完成自动排产系统核心算法开发\n2.推进与MES系统对接\n3.试点工序验证'},
+  {id:'PRJ-0006', name:'OEE提升项目', manager:'丁洋', status:'规划中', progress:10, startDate:'2026-06-01', endDate:'2026-12-31', budget:600000, members:'丁洋,蔡佳琪', description:'设备综合效率OEE提升专项项目', nextPlan:'1.建立OEE数据采集体系\n2.分析当前OEE瓶颈\n3.制定提升方案并试点'}
+  ,{id:'PRJ-0007', name:'生产参数下发', manager:'郑绪友', lead:'郑绪友', status:'进行中', progress:97.08, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发专项，总计203项已完成185项，上线率92.04%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/阻焊字符/沉金/外形加工/电测/FQC包装共11个工序。', subSteps:[
+    {name:'内层',total:25,done:29,rate:82.86,lead:'郑绪友'},
+    {name:'压合',total:44,done:43,rate:97.73,lead:'郑绪友'},
+    {name:'钻孔',total:3,done:2,rate:66.67,lead:'郑绪友'},
+    {name:'电镀',total:22,done:20,rate:90.91,lead:'郑绪友'},
+    {name:'树脂塞孔',total:25,done:25,rate:100,lead:'郑绪友'},
+    {name:'外层',total:8,done:7,rate:87.5,lead:'郑绪友'},
+    {name:'阻焊字符',total:8,done:4,rate:50,lead:'郑绪友'},
+    {name:'沉金',total:2,done:2,rate:100,lead:'郑绪友'},
+    {name:'外形加工',total:17,done:17,rate:100,lead:'郑绪友'},
+    {name:'电测',total:14,done:14,rate:100,lead:'郑绪友'},
+    {name:'FQC包装',total:3,done:3,rate:100,lead:'郑绪友'}
+  ], nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.目标月底前整体上线率达到95%以上'}
 ];
 
 var REAL_WEEKLY_REPORTS = [
@@ -1272,6 +1272,7 @@ var M = [
   {id:'feishu-config',label:'飞书配置'},
   {id:'report-push-config',label:'推送配置'},
   {id:'cfg-theme',label:'主题配置'},
+  ,{id:'push-manage',label:'推送管理'}
 ]},
 {id:'modules',label:'模块管理',icon:'🧩',children:[
   {id:'module-list',label:'已安装模块'},
@@ -1290,6 +1291,7 @@ var allLabels = {};
 // 模块管理页面标题映射
 allLabels['module-list'] = '已安装模块';
 allLabels['module-register'] = '注册新模块';
+allLabels['push-manage'] = '推送管理';
 var modalData = null;
 var pageState = {};
 var chartInstances = {};
@@ -3903,7 +3905,10 @@ function createProject() {
       {key:'endDate', label:'结束日期', type:'date', value:today},
       {key:'budget', label:'预算(元)', type:'number', value:'1000000'},
       {key:'members', label:'项目成员', type:'text', placeholder:'多人用逗号分隔'},
-      {key:'description', label:'项目描述', type:'textarea', rows:3}
+      {key:'description', label:'项目描述', type:'textarea', rows:3},
+      {key:'leadType', label:'负责人类型', type:'select', options:['主导人','协助人','审批人'], value:''},
+      {key:'nextPlan', label:'后续计划', type:'textarea', rows:3, placeholder:'项目后续计划和里程碑...'},
+      {key:'risks', label:'风险与问题', type:'textarea', rows:2, placeholder:'当前风险和待解决问题...'}
     ],
     onSave: function(data) {
       var all = getAllProjects();
@@ -3939,6 +3944,29 @@ function openProjectDetail(id) {
   h += '<div class="form-field"><label>项目名称</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;font-weight:600">' + p.name + '</div></div>';
   h += '<div class="form-field"><label>项目成员</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px">' + (p.members || '-') + '</div></div>';
   h += '<div class="form-field"><label>项目描述</label><div style="white-space:pre-wrap;padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;line-height:1.6">' + (p.description || '') + '</div></div>';
+
+  var extraFieldsHtml = '';
+  // 负责人类型
+  if (p.leadType) extraFieldsHtml += '<div class="form-field"><p><b>负责人类型：</b>' + escapeHtml(p.leadType) + '</p></div>';
+  // 后续计划
+  if (p.nextPlan) extraFieldsHtml += '<div class="form-field" style="margin-top:8px"><b>后续计划：</b><div style="background:rgba(59,130,246,0.1);border-radius:6px;padding:8px 12px;margin-top:4px;font-size:13px;white-space:pre-wrap">' + escapeHtml(p.nextPlan) + '</div></div>';
+  // 关联项目
+  if (p.relatedProjects && p.relatedProjects.length > 0) {
+    extraFieldsHtml += '<div class="form-field" style="margin-top:8px"><b>关联项目：</b>';
+    for (var ri = 0; ri < p.relatedProjects.length; ri++) {
+      var rp = p.relatedProjects[ri];
+      var rpColor = rp.status === '已完成' ? '#34c724' : rp.status === '进行中' ? '#3b82f6' : '#f59e0b';
+      extraFieldsHtml += '<span style="display:inline-block;background:rgba(255,255,255,0.05);border:1px solid #334155;border-radius:4px;padding:2px 8px;margin:2px;font-size:12px"><span style="color:' + rpColor + '">●</span> ' + escapeHtml(rp.name) + ' (' + escapeHtml(rp.status) + ')</span>';
+    }
+    extraFieldsHtml += '</div>';
+  }
+  // 风险与问题
+  if (p.risks) extraFieldsHtml += '<div class="form-field" style="margin-top:8px"><b>风险与问题：</b><div style="background:rgba(239,68,68,0.1);border-radius:6px;padding:8px 12px;margin-top:4px;font-size:13px;white-space:pre-wrap">' + escapeHtml(p.risks) + '</div></div>';
+  // 推送配置
+  if (p.pushConfig) {
+    extraFieldsHtml += '<div class="form-field" style="margin-top:8px"><b>推送配置：</b><span style="font-size:12px;color:#94a3b8"> 群组:' + escapeHtml(p.pushConfig.group || '未配置') + ' | 频率:' + escapeHtml(p.pushConfig.frequency || '未配置') + ' | 模板:' + escapeHtml(p.pushConfig.template || '默认') + '</span></div>';
+  }
+  h += extraFieldsHtml;
 
   // 子步骤展示（V18增强）
   var stepsHtml = '';
@@ -4001,7 +4029,10 @@ function editProject(id) {
       {key:'endDate', label:'结束日期', type:'date', value:p.endDate},
       {key:'budget', label:'预算(元)', type:'number', value:p.budget || ''},
       {key:'members', label:'项目成员', type:'text', value:p.members || ''},
-      {key:'description', label:'项目描述', type:'textarea', rows:3, value:p.description || ''}
+      {key:'description', label:'项目描述', type:'textarea', rows:3, value:p.description || ''},
+      {key:'leadType', label:'负责人类型', type:'select', options:['主导人','协助人','审批人'], value:p.leadType || ''},
+      {key:'nextPlan', label:'后续计划', type:'textarea', rows:3, value:p.nextPlan || '', placeholder:'项目后续计划和里程碑...'},
+      {key:'risks', label:'风险与问题', type:'textarea', rows:2, value:p.risks || '', placeholder:'当前风险和待解决问题...'}
     ],
     onSave: function(data) {
       var local = lsGet('local_projects', []);
@@ -9643,6 +9674,7 @@ function renderPage(id) {
     // 模块管理
     if (id === 'module-list') return renderModuleListPage();
     if (id === 'module-register') return renderModuleRegisterPage();
+  if (id === 'push-manage') return renderPushManagePage();
     
     // 默认返回
     return '<div class="cd"><div class="pt">页面开发中</div><p>该页面正在建设中，敬请期待。页面ID: ' + id + '</p></div>';
@@ -9821,6 +9853,116 @@ function doRegisterModule() {
   var existing = MODULE_REGISTRY.find(function(m){ return m.id === id; });
   if (existing) { showToast('模块ID "' + id + '" 已存在', 'warn'); return; }
   registerModule({id:id, name:name, icon:icon, version:version, parentId:parentId || null, enabled:true, builtIn:false});
+}
+
+function renderPushManagePage() {
+  var pushGroups = lsGet('push_groups', [
+    {id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},
+    {id:'g2', name:'管理层汇报群', webhookUrl:'', enabled:false, types:['weekly','monthly','project']}
+  ]);
+  var pushTypes = [
+    {key:'daily', label:'日报推送', desc:'每日工作汇报自动推送'},
+    {key:'weekly', label:'周报推送', desc:'每周工作汇总推送'},
+    {key:'monthly', label:'月报推送', desc:'月度数据统计推送'},
+    {key:'project', label:'项目进度推送', desc:'项目里程碑和进度变更推送'},
+    {key:'equipment', label:'设备异常推送', desc:'设备故障/维修超时告警'},
+    {key:'improvement', label:'改善提案推送', desc:'改善提案审批和实施通知'},
+    {key:'custom', label:'自定义推送', desc:'用户手动触发的即时消息'}
+  ];
+  
+  var h = '<div class="card">';
+  h += '<h3>推送管理</h3>';
+  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">管理推送群组和推送类型配置。由管理员定义哪些消息推送到哪个群组。</p>';
+  
+  // 群组管理
+  h += '<div style="margin-bottom:24px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
+  h += '<h4>推送群组</h4>';
+  h += '<button class="btn" onclick="showAddPushGroup()" style="font-size:13px;padding:6px 16px">+ 添加群组</button>';
+  h += '</div>';
+  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>群组名称</th><th>Webhook URL</th><th>状态</th><th>推送类型</th><th>操作</th></tr></thead><tbody>';
+  for (var gi = 0; gi < pushGroups.length; gi++) {
+    var g = pushGroups[gi];
+    var statusColor = g.enabled ? '#34c724' : '#64748b';
+    var typeLabels = [];
+    for (var ti = 0; ti < pushTypes.length; ti++) {
+      if (g.types.indexOf(pushTypes[ti].key) >= 0) typeLabels.push(pushTypes[ti].label);
+    }
+    h += '<tr><td><b>' + escapeHtml(g.name) + '</b></td>';
+    h += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (g.webhookUrl ? escapeHtml(g.webhookUrl.substring(0, 40)) + '...' : '<span style="color:#64748b">未配置</span>') + '</td>';
+    h += '<td><span style="color:' + statusColor + '">● ' + (g.enabled ? '启用' : '停用') + '</span></td>';
+    h += '<td style="font-size:11px;color:#94a3b8">' + typeLabels.join(', ') + '</td>';
+    h += '<td><button class="btn" style="font-size:11px;padding:3px 10px" onclick="editPushGroup(\'' + g.id + '\')">编辑</button> <button class="btn" style="font-size:11px;padding:3px 10px;color:#ef4444" onclick="deletePushGroup(\'' + g.id + '\')">删除</button> <button class="btn" style="font-size:11px;padding:3px 10px" onclick="testPushGroup(\'' + g.id + '\')">测试</button></td>';
+    h += '</tr>';
+  }
+  h += '</tbody></table></div>';
+  
+  // 推送类型说明
+  h += '<div>';
+  h += '<h4>推送类型说明</h4>';
+  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>类型</th><th>说明</th></tr></thead><tbody>';
+  for (var pi = 0; pi < pushTypes.length; pi++) {
+    h += '<tr><td><b>' + pushTypes[pi].label + '</b></td><td>' + pushTypes[pi].desc + '</td></tr>';
+  }
+  h += '</tbody></table></div>';
+  
+  h += '</div>';
+  return h;
+}
+
+function showAddPushGroup() {
+  var html = '<div class="modal-overlay" id="pushGroupModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>添加推送群组</h3><button onclick="document.getElementById(\'pushGroupModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="margin-bottom:8px"><label>群组名称</label><input id="pg_name" style="width:100%" placeholder="例如：智能制造组"></div>';
+  html += '<div style="margin-bottom:8px"><label>Webhook URL</label><input id="pg_url" style="width:100%" placeholder="飞书群机器人Webhook地址"></div>';
+  html += '<div style="margin-bottom:8px"><label>推送类型（多选）</label>';
+  var types = ['daily','weekly','monthly','project','equipment','improvement','custom'];
+  var typeNames = {daily:'日报',weekly:'周报',monthly:'月报',project:'项目进度',equipment:'设备异常',improvement:'改善提案',custom:'自定义'};
+  for (var i = 0; i < types.length; i++) {
+    html += '<label style="margin-right:12px;font-size:13px"><input type="checkbox" value="' + types[i] + '" class="pg_type"> ' + typeNames[types[i]] + '</label>';
+  }
+  html += '</div>';
+  html += '</div><div class="modal-footer"><button class="btn" onclick="savePushGroup()">保存</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function savePushGroup() {
+  var name = document.getElementById('pg_name').value.trim();
+  var url = document.getElementById('pg_url').value.trim();
+  if (!name) { showToast('请输入群组名称', 'error'); return; }
+  var checks = document.querySelectorAll('.pg_type');
+  var types = [];
+  for (var i = 0; i < checks.length; i++) { if (checks[i].checked) types.push(checks[i].value); }
+  var groups = lsGet('push_groups', []);
+  groups.push({id:'g'+Date.now(), name:name, webhookUrl:url, enabled:true, types:types});
+  lsSet('push_groups', groups);
+  document.getElementById('pushGroupModal').remove();
+  showToast('群组已添加');
+  goToPage('push-manage');
+}
+
+function deletePushGroup(id) {
+  if (!confirm('确认删除该推送群组？')) return;
+  var groups = lsGet('push_groups', []);
+  groups = groups.filter(function(g){return g.id!==id});
+  lsSet('push_groups', groups);
+  showToast('已删除');
+  goToPage('push-manage');
+}
+
+function testPushGroup(id) {
+  var groups = lsGet('push_groups', []);
+  var g = groups.find(function(g){return g.id===id});
+  if (!g || !g.webhookUrl) { showToast('该群组未配置Webhook URL', 'error'); return; }
+  showToast('正在发送测试消息...');
+  fetch(g.webhookUrl, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({msg_type:'text', content:{text:'[智能制造管理平台] 推送测试 - 群组"' + g.name + '"配置正常'}})
+  }).then(function(r){return r.json()}).then(function(j){
+    if(j.code===0) showToast('测试消息发送成功');
+    else showToast('发送失败: '+j.msg, 'error');
+  }).catch(function(e){showToast('发送失败: '+e.message, 'error')});
 }
 
 </script>
