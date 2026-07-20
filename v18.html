@@ -1239,6 +1239,7 @@ var M = [
   {id:'feishu-config',label:'飞书配置'},
   {id:'report-push-config',label:'推送配置'},
   {id:'cfg-theme',label:'主题配置'},
+  {id:'template-library',label:'模板库'},
   {id:'push-manage',label:'推送管理'}
   ,{id:'schedule-push',label:'定时推送'}
 ]},
@@ -1259,6 +1260,7 @@ var allLabels = {};
 // 模块管理页面标题映射
 allLabels['module-list'] = '已安装模块';
 allLabels['module-register'] = '注册新模块';
+allLabels['template-library'] = '模板库';
 allLabels['push-manage'] = '推送管理';
 allLabels['schedule-push'] = '定时推送';
 // renderPage 中使用但未在菜单 M 中定义的路由标签
@@ -3958,17 +3960,17 @@ function renderProjectList(filterFn, title) {
   }
   h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
-    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;margin-top:16px">';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:20px;margin-top:16px">';
     for (var pi = 0; pi < pageData.length; pi++) {
       var p = pageData[pi];
       var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
       var statusColor = p.status === '已完成' ? '#34c724' : p.status === '进行中' ? '#3b82f6' : p.status === '已暂停' ? '#ef4444' : '#f59e0b';
       var statusBg = p.status === '已完成' ? 'rgba(52,199,36,0.1)' : p.status === '进行中' ? 'rgba(59,130,246,0.1)' : p.status === '已暂停' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
       var cid = 'pc_' + p.id.replace(/-/g,'_');
-      h += '<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'">';
+      h += '<div style="background:#1e293b;border-radius:12px;padding:24px;border:1px solid #334155;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'">';
       // 顶部：项目名称+状态+展开按钮
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-      h += '<div style="flex:1;min-width:0;cursor:pointer" onclick="openProjectDetail(\'' + p.id + '\')"><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name || '') + '</b></div>';
+      h += '<div style="flex:1;min-width:0;cursor:pointer" onclick="openProjectDetail(\'' + p.id + '\')"><span style="font-size:12px;color:#64748b">' + p.id + '</span> <b style="font-size:16px;color:#e2e8f0">' + escapeHtml(p.name || '') + '</b></div>';
       h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
       h += '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + escapeHtml(p.status || '') + '</span>';
       h += '<button onclick="toggleCardExpand(\'' + cid + '\',this)" style="background:none;border:1px solid #475569;border-radius:4px;color:#94a3b8;font-size:14px;padding:2px 6px;cursor:pointer;line-height:1" title="展开/收起">▼</button>';
@@ -3988,7 +3990,7 @@ function renderProjectList(filterFn, title) {
       if (p.budget) h += '<span>💰 ¥' + Math.round(p.budget/10000) + '万</span>';
       h += '</div>';
       // 描述摘要
-      h += '<div style="font-size:12px;color:#94a3b8;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(p.description || '') + '</div>';
+      h += '<div style="font-size:13px;color:#94a3b8;line-height:1.7;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(p.description || '') + '</div>';
       // 可展开区域（默认隐藏）
       h += '<div id="' + cid + '" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #334155">';
       // 后续计划
@@ -4521,6 +4523,49 @@ function renderGanttChart(projectId, containerId) {
   container.innerHTML = h;
 }
 
+function updateProgress(projectId) {
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) return;
+  var html = '<div class="modal-overlay" id="progressUpdateModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:420px"><div class="modal-header"><h3>更新进度 - ' + escapeHtml(p.name) + '</h3><button onclick="document.getElementById(\'progressUpdateModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="margin-bottom:12px;padding:8px 12px;background:rgba(59,130,246,0.06);border-radius:6px;font-size:13px">当前进度：<b style="color:#60a5fa">' + p.progress + '%</b></div>';
+  html += '<label>新进度(%)</label><input type="number" id="pu_progress" value="' + p.progress + '" min="0" max="100" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">';
+  html += '<label style="margin-top:8px">更新说明</label><textarea id="pu_note" rows="3" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical" placeholder="描述本次进度变更原因和内容..."></textarea>';
+  html += '</div><div class="modal-footer">';
+  html += '<button class="btn bp" onclick="doUpdateProgress(\'' + projectId + '\')">保存</button>';
+  html += '<button class="btn" onclick="document.getElementById(\'progressUpdateModal\').remove()">取消</button>';
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function doUpdateProgress(projectId) {
+  var newProgress = parseInt(document.getElementById('pu_progress').value) || 0;
+  var note = document.getElementById('pu_note').value;
+  if (newProgress < 0 || newProgress > 100) { showToast('进度必须在0-100之间', 'error'); return; }
+  var projects = getAllProjects();
+  for (var i = 0; i < projects.length; i++) {
+    if (projects[i].id === projectId) {
+      var oldProgress = projects[i].progress;
+      projects[i].progress = newProgress;
+      if (!projects[i].progressHistory) projects[i].progressHistory = [];
+      projects[i].progressHistory.push({
+        date: new Date().toLocaleString('zh-CN'),
+        oldProgress: oldProgress,
+        newProgress: newProgress,
+        note: note || ''
+      });
+      break;
+    }
+  }
+  saveLocalProjects(projects);
+  document.getElementById('progressUpdateModal').remove();
+  showToast('进度已更新：' + oldProgress + '% → ' + newProgress + '%');
+  openProjectDetail(projectId);
+}
+
 function openProjectDetail(id) {
   var all = getAllProjects();
   var p = all.find(function(x){ return x.id === id; });
@@ -4533,7 +4578,19 @@ function openProjectDetail(id) {
   h += '<div class="info-item"><div class="ii-label">开始日期</div><div class="ii-value">' + p.startDate + '</div></div>';
   h += '<div class="info-item"><div class="ii-label">结束日期</div><div class="ii-value">' + p.endDate + '</div></div>';
   h += '</div>';
-  h += '<div style="margin:12px 0"><div class="ii-label" style="font-size:11px;color:var(--t3);margin-bottom:4px">项目进度 ' + p.progress + '%</div><div class="pb"><div class="pf ' + getProgressClass(p.progress) + '" style="width:' + p.progress + '%"></div></div></div>';
+  h += '<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><div class="ii-label" style="font-size:11px;color:var(--t3)">项目进度 ' + p.progress + '%</div><button class="btn" style="font-size:10px;padding:2px 8px;background:#3b82f6;color:#fff" onclick="updateProgress(\'' + p.id + '\')">更新进度</button></div><div class="pb"><div class="pf ' + getProgressClass(p.progress) + '" style="width:' + p.progress + '%"></div></div></div>';
+  // 进度历史记录
+  var ph = p.progressHistory || [];
+  if (ph.length > 0) {
+    h += '<div style="margin:8px 0;font-size:12px"><b style="color:#94a3b8">进度变更记录</b><div style="max-height:100px;overflow-y:auto;margin-top:4px">';
+    for (var phi = ph.length - 1; phi >= Math.max(0, ph.length - 8); phi--) {
+      var item = ph[phi];
+      var delta = item.newProgress - item.oldProgress;
+      var deltaStr = delta > 0 ? '<span style="color:#34c724">+' + delta + '%</span>' : delta < 0 ? '<span style="color:#ef4444">' + delta + '%</span>' : '<span style="color:#64748b">0%</span>';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(51,65,85,0.2);font-size:11px"><span style="color:#64748b">' + (item.date || '-') + '</span><span>' + item.oldProgress + '% → ' + item.newProgress + '% ' + deltaStr + '</span><span style="color:#94a3b8;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + escapeHtml(item.note || '') + '">' + escapeHtml(item.note || '') + '</span></div>';
+    }
+    h += '</div></div>';
+  }
   h += '<div class="divider" style="height:1px;background:var(--br);margin:12px 0"></div>';
   h += '<div class="form-field"><label>项目名称</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px;font-weight:600">' + p.name + '</div></div>';
   h += '<div class="form-field"><label>项目成员</label><div style="padding:8px;background:#f7f8fa;border-radius:6px;font-size:13px">' + (p.members || '-') + '</div></div>';
@@ -10344,6 +10401,7 @@ function renderPage(id) {
     // 模块管理
     if (id === 'module-list') return renderModuleListPage();
     if (id === 'module-register') return renderModuleRegisterPage();
+  if (id === 'template-library') return renderTemplateLibraryPage();
   if (id === 'push-manage') return renderPushManagePage();
   if (id === 'schedule-push') return renderSchedulePushPage();
     
@@ -10652,6 +10710,50 @@ function manualPush(type) {
   }).catch(function(e){showToast('推送失败: ' + e.message, 'error')});
 }
 
+function renderTemplateLibraryPage() {
+  var templates = lsGet('push_global_templates', []);
+  if (templates.length === 0) {
+    templates = [
+      {id:'tpl_1', name:'项目进度汇总', category:'项目', content:'## {{projectName}} ({{projectId}})\n\n**进度：** {{progress}}%\n**状态：** {{status}}\n**负责人：** {{manager}}\n\n{{#if nextPlan}}**后续计划：**\n{{nextPlan}}\n{{/if}}', enabled:true},
+      {id:'tpl_2', name:'项目详细报告', category:'项目', content:'## 项目详细报告 - {{projectName}}\n\n**进度：** {{progress}}% | **状态：** {{status}}\n**负责人：** {{manager}} ({{leadType}})\n**开始：** {{startDate}} | **结束：** {{endDate}}\n**预算：** {{budget}}\n\n{{#if description}}**描述：**\n{{description}}\n{{/if}}\n{{#if subSteps}}**子工序：**\n{{#each subSteps}}- {{name}}: {{done}}/{{total}} ({{rate}}%)\n{{/each}}\n{{/if}}', enabled:true},
+      {id:'tpl_3', name:'风险预警', category:'项目', content:'## ⚠ 风险预警 - {{projectName}}\n\n**风险与问题：**\n{{risks}}\n\n**当前进度：** {{progress}}% | **状态：** {{status}}\n**负责人：** {{manager}}\n\n请关注并及时处理。', enabled:true},
+      {id:'tpl_4', name:'日报汇总', category:'报告', content:'## 日报汇总 - {{date}}\n\n{{content}}', enabled:true},
+      {id:'tpl_5', name:'周报汇总', category:'报告', content:'## 周报汇总 - {{weekRange}}\n\n{{content}}', enabled:true}
+    ];
+    lsSet('push_global_templates', templates);
+  }
+  var h = '<div class="page-enter">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3>模板库</h3>';
+  h += '<button class="btn" style="font-size:13px;padding:6px 16px" onclick="addGlobalTemplate()">+ 新增模版</button></div>';
+  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">管理推送消息模版。支持变量插值，可在推送消息时选择使用。</p>';
+  // 分类筛选
+  var categories = [];
+  for (var ci = 0; ci < templates.length; ci++) { if (categories.indexOf(templates[ci].category) < 0) categories.push(templates[ci].category); }
+  h += '<div style="display:flex;gap:8px;margin-bottom:16px">';
+  h += '<button class="btn" style="font-size:11px;padding:3px 10px;background:#3b82f6;color:#fff" onclick="filterTemplates(\'all\')">全部</button>';
+  for (var ci2 = 0; ci2 < categories.length; ci2++) {
+    h += '<button class="btn" style="font-size:11px;padding:3px 10px" onclick="filterTemplates(\'' + categories[ci2] + '\')">' + escapeHtml(categories[ci2]) + '</button>';
+  }
+  h += '</div>';
+  // 模板列表
+  h += '<div id="template_list">';
+  for (var ti = 0; ti < templates.length; ti++) {
+    var t = templates[ti];
+    h += '<div class="tpl-item" data-category="' + t.category + '" style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:12px">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    h += '<div><b style="color:#e2e8f0;font-size:14px">' + escapeHtml(t.name) + '</b> <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(96,165,250,0.1);color:#60a5fa;margin-left:8px">' + escapeHtml(t.category) + '</span>';
+    if (t.enabled) h += ' <span style="font-size:10px;color:#34c724">● 启用</span>';
+    else h += ' <span style="font-size:10px;color:#64748b">● 停用</span>';
+    h += '</div>';
+    h += '<div style="display:flex;gap:6px"><button class="btn" style="font-size:11px;padding:3px 10px" onclick="editGlobalTemplate(\'' + t.id + '\')">编辑</button><button class="btn" style="font-size:11px;padding:3px 10px;color:#ef4444" onclick="deleteGlobalTemplate(\'' + t.id + '\')">删除</button><button class="btn" style="font-size:11px;padding:3px 10px" onclick="previewGlobalTemplate(\'' + t.id + '\')">预览</button></div>';
+    h += '</div>';
+    h += '<pre style="background:#0f172a;border-radius:6px;padding:8px;font-size:12px;color:#cbd5e1;white-space:pre-wrap;max-height:80px;overflow-y:auto;line-height:1.5">' + escapeHtml(t.content) + '</pre>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
 function renderPushManagePage() {
   var pushGroups = lsGet('push_groups', [
     {id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},
@@ -10705,6 +10807,86 @@ function renderPushManagePage() {
   
   h += '</div>';
   return h;
+}
+
+function addGlobalTemplate() {
+  var html = '<div class="modal-overlay" id="tplEditModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:600px"><div class="modal-header"><h3>新增推送模版</h3><button onclick="document.getElementById(\'tplEditModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<label>模版名称</label><input type="text" id="gt_name" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px" placeholder="如：项目周报">';
+  html += '<label style="margin-top:8px">分类</label><select id="gt_category" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="项目">项目</option><option value="报告">报告</option><option value="设备">设备</option><option value="改善">改善</option><option value="自定义">自定义</option></select>';
+  html += '<label style="margin-top:8px">模版内容</label><div style="font-size:10px;color:#64748b;margin-bottom:4px">变量：{{projectName}} {{projectId}} {{progress}} {{status}} {{manager}} {{date}} {{content}}</div>';
+  html += '<textarea id="gt_content" rows="10" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical;font-family:monospace" placeholder="输入模版内容..."></textarea>';
+  html += '</div><div class="modal-footer"><button class="btn bp" onclick="saveGlobalTemplate()">保存</button><button class="btn" onclick="document.getElementById(\'tplEditModal\').remove()">取消</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function editGlobalTemplate(tplId) {
+  var templates = lsGet('push_global_templates', []);
+  var t = null;
+  for (var i = 0; i < templates.length; i++) { if (templates[i].id === tplId) { t = templates[i]; break; } }
+  if (!t) return;
+  var html = '<div class="modal-overlay" id="tplEditModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:600px"><div class="modal-header"><h3>编辑推送模版</h3><button onclick="document.getElementById(\'tplEditModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<input type="hidden" id="gt_id" value="' + tplId + '">';
+  html += '<label>模版名称</label><input type="text" id="gt_name" value="' + escapeHtml(t.name) + '" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">';
+  html += '<label style="margin-top:8px">分类</label><select id="gt_category" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="项目"' + (t.category==='项目'?' selected':'') + '>项目</option><option value="报告"' + (t.category==='报告'?' selected':'') + '>报告</option><option value="设备"' + (t.category==='设备'?' selected':'') + '>设备</option><option value="改善"' + (t.category==='改善'?' selected':'') + '>改善</option><option value="自定义"' + (t.category==='自定义'?' selected':'') + '>自定义</option></select>';
+  html += '<label style="margin-top:8px">模版内容</label><div style="font-size:10px;color:#64748b;margin-bottom:4px">变量：{{projectName}} {{projectId}} {{progress}} {{status}} {{manager}} {{date}} {{content}}</div>';
+  html += '<textarea id="gt_content" rows="10" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical;font-family:monospace">' + escapeHtml(t.content) + '</textarea>';
+  html += '</div><div class="modal-footer"><button class="btn bp" onclick="saveGlobalTemplate()">保存</button><button class="btn" onclick="document.getElementById(\'tplEditModal\').remove()">取消</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function saveGlobalTemplate() {
+  var name = document.getElementById('gt_name').value;
+  var category = document.getElementById('gt_category').value;
+  var content = document.getElementById('gt_content').value;
+  var idEl = document.getElementById('gt_id');
+  if (!name || !content) { showToast('名称和内容不能为空', 'error'); return; }
+  var templates = lsGet('push_global_templates', []);
+  if (idEl && idEl.value) {
+    var tplId = idEl.value;
+    for (var i = 0; i < templates.length; i++) {
+      if (templates[i].id === tplId) { templates[i].name = name; templates[i].category = category; templates[i].content = content; break; }
+    }
+  } else {
+    templates.push({id: 'tpl_' + Date.now(), name: name, category: category, content: content, enabled: true});
+  }
+  lsSet('push_global_templates', templates);
+  document.getElementById('tplEditModal').remove();
+  showToast('模版已保存');
+  goToPage('template-library');
+}
+
+function deleteGlobalTemplate(tplId) {
+  if (!confirm('确认删除该模版？')) return;
+  var templates = lsGet('push_global_templates', []);
+  var filtered = [];
+  for (var i = 0; i < templates.length; i++) { if (templates[i].id !== tplId) filtered.push(templates[i]); }
+  lsSet('push_global_templates', filtered);
+  showToast('模版已删除');
+  goToPage('template-library');
+}
+
+function previewGlobalTemplate(tplId) {
+  var templates = lsGet('push_global_templates', []);
+  var t = null;
+  for (var i = 0; i < templates.length; i++) { if (templates[i].id === tplId) { t = templates[i]; break; } }
+  if (!t) return;
+  var html = '<div class="modal-overlay" id="tplPreviewModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>模版预览 - ' + escapeHtml(t.name) + '</h3><button onclick="document.getElementById(\'tplPreviewModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body"><div style="background:#0f172a;border-radius:8px;padding:16px;font-size:13px;color:#e2e8f0;white-space:pre-wrap;line-height:1.6">' + escapeHtml(t.content).replace(/\{\{[^}]+\}\}/g, '<span style="background:rgba(59,130,246,0.2);color:#60a5fa;padding:1px 4px;border-radius:3px">$&</span>') + '</div></div>';
+  html += '<div class="modal-footer"><button class="btn" onclick="document.getElementById(\'tplPreviewModal\').remove()">关闭</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function filterTemplates(category) {
+  var items = document.querySelectorAll('.tpl-item');
+  for (var i = 0; i < items.length; i++) {
+    if (category === 'all' || items[i].getAttribute('data-category') === category) items[i].style.display = 'block';
+    else items[i].style.display = 'none';
+  }
 }
 
 function showAddPushGroup() {
