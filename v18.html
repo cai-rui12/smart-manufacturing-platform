@@ -1253,7 +1253,7 @@ var chartInstances = {};
 // V13 - 后端API层（双模式运行 + 自动检测）
 // =========================================
 var SERVER_CONFIG = {
-  url: localStorage.getItem('v13_server_url') || (location.protocol==='file:' ? 'http://localhost:3000' : 'https://complications-downloaded-delete-bizarre.trycloudflare.com'),
+  url: localStorage.getItem('v13_server_url') || (location.protocol==='file:' ? 'http://localhost:3000' : 'https://reductions-hydraulic-expenditure-physician.trycloudflare.com'),
   enabled: localStorage.getItem('v13_server_enabled') !== 'false',
   mode: localStorage.getItem('v13_server_enabled') !== 'false' ? 'online' : 'offline'
 };
@@ -1305,7 +1305,7 @@ async function apiRequest(method, path, data) {
 // V13 - 页面加载时自动检测服务器连接
 // 依次尝试：动态隧道URL(从config读取) → 固定隧道URL → 局域网IP → 本机localhost
 var SERVER_URL_CANDIDATES = [
-  'https://complications-downloaded-delete-bizarre.trycloudflare.com',
+  'https://reductions-hydraulic-expenditure-physician.trycloudflare.com',
   'http://172.24.20.28:3000',
   'http://localhost:3000'
 ];
@@ -1424,7 +1424,7 @@ async function connectToServer(url) {
   } else {
     updateSyncStatusBadge('offline', '本地模式');
     addSyncLog('手动连接失败: ' + url);
-    showToast('连接失败，请确认服务器地址正确且服务器正在运行。  当前可用地址： - 外网: https://lens-review-steel-hose.trycloudflare.com - 局域网: http://172.24.20.28:3000 - 本机: http://localhost:3000', 'error');
+    showToast('连接失败，请确认服务器地址正确且服务器正在运行。  当前可用地址： - 外网: https://reductions-hydraulic-expenditure-physician.trycloudflare.com - 局域网: http://172.24.20.28:3000 - 本机: http://localhost:3000', 'error');
   }
 }
 
@@ -1458,7 +1458,7 @@ function updateSyncStatusBadge(status, text) {
 
 async function manualConnect(e) {
   if (e) e.stopPropagation();
-  var url = SERVER_CONFIG.url || 'https://complications-downloaded-delete-bizarre.trycloudflare.com';
+  var url = SERVER_CONFIG.url || 'https://reductions-hydraulic-expenditure-physician.trycloudflare.com';
   if (url && url.trim()) {
     updateSyncStatusBadge('syncing', '重连中...');
     addSyncLog('手动连接到: ' + url.trim());
@@ -1484,7 +1484,7 @@ function showConnectionInfo() {
   var info = [];
   info.push('当前状态: ' + (SERVER_CONFIG.mode || 'unknown'));
   info.push('服务器URL: ' + (SERVER_CONFIG.url || '未设置'));
-  info.push('隧道URL: https://lens-review-steel-hose.trycloudflare.com');
+  info.push('隧道URL: https://reductions-hydraulic-expenditure-physician.trycloudflare.com');
   info.push('局域网URL: http://172.24.20.28:3000');
   info.push('');
   info.push('如果手机4G无法连接，请尝试：');
@@ -7884,7 +7884,7 @@ function renderDataBackup() {
   h += '<div style="margin-top:10px;padding:10px;background:#f0f5ff;border-radius:6px;border:1px solid #d0e0ff;">';
   h += '<div style="font-size:12px;color:#3370ff;font-weight:bold;margin-bottom:8px;">手动连接服务器</div>';
   h += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
-  h += '<button onclick="connectToServer(\'https://lens-review-steel-hose.trycloudflare.com\')" style="padding:6px 12px;font-size:12px;border:1px solid #3370ff;background:#fff;color:#3370ff;border-radius:4px;cursor:pointer;">外网隧道</button>';
+  h += '<button onclick="connectToServer(\'https://reductions-hydraulic-expenditure-physician.trycloudflare.com\')" style="padding:6px 12px;font-size:12px;border:1px solid #3370ff;background:#fff;color:#3370ff;border-radius:4px;cursor:pointer;">外网隧道</button>';
   h += '<button onclick="connectToServer(\'http://172.24.20.28:3000\')" style="padding:6px 12px;font-size:12px;border:1px solid #34c724;background:#fff;color:#34c724;border-radius:4px;cursor:pointer;">局域网IP</button>';
   h += '<button onclick="connectToServer(\'http://localhost:3000\')" style="padding:6px 12px;font-size:12px;border:1px solid #999;background:#fff;color:#666;border-radius:4px;cursor:pointer;">本机</button>';
   h += '</div>';
