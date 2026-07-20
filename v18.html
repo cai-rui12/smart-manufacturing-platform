@@ -2523,8 +2523,10 @@ function openMo(cfg) {
   document.getElementById('mf').innerHTML = (cfg.footer || '') + '<button class="btn bo" onclick="closeMo()">关闭</button>';
   var mdEl = document.querySelector('#mo > .md');
   if (mdEl) {
-    mdEl.style.resize = 'vertical';
+    mdEl.style.resize = 'both';
     mdEl.style.overflow = 'auto';
+    mdEl.style.minWidth = '400px';
+    mdEl.style.maxWidth = '95vw';
     mdEl.style.minHeight = '300px';
     mdEl.style.maxHeight = '90vh';
   }
@@ -3130,6 +3132,7 @@ async function syncMonthlyToFeishu(id) {
 
 // 同步单条项目到飞书
 async function syncProjectToFeishu(id) {
+  showToast('正在推送项目信息到飞书群组...', 'info');
   var all = getAllProjects();
   var r = all.find(function(x){ return x.id === id; });
   if (!r) { showToast('记录不存在', 'warn'); return; }
@@ -4030,7 +4033,7 @@ function pushProject(projectId) {
   var p = null;
   for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
   if (!p) { showToast('项目不存在', 'error'); return; }
-  var groups = lsGet('push_groups', []);
+  var groups = lsGet('push_groups', [{id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},{id:'g2', name:'设备管理组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']}]);
   var groupOptions = '<option value="">选择推送群组</option>';
   for (var g = 0; g < groups.length; g++) {
     var sel = (p.pushConfig && p.pushConfig.group === groups[g].name) ? ' selected' : '';
@@ -4172,11 +4175,27 @@ function createProject() {
   });
 }
 
+function openGanttPopup(projectId) {
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) { showToast('项目未找到', 'error'); return; }
+  var html = '<div class="modal-overlay" id="ganttPopup" onclick="if(event.target===this)this.remove()" style="z-index:9999">';
+  html += '<div class="modal" style="max-width:95vw;width:95vw;height:85vh;resize:both;overflow:auto;min-width:600px;min-height:400px">';
+  html += '<div class="modal-header"><h3>甘特图 - ' + escapeHtml(p.name) + '</h3><button onclick="document.getElementById(\'ganttPopup\').remove()">✕</button></div>';
+  html += '<div class="modal-body" style="overflow:visible">';
+  html += '<div id="gantt_popup_' + projectId + '"></div>';
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+  // 等DOM渲染完成后渲染甘特图
+  setTimeout(function(){ renderGanttChart(projectId); }, 50);
+}
+
 // Global zoom level for Gantt charts (persisted across renders)
 var ganttZoomLevel = 36;
-function renderGanttChart(projectId) {
-  var container = document.getElementById('gantt_' + projectId);
-  if (!container) return;
+function renderGanttChart(projectId, containerId) {
+  var container = containerId ? document.getElementById(containerId) : document.getElementById('gantt_' + projectId);
+  if (!container) { container = document.getElementById('gantt_popup_' + projectId); if (!container) return; }
   var projects = getAllProjects();
   var p = null;
   for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
@@ -4505,14 +4524,19 @@ function openProjectDetail(id) {
     stepsHtml += '<div style="overflow-x:auto;border:1px solid #334155;border-radius:8px">';
     stepsHtml += '<div id="gantt_' + p.id + '"></div>';
     stepsHtml += '</div>';
-    // 甘特图将在DOM渲染后初始化
-    stepsHtml += '<div style="text-align:center;margin-top:8px"><button class="btn bp" style="font-size:11px;padding:4px 10px" onclick="renderGanttChart(\'' + p.id + '\')">显示甘特图</button></div>';
+    // 甘特图自动渲染 + 独立弹窗按钮
+    stepsHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">';
+    stepsHtml += '<span style="font-size:11px;color:#64748b">双击甘特图可放大查看</span>';
+    stepsHtml += '<button class="btn" style="font-size:11px;padding:4px 10px;background:#3b82f6;color:#fff" onclick="openGanttPopup(\'' + p.id + '\')">📊 独立弹窗</button>';
     stepsHtml += '</div>';
+    stepsHtml += '</div>';
+    // 自动渲染甘特图
+    setTimeout(function(){ renderGanttChart(p.id); }, 200);
   }
 
   h += stepsHtml;
   var footer = '';
-  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')">同步到飞书</button>';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')" title="推送到已配置的飞书群组Webhook">推送飞书</button>';
   if (hasPermission('project-manage','edit')) {
     footer += ' <button class="btn bp" onclick="editProject(\'' + p.id + '\')">编辑</button>';
   }
@@ -4534,7 +4558,11 @@ function editProjectPush(projectId) {
   html += '<div class="modal" style="max-width:450px"><div class="modal-header"><h3>项目推送配置 - ' + escapeHtml(p.name || '') + '</h3><button onclick="document.getElementById(\'pushConfigModal\').remove()">✕</button></div>';
   html += '<div class="modal-body">';
   html += '<label>推送群组</label><select id="pc_group" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">' + groupOptions + '</select>';
-  html += '<label>推送频率</label><select id="pc_freq" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="每日"' + (pc.frequency === '每日' ? ' selected' : '') + '>每日</option><option value="每周"' + (pc.frequency === '每周' ? ' selected' : '') + '>每周</option><option value="每月"' + (pc.frequency === '每月' ? ' selected' : '') + '>每月</option><option value="里程碑"' + (pc.frequency === '里程碑' ? ' selected' : '') + '>里程碑触发</option></select>';
+  html += '<label>推送频率</label>';
+  html += '<div style="display:flex;gap:8px">';
+  html += '<select id="pc_freq" style="flex:1;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="每日"' + (pc.frequency === '每日' ? ' selected' : '') + '>每日</option><option value="每周"' + (pc.frequency === '每周' ? ' selected' : '') + '>每周</option><option value="每月"' + (pc.frequency === '每月' ? ' selected' : '') + '>每月</option><option value="里程碑"' + (pc.frequency === '里程碑' ? ' selected' : '') + '>里程碑触发</option></select>';
+  html += '<input type="time" id="pc_time" value="' + (pc.time || '09:00') + '" style="width:120px;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;color-scheme:dark">';
+  html += '</div>';
   html += '<label>推送模板</label><select id="pc_template" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px"><option value="summary"' + (pc.template === 'summary' ? ' selected' : '') + '>进度汇总</option><option value="detail"' + (pc.template === 'detail' ? ' selected' : '') + '>详细报告</option><option value="risk"' + (pc.template === 'risk' ? ' selected' : '') + '>风险预警</option></select>';
   html += '<label style="margin-top:8px"><input type="checkbox" id="pc_enabled"' + (pc.enabled ? ' checked' : '') + '> 启用定期推送</label>';
   html += '</div><div class="modal-footer"><button class="btn" onclick="saveProjectPush(\'' + projectId + '\')">保存</button></div></div></div>';
@@ -4544,12 +4572,13 @@ function editProjectPush(projectId) {
 function saveProjectPush(projectId) {
   var group = document.getElementById('pc_group').value;
   var freq = document.getElementById('pc_freq').value;
+  var time = document.getElementById('pc_time').value;
   var template = document.getElementById('pc_template').value;
   var enabled = document.getElementById('pc_enabled').checked;
   var projects = getAllProjects();
   for (var i = 0; i < projects.length; i++) {
     if (projects[i].id === projectId) {
-      projects[i].pushConfig = {group: group, frequency: freq, template: template, enabled: enabled};
+      projects[i].pushConfig = {group: group, frequency: freq, time: time, template: template, enabled: enabled};
       break;
     }
   }
@@ -10584,7 +10613,7 @@ function renderPushManagePage() {
     var statusColor = g.enabled ? '#34c724' : '#64748b';
     var typeLabels = [];
     for (var ti = 0; ti < pushTypes.length; ti++) {
-      if (g.types.indexOf(pushTypes[ti].key) >= 0) typeLabels.push(pushTypes[ti].label);
+      if (g.types && g.types.indexOf && g.types.indexOf(pushTypes[ti].key) >= 0) typeLabels.push(pushTypes[ti].label);
     }
     h += '<tr><td><b>' + escapeHtml(g.name) + '</b></td>';
     h += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (g.webhookUrl ? escapeHtml(g.webhookUrl.substring(0, 40)) + '...' : '<span style="color:#64748b">未配置</span>') + '</td>';
