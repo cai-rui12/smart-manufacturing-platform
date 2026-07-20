@@ -129,12 +129,16 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC"
 .ml .a{margin-left:auto;margin-right:12px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:rgba(255,255,255,.35);transition:transform .25s cubic-bezier(.4,0,.2,1)}
 .ml .a.ex{transform:rotate(90deg);color:rgba(255,255,255,.7)}
 .mc{display:none}.mc.op{display:block}
-.mi.l0>.ml{font-weight:600;font-size:13.5px;color:rgba(255,255,255,.85);margin-top:4px}
-.mi.l0>.ml:hover{color:#fff}
-.mi.l1>.ml{padding-left:16px}
-.mi.l2>.ml{padding-left:30px;font-size:12.5px}
-.mi.l3>.ml{padding-left:44px;font-size:12px}
-.mi.l4>.ml{padding-left:56px;font-size:12px}
+.mi.l0>.ml{font-weight:700;font-size:13.5px;color:rgba(255,255,255,.9);margin:2px 6px 2px 0;padding:8px 14px 8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-left:3px solid rgba(96,165,250,.4);border-radius:0 8px 8px 0}
+.mi.l0>.ml:hover{background:rgba(255,255,255,.08);color:#fff;border-left-color:rgba(96,165,250,.7)}
+.mi.l1>.ml{padding-left:20px;font-size:13px;color:rgba(255,255,255,.7);margin:1px 10px 1px 0;background:rgba(255,255,255,.02);border-left:2px solid rgba(148,163,184,.2);border-radius:0 6px 6px 0}
+.mi.l1>.ml:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.mi.l2>.ml{padding-left:34px;font-size:12.5px;color:rgba(255,255,255,.6);margin:1px 14px 1px 0}
+.mi.l2>.ml:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.mi.l3>.ml{padding-left:48px;font-size:12px;color:rgba(255,255,255,.5);margin:1px 18px 1px 0}
+.mi.l3>.ml:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.8)}
+.mi.l4>.ml{padding-left:60px;font-size:11.5px;color:rgba(255,255,255,.45);margin:1px 22px 1px 0}
+.mi.l4>.ml:hover{background:rgba(255,255,255,.03);color:rgba(255,255,255,.75)}
 
 /* === Main === */
 .mn{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
@@ -1231,21 +1235,21 @@ var M = [
   {id:'msg-push',label:'消息推送'},
 ]},
 {id:'config',label:'⚙ 系统配置',icon:'⚙',children:[
-  {id:'member-manage',label:'成员管理'},
-  {id:'perm-config',label:'权限配置'},
-  {id:'member-apply',label:'人员申请'},
-  {id:'home-config',label:'首页配置'},
-  {id:'cfg-backup',label:'数据备份'},
-  {id:'feishu-config',label:'飞书配置'},
-  {id:'report-push-config',label:'推送配置'},
-  {id:'cfg-theme',label:'主题配置'},
-  {id:'template-library',label:'模板库'},
-  {id:'push-manage',label:'推送管理'}
-  ,{id:'schedule-push',label:'定时推送'}
+  {id:'member-manage',label:'👤 成员管理'},
+  {id:'perm-config',label:'🔐 权限配置'},
+  {id:'member-apply',label:'📝 人员申请'},
+  {id:'home-config',label:'🎨 首页配置'},
+  {id:'cfg-backup',label:'💾 数据备份'},
+  {id:'feishu-config',label:'🔗 飞书配置'},
+  {id:'report-push-config',label:'📡 推送配置'},
+  {id:'cfg-theme',label:'🎭 主题配置'},
+  {id:'template-library',label:'📋 模板库'},
+  {id:'push-manage',label:'📢 推送管理'}
+  ,{id:'schedule-push',label:'⏰ 定时推送'}
 ]},
 {id:'modules',label:'模块管理',icon:'🧩',children:[
-  {id:'module-list',label:'已安装模块'},
-  {id:'module-register',label:'注册新模块'}
+  {id:'module-list',label:'📦 已安装模块'},
+  {id:'module-register',label:'➕ 注册新模块'}
 ]},
 ];
 
@@ -2492,7 +2496,6 @@ function renderMenu(items, level) {
     var isAct = item.id === curPage || (pathMap[curPage] || []).some(function(p) { return p.id === item.id; });
     h += '<div class="mi l' + level + '">';
     h += '<div class="ml' + (isAct ? ' act' : '') + '" onclick="onMenuClick(\'' + item.id + '\')">';
-    if (item.icon) h += '<span style="margin-right:6px">' + item.icon + '</span>';
     h += '<span>' + item.label + '</span>';
     if (has) h += '<span class="a' + (isAct ? ' ex' : '') + '">&#9654;</span>';
     h += '</div>';
