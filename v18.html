@@ -3872,35 +3872,80 @@ function renderProjectList(filterFn, title) {
   }
   h += '<button class="btn bo no-print" onclick="printPage()">🖨️ 打印</button>';
   h += '</div>';
-    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;margin-top:16px">';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:16px;margin-top:16px">';
     for (var pi = 0; pi < pageData.length; pi++) {
       var p = pageData[pi];
       var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
       var statusColor = p.status === '已完成' ? '#34c724' : p.status === '进行中' ? '#3b82f6' : p.status === '已暂停' ? '#ef4444' : '#f59e0b';
       var statusBg = p.status === '已完成' ? 'rgba(52,199,36,0.1)' : p.status === '进行中' ? 'rgba(59,130,246,0.1)' : p.status === '已暂停' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)';
-      h += '<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'" onclick="openProjectDetail(\'' + p.id + '\')">';
-      // 顶部：项目名称+状态
+      var cid = 'pc_' + p.id.replace(/-/g,'_');
+      h += '<div style="background:#1e293b;border-radius:12px;padding:20px;border:1px solid #334155;transition:border-color .2s" onmouseover="this.style.borderColor=\'' + barColor + '\'" onmouseout="this.style.borderColor=\'#334155\'">';
+      // 顶部：项目名称+状态+展开按钮
       h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-      h += '<div><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name || '') + '</b></div>';
+      h += '<div style="flex:1;min-width:0;cursor:pointer" onclick="openProjectDetail(\'' + p.id + '\')"><span style="font-size:11px;color:#64748b">' + p.id + '</span> <b style="font-size:15px;color:#e2e8f0">' + escapeHtml(p.name || '') + '</b></div>';
+      h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
       h += '<span style="font-size:11px;padding:3px 10px;border-radius:12px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + escapeHtml(p.status || '') + '</span>';
+      h += '<button onclick="toggleCardExpand(\'' + cid + '\',this)" style="background:none;border:1px solid #475569;border-radius:4px;color:#94a3b8;font-size:14px;padding:2px 6px;cursor:pointer;line-height:1" title="展开/收起">▼</button>';
+      h += '</div></div>';
+      // 负责人+成员+负责人类型
+      h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:12px;color:#94a3b8">';
+      h += '<span>负责人：<b style="color:#e2e8f0">' + escapeHtml(p.manager || '') + '</b></span>';
+      if (p.leadType) h += '<span style="padding:1px 6px;border-radius:4px;background:rgba(96,165,250,0.1);color:#60a5fa;font-size:11px">' + escapeHtml(p.leadType) + '</span>';
+      if (p.members) h += '<span>成员：' + escapeHtml(p.members) + '</span>';
       h += '</div>';
-      // 负责人
-      h += '<div style="font-size:12px;color:#94a3b8;margin-bottom:10px">负责人：<span style="color:#e2e8f0">' + escapeHtml(p.manager || '') + '</span>' + (p.leadType ? ' (' + escapeHtml(p.leadType) + ')' : '') + '</div>';
-      // 进度条
+      // 进度条+日期
       h += '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#94a3b8">进度</span><span style="color:' + barColor + ';font-weight:700">' + p.progress + '%</span></div>';
       h += '<div style="background:#334155;border-radius:6px;height:10px"><div style="background:' + barColor + ';height:10px;border-radius:6px;width:' + Math.min(p.progress, 100) + '%;transition:width .5s"></div></div></div>';
+      h += '<div style="display:flex;gap:12px;font-size:11px;color:#64748b;margin-bottom:10px">';
+      if (p.startDate) h += '<span>📅 开始：' + p.startDate + '</span>';
+      if (p.endDate) h += '<span>📅 结束：' + p.endDate + '</span>';
+      if (p.budget) h += '<span>💰 ¥' + Math.round(p.budget/10000) + '万</span>';
+      h += '</div>';
       // 描述摘要
       h += '<div style="font-size:12px;color:#94a3b8;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">' + escapeHtml(p.description || '') + '</div>';
-      // 底部：后续计划摘要
+      // 可展开区域（默认隐藏）
+      h += '<div id="' + cid + '" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid #334155">';
+      // 后续计划
       if (p.nextPlan) {
-        var planLines = p.nextPlan.split('\n');
-        h += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #334155;font-size:11px;color:#64748b"><b style="color:#60a5fa">后续计划：</b> ' + escapeHtml(planLines[0] || '') + (planLines.length > 1 ? ' ...' : '') + '</div>';
+        h += '<div style="margin-bottom:10px;font-size:12px"><b style="color:#60a5fa">后续计划：</b><div style="margin-top:4px;padding:8px;background:rgba(59,130,246,0.06);border-radius:6px;white-space:pre-wrap;color:#cbd5e1">' + escapeHtml(p.nextPlan) + '</div></div>';
       }
-      // 子步骤摘要
+      // 风险
+      if (p.risks) {
+        h += '<div style="margin-bottom:10px;font-size:12px"><b style="color:#ef4444">风险与问题：</b><div style="margin-top:4px;padding:8px;background:rgba(239,68,68,0.06);border-radius:6px;white-space:pre-wrap;color:#cbd5e1">' + escapeHtml(p.risks) + '</div></div>';
+      }
+      // 关联项目
+      if (p.relatedProjects && p.relatedProjects.length > 0) {
+        h += '<div style="margin-bottom:10px;font-size:12px"><b style="color:#f59e0b">关联项目：</b>';
+        for (var ri = 0; ri < p.relatedProjects.length; ri++) {
+          var rp = p.relatedProjects[ri];
+          var rpClr = rp.status==='已完成'?'#34c724':rp.status==='进行中'?'#3b82f6':'#f59e0b';
+          h += '<span style="display:inline-block;margin:2px;padding:2px 8px;border:1px solid #334155;border-radius:4px;font-size:11px"><span style="color:' + rpClr + '">●</span> ' + escapeHtml(rp.name) + '</span>';
+        }
+        h += '</div>';
+      }
+      // 子步骤摘要表
       if (p.subSteps && p.subSteps.length > 0) {
-        h += '<div style="margin-top:8px;font-size:11px;color:#64748b">子工序 <span style="color:#e2e8f0">' + p.subSteps.length + '</span> 项</div>';
+        h += '<div style="margin-bottom:10px"><b style="font-size:12px;color:#94a3b8">子工序进度：</b>';
+        for (var ssi = 0; ssi < p.subSteps.length; ssi++) {
+          var ss = p.subSteps[ssi];
+          var ssClr = ss.rate>=100?'#34c724':ss.rate>=80?'#f59e0b':ss.rate<60?'#ef4444':'#3b82f6';
+          h += '<div style="display:flex;align-items:center;gap:8px;margin:4px 0;font-size:11px">';
+          h += '<span style="width:60px;text-align:right;color:#94a3b8;flex-shrink:0">' + escapeHtml(ss.name) + '</span>';
+          h += '<div style="flex:1;background:#334155;border-radius:4px;height:8px"><div style="background:' + ssClr + ';height:8px;border-radius:4px;width:' + Math.min(ss.rate,100) + '%"></div></div>';
+          h += '<span style="color:#e2e8f0;width:32px">' + ss.done + '/' + ss.total + '</span>';
+          h += '</div>';
+        }
+        h += '</div>';
       }
+      // 操作按钮区
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid #334155">';
+      h += '<button class="btn bp" style="font-size:11px;padding:4px 10px" onclick="openProjectDetail(\'' + p.id + '\')">详情</button>';
+      if (hasPermission('project-manage','edit')) h += '<button class="btn" style="font-size:11px;padding:4px 10px;background:#f59e0b;color:#fff" onclick="editProject(\'' + p.id + '\')">编辑</button>';
+      h += '<button class="btn" style="font-size:11px;padding:4px 10px;background:#3b82f6;color:#fff" onclick="pushProject(\'' + p.id + '\')">推送消息</button>';
+      if (hasPermission('project-manage','edit')) h += '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="editProjectPush(\'' + p.id + '\')">推送配置</button>';
       h += '</div>';
+      h += '</div>'; // end expandable
+      h += '</div>'; // end card
     }
     h += '</div>';
     h += renderPagination(total, page, pageSize, 'projectPageChange');
@@ -3909,6 +3954,107 @@ function renderProjectList(filterFn, title) {
 }
 
 function projectPageChange(p) { setPage('project', p); refresh(); }
+
+function toggleCardExpand(cid, btn) {
+  var el = document.getElementById(cid);
+  if (!el) return;
+  var showing = el.style.display === 'none';
+  el.style.display = showing ? 'block' : 'none';
+  btn.textContent = showing ? '▲' : '▼';
+  btn.title = showing ? '收起' : '展开';
+}
+
+function pushProject(projectId) {
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) { showToast('项目不存在', 'error'); return; }
+  var groups = lsGet('push_groups', []);
+  var groupOptions = '<option value="">选择推送群组</option>';
+  for (var g = 0; g < groups.length; g++) {
+    var sel = (p.pushConfig && p.pushConfig.group === groups[g].name) ? ' selected' : '';
+    groupOptions += '<option value="' + escapeHtml(groups[g].name) + '"' + sel + '>' + escapeHtml(groups[g].name) + '</option>';
+  }
+  var html = '<div class="modal-overlay" id="pushProjectModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>推送项目消息</h3><button onclick="document.getElementById(\'pushProjectModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="padding:8px 12px;background:rgba(59,130,246,0.06);border-radius:6px;margin-bottom:12px;font-size:13px"><b>' + escapeHtml(p.name) + '</b> (' + p.id + ') — 进度 ' + p.progress + '%</div>';
+  html += '<label>推送群组</label><select id="pp_group" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">' + groupOptions + '</select>';
+  html += '<label style="margin-top:8px">推送类型</label><select id="pp_type" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px">';
+  html += '<option value="project_summary">项目进度汇总</option><option value="project_detail">项目详细报告</option><option value="risk_alert">风险预警</option>';
+  html += '</select>';
+  html += '<label style="margin-top:8px">附加说明</label><textarea id="pp_remark" rows="2" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical" placeholder="可选，补充说明..."></textarea>';
+  html += '</div><div class="modal-footer">';
+  html += '<button class="btn bp" onclick="doPushProject(\'' + projectId + '\')">发送推送</button>';
+  html += '<button class="btn" onclick="document.getElementById(\'pushProjectModal\').remove()">取消</button>';
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function doPushProject(projectId) {
+  var group = document.getElementById('pp_group').value;
+  var type = document.getElementById('pp_type').value;
+  var remark = document.getElementById('pp_remark').value;
+  if (!group) { showToast('请选择推送群组', 'error'); return; }
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) return;
+  var groups = lsGet('push_groups', []);
+  var webhook = '';
+  for (var g = 0; g < groups.length; g++) {
+    if (groups[g].name === group) { webhook = groups[g].webhook; break; }
+  }
+  if (!webhook) { showToast('群组未配置 Webhook', 'error'); return; }
+  var card = buildProjectPushCard(p, type, remark);
+  sendFeishuCard(webhook, card, function(ok) {
+    if (ok) showToast('推送成功：' + group);
+    else showToast('推送失败，请检查 Webhook', 'error');
+  });
+  var modal = document.getElementById('pushProjectModal');
+  if (modal) modal.remove();
+}
+
+function buildProjectPushCard(p, type, remark) {
+  var elements = [];
+  elements.push({tag:'div',text:{tag:'lark_md',content:'**项目：' + (p.name||'') + '** (' + p.id + ')'}});
+  if (type === 'project_summary') {
+    elements.push({tag:'hr'});
+    elements.push({tag:'div',text:{tag:'lark_md',content:'**进度：** ' + p.progress + '%\n**状态：** ' + (p.status||'') + '\n**负责人：** ' + (p.manager||'') + (p.leadType?' ('+p.leadType+')':'')}});
+    if (p.nextPlan) elements.push({tag:'div',text:{tag:'lark_md',content:'**后续计划：**\n' + p.nextPlan}});
+  } else if (type === 'project_detail') {
+    elements.push({tag:'hr'});
+    elements.push({tag:'div',text:{tag:'lark_md',content:'**进度：** ' + p.progress + '% | **状态：** ' + (p.status||'') + '\n**负责人：** ' + (p.manager||'') + (p.leadType?' ('+p.leadType+')':'') + '\n**开始：** ' + (p.startDate||'-') + ' | **结束：** ' + (p.endDate||'-') + '\n**预算：** ' + (p.budget?'¥'+Math.round(p.budget/10000)+'万':'未设置')}});
+    if (p.description) elements.push({tag:'div',text:{tag:'lark_md',content:'**描述：**\n' + p.description}});
+    if (p.subSteps && p.subSteps.length > 0) {
+      var stepText = '**子工序：**\n';
+      for (var i = 0; i < p.subSteps.length; i++) stepText += '- ' + p.subSteps[i].name + ': ' + p.subSteps[i].done + '/' + p.subSteps[i].total + ' (' + p.subSteps[i].rate + '%)\n';
+      elements.push({tag:'div',text:{tag:'lark_md',content:stepText}});
+    }
+    if (p.nextPlan) elements.push({tag:'div',text:{tag:'lark_md',content:'**后续计划：**\n' + p.nextPlan}});
+  } else if (type === 'risk_alert') {
+    elements.push({tag:'hr'});
+    var riskContent = p.risks || '当前无风险记录';
+    elements.push({tag:'div',text:{tag:'lark_md',content:'**风险与问题：**\n' + riskContent}});
+    elements.push({tag:'div',text:{tag:'lark_md',content:'**当前进度：** ' + p.progress + '% | **状态：** ' + (p.status||'')}});
+  }
+  if (remark) {
+    elements.push({tag:'hr'});
+    elements.push({tag:'div',text:{tag:'lark_md',content:'**备注：** ' + remark}});
+  }
+  elements.push({tag:'note',elements:[{tag:'plain_text',content:'智能制造平台自动推送 | ' + new Date().toLocaleString('zh-CN')}].concat(p.pushConfig && p.pushConfig.enabled ? [{tag:'plain_text',content:'（定期推送已启用）'}] : [])});
+  return {config:{wide_screen_mode:true},header:{title:{tag:'plain_text',content:'项目推送：' + (p.name||'')}},elements:elements};
+}
+
+function sendFeishuCard(webhook, card, callback) {
+  var body = JSON.stringify({msg_type:'interactive',card:card});
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', webhook, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onload = function() { callback && callback(xhr.status >= 200 && xhr.status < 300); };
+  xhr.onerror = function() { callback && callback(false); };
+  xhr.send(body);
+}
 
 function createProject() {
   var today = new Date().toISOString().slice(0,10);
@@ -3963,6 +4109,103 @@ function createProject() {
     },
     onAfter: function() { refresh(); }
   });
+}
+
+function renderGanttChart(projectId) {
+  var container = document.getElementById('gantt_' + projectId);
+  if (!container) return;
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) { container.innerHTML = '<div style="padding:12px;color:#94a3b8">项目数据未找到</div>'; return; }
+
+  var year = new Date().getFullYear();
+  var startM = p.startDate ? parseInt(p.startDate.split('-')[1]) : 1;
+  var endM = p.endDate ? parseInt(p.endDate.split('-')[1]) : 12;
+  if (endM < startM) endM = 12;
+  var months = [];
+  var mNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  for (var m = startM; m <= endM; m++) months.push(m);
+
+  var weeks = [];
+  for (var mi = 0; mi < months.length; mi++) {
+    var mm = months[mi];
+    var firstDay = new Date(year, mm - 1, 1);
+    var lastDay = new Date(year, mm, 0);
+    var wStart = 1;
+    while (wStart <= lastDay.getDate()) {
+      var wEnd = Math.min(wStart + 6, lastDay.getDate());
+      weeks.push({month: mm, start: wStart, end: wEnd, label: mm + '/' + wStart + '-' + mm + '/' + wEnd});
+      wStart = wEnd + 1;
+    }
+  }
+
+  var tasks = [];
+  if (p.subSteps) {
+    for (var si = 0; si < p.subSteps.length; si++) {
+      var ss = p.subSteps[si];
+      tasks.push({name: ss.name, progress: ss.rate, color: ss.rate>=100?'#34c724':ss.rate>=80?'#f59e0b':ss.rate<60?'#ef4444':'#3b82f6'});
+    }
+  }
+  if (p.nextPlan) {
+    var planLines = p.nextPlan.split('\n').filter(function(l){return l.trim().length > 0;});
+    for (var pli = 0; pli < planLines.length; pli++) {
+      var pl = planLines[pli].replace(/^[-*\d.、)\s]+/, '').trim();
+      if (pl.length > 0) tasks.push({name: pl.substring(0, 30), progress: 0, color: '#64748b', isPlan: true});
+    }
+  }
+  if (p.risks) {
+    var riskLines = p.risks.split('\n').filter(function(l){return l.trim().length > 0;});
+    for (var rli = 0; rli < Math.min(riskLines.length, 3); rli++) {
+      var rl = riskLines[rli].replace(/^[-*\d.、)\s]+/, '').trim();
+      if (rl.length > 0) tasks.push({name: rl.substring(0, 30), progress: 0, color: '#ef4444', isRisk: true});
+    }
+  }
+  if (tasks.length === 0) tasks.push({name: '暂无详细事项', progress: 0, color: '#64748b'});
+
+  var labelW = 140;
+  var colW = 42;
+  var monthW = colW * 4.3;
+  var rowH = 32;
+
+  var h = '<div style="min-width:' + (labelW + monthW * months.length) + 'px;font-size:11px">';
+  h += '<div style="display:flex">';
+  h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:4px 8px;color:#60a5fa;font-weight:700;font-size:13px;background:#0f172a;border-bottom:2px solid #1e3a5f">' + year + '年</div>';
+  h += '<div style="flex:1;display:flex;border-bottom:2px solid #1e3a5f;background:#0f172a">';
+  for (var mi2 = 0; mi2 < months.length; mi2++) {
+    h += '<div style="width:' + monthW + 'px;text-align:center;padding:4px 0;color:#e2e8f0;font-weight:600;border-left:1px solid #1e3a5f">' + mNames[months[mi2]-1] + '</div>';
+  }
+  h += '</div></div>';
+  h += '<div style="display:flex">';
+  h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:2px 8px;color:#64748b;background:#0f172a;border-bottom:1px solid #334155;font-size:10px">周 / 事项</div>';
+  h += '<div style="flex:1;display:flex;border-bottom:1px solid #334155;background:#0f172a">';
+  for (var wi = 0; wi < weeks.length; wi++) {
+    h += '<div style="width:' + colW + 'px;text-align:center;padding:2px 0;color:#64748b;font-size:9px;border-left:1px solid rgba(51,65,85,0.5);white-space:nowrap;overflow:hidden">' + weeks[wi].label + '</div>';
+  }
+  h += '</div></div>';
+
+  for (var ti = 0; ti < tasks.length; ti++) {
+    var t = tasks[ti];
+    var rowBg = ti % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+    h += '<div style="display:flex;align-items:center;background:' + rowBg + '">';
+    h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:4px 8px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid rgba(51,65,85,0.3);font-size:11px" title="' + escapeHtml(t.name) + '">';
+    if (t.isRisk) h += '<span style="color:#ef4444">⚠ </span>';
+    else if (t.isPlan) h += '<span style="color:#60a5fa">📌 </span>';
+    h += escapeHtml(t.name) + '</div>';
+    h += '<div style="flex:1;display:flex;position:relative;height:' + rowH + 'px;border-bottom:1px solid rgba(51,65,85,0.3)">';
+    for (var wci = 0; wci < weeks.length; wci++) {
+      h += '<div style="width:' + colW + 'px;border-left:1px solid rgba(51,65,85,0.2);flex-shrink:0"></div>';
+    }
+    var totalWeeks = weeks.length;
+    var doneWeeks = Math.round(t.progress / 100 * totalWeeks);
+    if (doneWeeks > 0) {
+      h += '<div style="position:absolute;top:6px;left:4px;width:calc(' + (doneWeeks/totalWeeks*100) + '% - 8px);height:20px;background:' + t.color + ';border-radius:4px;opacity:0.75"></div>';
+    }
+    h += '<div style="position:absolute;top:7px;right:6px;color:#e2e8f0;font-size:10px;font-weight:600">' + t.progress + '%</div>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+  container.innerHTML = h;
 }
 
 function openProjectDetail(id) {
@@ -4033,25 +4276,14 @@ function openProjectDetail(id) {
     stepsHtml += '<tr style="font-weight:bold;background:rgba(52,199,36,0.1)"><td>合计</td><td>' + totalAll + '</td><td>' + totalDone + '</td><td>' + (totalAll > 0 ? (totalDone/totalAll*100).toFixed(2) : 0) + '%</td><td><div style="background:#334155;border-radius:4px;height:8px;min-width:80px"><div style="background:#34c724;height:8px;border-radius:4px;width:' + (totalAll > 0 ? Math.min(totalDone/totalAll*100,100) : 0) + '%"></div></div></td></tr>';
     stepsHtml += '</tbody></table></div>';
 
-    // 甘特图（V18增强）
+    // 甘特图（V18增强：周/月/年时间轴）
     stepsHtml += '<div style="margin-top:16px"><h4 style="margin-bottom:8px">甘特图</h4>';
-    stepsHtml += '<div style="overflow-x:auto"><div style="min-width:500px">';
-    var maxTotal = 0;
-    for (var si2 = 0; si2 < p.subSteps.length; si2++) { if (p.subSteps[si2].total > maxTotal) maxTotal = p.subSteps[si2].total; }
-    for (var si3 = 0; si3 < p.subSteps.length; si3++) {
-      var gs = p.subSteps[si3];
-      var barW = maxTotal > 0 ? (gs.done / maxTotal * 100) : 0;
-      var bgW = maxTotal > 0 ? (gs.total / maxTotal * 100) : 0;
-      var gColor = gs.rate >= 100 ? '#34c724' : gs.rate >= 80 ? '#f59e0b' : gs.rate < 60 ? '#ef4444' : '#3b82f6';
-      stepsHtml += '<div style="display:flex;align-items:center;margin-bottom:4px;font-size:12px">';
-      stepsHtml += '<div style="width:80px;flex-shrink:0;text-align:right;padding-right:8px;white-space:nowrap">' + gs.name + '</div>';
-      stepsHtml += '<div style="flex:1;position:relative;height:20px">';
-      stepsHtml += '<div style="position:absolute;left:0;top:0;width:' + bgW + '%;height:20px;background:rgba(255,255,255,0.05);border:1px solid #334155;border-radius:3px"></div>';
-      stepsHtml += '<div style="position:absolute;left:0;top:0;width:' + Math.min(barW, bgW) + '%;height:20px;background:' + gColor + ';border-radius:3px;opacity:0.85"></div>';
-      stepsHtml += '<span style="position:absolute;right:4px;top:0;line-height:20px;color:#94a3b8;font-size:11px">' + gs.done + '/' + gs.total + '</span>';
-      stepsHtml += '</div></div>';
-    }
-    stepsHtml += '</div></div></div>';
+    stepsHtml += '<div style="overflow-x:auto;border:1px solid #334155;border-radius:8px">';
+    stepsHtml += '<div id="gantt_' + p.id + '"></div>';
+    stepsHtml += '</div>';
+    // 甘特图将在DOM渲染后初始化
+    stepsHtml += '<script>(function(){setTimeout(function(){renderGanttChart("' + p.id + '");},100)})()<\/script>';
+    stepsHtml += '</div>';
   }
 
   h += stepsHtml;
