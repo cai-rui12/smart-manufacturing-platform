@@ -1326,15 +1326,6 @@ async function tryConnectServer(url, timeoutMs) {
 }
 
 async function detectServer() {
-  if (location.hostname === 'cai-rui12.github.io' || location.hostname.endsWith('.github.io')) {
-    SERVER_CONFIG.mode = 'offline';
-    SERVER_CONFIG.enabled = false;
-    SERVER_CONFIG.url = '';
-    API_BASE = '';
-    localStorage.setItem('v13_server_url', '');
-    updateSyncStatusBadge('offline', '本地模式');
-    return;
-  }
   updateSyncStatusBadge('syncing', '连接中...');
 
   // 1. 先从GitHub配置文件获取最新隧道URL
