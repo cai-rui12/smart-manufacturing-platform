@@ -2529,6 +2529,28 @@ function openMo(cfg) {
     mdEl.style.maxWidth = '95vw';
     mdEl.style.minHeight = '300px';
     mdEl.style.maxHeight = '90vh';
+    // 添加四边拖拽手柄
+    if (!mdEl.querySelector('.resize-handle-r')) {
+      var handles = ['n','e','s','w','ne','nw','se','sw'];
+      for (var hi = 0; hi < handles.length; hi++) {
+        var h = document.createElement('div');
+        h.className = 'resize-handle-' + handles[hi];
+        h.setAttribute('data-dir', handles[hi]);
+        h.style.cssText = 'position:absolute;z-index:10000;';
+        if (handles[hi] === 'n' || handles[hi] === 's') h.style.cssText += 'left:8px;right:8px;height:6px;cursor:ns-resize;';
+        if (handles[hi] === 'e' || handles[hi] === 'w') h.style.cssText += 'top:8px;bottom:8px;width:6px;cursor:ew-resize;';
+        if (handles[hi] === 'n') h.style.cssText += 'top:-3px;';
+        if (handles[hi] === 's') h.style.cssText += 'bottom:-3px;';
+        if (handles[hi] === 'e') h.style.cssText += 'right:-3px;';
+        if (handles[hi] === 'w') h.style.cssText += 'left:-3px;';
+        if (handles[hi] === 'ne' || handles[hi] === 'nw' || handles[hi] === 'se' || handles[hi] === 'sw') h.style.cssText += 'width:12px;height:12px;';
+        if (handles[hi] === 'ne') h.style.cssText += 'top:-3px;right:-3px;cursor:nesw-resize;';
+        if (handles[hi] === 'nw') h.style.cssText += 'top:-3px;left:-3px;cursor:nwse-resize;';
+        if (handles[hi] === 'se') h.style.cssText += 'bottom:-3px;right:-3px;cursor:nwse-resize;';
+        if (handles[hi] === 'sw') h.style.cssText += 'bottom:-3px;left:-3px;cursor:nesw-resize;';
+        mdEl.appendChild(h);
+      }
+    }
   }
   document.getElementById('mo').classList.add('sh');
 }
@@ -4048,11 +4070,59 @@ function pushProject(projectId) {
   html += '<option value="project_summary">项目进度汇总</option><option value="project_detail">项目详细报告</option><option value="risk_alert">风险预警</option>';
   html += '</select>';
   html += '<label style="margin-top:8px">附加说明</label><textarea id="pp_remark" rows="2" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical" placeholder="可选，补充说明..."></textarea>';
+  html += '<div style="margin-top:8px"><b style="font-size:12px;color:#94a3b8">消息预览：</b><div id="pp_preview" style="margin-top:4px;padding:8px;background:rgba(59,130,246,0.06);border-radius:6px;font-size:12px;color:#cbd5e1;max-height:120px;overflow-y:auto">点击"预览"查看消息内容</div></div>';
   html += '</div><div class="modal-footer">';
+  html += '<button class="btn" style="font-size:11px;padding:4px 10px;background:#10b981;color:#fff" onclick="previewPushProject(\'' + projectId + '\')">预览</button>';
+  html += '<button class="btn" style="font-size:11px;padding:4px 10px" onclick="editPushTemplate(\'' + projectId + '\')">编辑模版</button>';
   html += '<button class="btn bp" onclick="doPushProject(\'' + projectId + '\')">发送推送</button>';
   html += '<button class="btn" onclick="document.getElementById(\'pushProjectModal\').remove()">取消</button>';
   html += '</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function previewPushProject(projectId) {
+  var group = document.getElementById('pp_group').value;
+  var type = document.getElementById('pp_type').value;
+  var remark = document.getElementById('pp_remark').value;
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) return;
+  var card = buildProjectPushCard(p, type, remark);
+  var preview = '<b>' + card.header.title.content + '</b><br>';
+  for (var e = 0; e < card.elements.length; e++) {
+    var el = card.elements[e];
+    if (el.text && el.text.content) preview += '<div style="margin:4px 0">' + el.text.content.replace(/\n/g, '<br>') + '</div>';
+  }
+  document.getElementById('pp_preview').innerHTML = preview;
+}
+
+function editPushTemplate(projectId) {
+  var modal = document.getElementById('pushProjectModal');
+  if (modal) modal.remove();
+  var projects = getAllProjects();
+  var p = null;
+  for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
+  if (!p) return;
+  var defaultTemplate = '## {{projectName}} ({{projectId}})\n\n**进度**：{{progress}}%\n**状态**：{{status}}\n**负责人**：{{manager}}\n\n{{#if subSteps}}**子工序进度：**\n{{#each subSteps}}- {{name}}: {{done}}/{{total}} ({{rate}}%)\n{{/each}}\n{{/if}}\n{{#if nextPlan}}**后续计划：**\n{{nextPlan}}\n{{/if}}\n{{#if risks}}**风险与问题：**\n{{risks}}\n{{/if}}\n{{#if remark}}**备注：**{{remark}}\n{{/if}}\n\n---\n智能制造平台自动推送 | {{timestamp}}';
+  var saved = lsGet('push_templates_' + projectId, '');
+  var html = '<div class="modal-overlay" id="editTemplateModal" onclick="if(event.target===this)this.remove()">';
+  html += '<div class="modal" style="max-width:600px"><div class="modal-header"><h3>编辑推送模版 - ' + escapeHtml(p.name) + '</h3><button onclick="document.getElementById(\'editTemplateModal\').remove()">✕</button></div>';
+  html += '<div class="modal-body">';
+  html += '<div style="font-size:11px;color:#64748b;margin-bottom:8px">支持变量：{{projectName}} {{projectId}} {{progress}} {{status}} {{manager}} {{startDate}} {{endDate}} {{description}} {{subSteps}} {{nextPlan}} {{risks}} {{remark}} {{timestamp}}</div>';
+  html += '<textarea id="template_editor" rows="12" style="width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px;color:#e2e8f0;font-size:13px;resize:vertical;font-family:monospace">' + escapeHtml(saved || defaultTemplate) + '</textarea>';
+  html += '</div><div class="modal-footer">';
+  html += '<button class="btn bp" onclick="savePushTemplate(\'' + projectId + '\')">保存模版</button>';
+  html += '<button class="btn" onclick="document.getElementById(\'editTemplateModal\').remove()">取消</button>';
+  html += '</div></div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function savePushTemplate(projectId) {
+  var template = document.getElementById('template_editor').value;
+  lsSet('push_templates_' + projectId, template);
+  document.getElementById('editTemplateModal').remove();
+  showToast('推送模版已保存');
 }
 
 function doPushProject(projectId) {
@@ -4188,7 +4258,7 @@ function openGanttPopup(projectId) {
   html += '</div></div></div>';
   document.body.insertAdjacentHTML('beforeend', html);
   // 等DOM渲染完成后渲染甘特图
-  setTimeout(function(){ renderGanttChart(projectId); }, 50);
+  setTimeout(function(){ renderGanttChart(projectId, 'gantt_popup_' + projectId); }, 80);
 }
 
 // Global zoom level for Gantt charts (persisted across renders)
@@ -4536,7 +4606,7 @@ function openProjectDetail(id) {
 
   h += stepsHtml;
   var footer = '';
-  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')" title="推送到已配置的飞书群组Webhook">推送飞书</button>';
+  footer += '<button class="btn" style="background:var(--accent);color:#fff" onclick="syncProjectToFeishu(\'' + p.id + '\')" title="同步项目数据到飞书多维表格/云文档">同步到飞书</button>';
   if (hasPermission('project-manage','edit')) {
     footer += ' <button class="btn bp" onclick="editProject(\'' + p.id + '\')">编辑</button>';
   }
