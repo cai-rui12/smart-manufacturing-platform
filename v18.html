@@ -760,7 +760,43 @@ var REAL_TASKS = [
   {id:'T007', desc:'陶瓷磨板自动物流项目', priority:'重要不紧急', owner:'梁辉彬', status:'已完成', progress:100, startDate:'2026-05-09', endDate:'2026-06-09', progressText:'自动物流测试已完成，待上线', notifyPeople:'蔡瑞', assignees:'梁辉彬,肖永哲', process:'磨板'},
   {id:'T008', desc:'外层前处理自动物流项目', priority:'重要紧急', owner:'梁辉彬', status:'进行中', progress:75, startDate:'2026-04-15', endDate:'2026-05-15', progressText:'放板机已完成自动物流测试', notifyPeople:'蔡瑞,黄广生', assignees:'梁辉彬', process:'外层'},
   {id:'T009', desc:'去毛刺自动物流项目', priority:'重要不紧急', owner:'梁辉彬', status:'已停滞', progress:50, startDate:'2026-04-01', endDate:'2026-06-30', progressText:'已完成交互测试与PLC程序更新，待自动计划上线', notifyPeople:'蔡瑞', assignees:'梁辉彬', process:'去毛刺'},
-  {id:'T010', desc:'阻焊前处理自动物流项目', priority:'重要不紧急', owner:'梁辉彬', status:'进行中', progress:65, startDate:'2026-04-15', endDate:'2026-05-15', progressText:'放板机已完成自动物流测试，收板机待测试', notifyPeople:'蔡瑞', assignees:'梁辉彬,肖永哲', process:'阻焊'}
+  {id:'T010', desc:'阻焊前处理自动物流项目', priority:'重要不紧急', owner:'梁辉彬', status:'进行中', progress:65, startDate:'2026-04-15', endDate:'2026-05-15', progressText:'放板机已完成自动物流测试，收板机待测试', notifyPeople:'蔡瑞', assignees:'梁辉彬,肖永哲', process:'阻焊'},
+  {id:'T011', desc:'生产参数下发', priority:'重要紧急', owner:'郑绪友', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'更新参数下发进度为201项完成185项(92%)', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T012', desc:'OEE生产效率', priority:'重要紧急', owner:'郑绪友', status:'进行中', progress:74, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'更新OEE模块需求数据', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T013', desc:'MES系统维护', priority:'重要不紧急', owner:'郑绪友', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成MES系统周报数据汇总', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T014', desc:'设备联网监控', priority:'重要紧急', owner:'郑绪友', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成SCADA数据采集核对76项', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T015', desc:'自动物流系统对接', priority:'重要不紧急', owner:'郑绪友', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'更新AGV物流下半年三阶段计划', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T016', desc:'读码追溯系统维护', priority:'重要紧急', owner:'刘洪文', status:'进行中', progress:85, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'更新读头安装进度', notifyPeople:'蔡瑞', assignees:'刘洪文', process:'智能制造'},
+  {id:'T017', desc:'智能巡检系统', priority:'重要紧急', owner:'湛子昂', status:'进行中', progress:67, startDate:'2026-01-01', endDate:'2026-12-31', progressText:'更新智能巡检各工序进度', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T018', desc:'设备故障分析', priority:'重要不紧急', owner:'郑绪友', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成故障分析月度报告', notifyPeople:'蔡瑞', assignees:'郑绪友', process:'智能制造'},
+  {id:'T019', desc:'SCADA数字化平台', priority:'重要紧急', owner:'湛子昂', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', progressText:'SCADA数据采集共121项已完成121项(100%)，放板机收板机共125项已入网125项(100%)', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T020', desc:'SCADA智能巡检', priority:'重要紧急', owner:'湛子昂', status:'进行中', progress:67, startDate:'2026-01-01', endDate:'2026-12-31', progressText:'9个工序需上线，已上线4个(IL内层100%、OL外层100%、LAM压合100%、SM阻焊100%)，63台设备已上线42台(67%)', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T021', desc:'设备数据采集优化', priority:'重要不紧急', owner:'湛子昂', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'持续优化SCADA数据采集质量，推进数据分析看板建设', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T022', desc:'设备入网维护', priority:'重要不紧急', owner:'湛子昂', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', progressText:'放板机入网63台，收板机入网62台，设备联网125项已完成', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T023', desc:'数据分析看板建设', priority:'重要不紧急', owner:'湛子昂', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'推进数据分析看板建设，优化巡检算法准确率', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T024', desc:'巡检算法优化', priority:'重要不紧急', owner:'湛子昂', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'去毛刺IG、沉铜PNP进度较慢，需重点推进', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T025', desc:'设备监控系统升级', priority:'重要紧急', owner:'湛子昂', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', progressText:'系统功能升级10项已完成10项(100%)', notifyPeople:'蔡瑞', assignees:'湛子昂', process:'智能制造'},
+  {id:'T026', desc:'电镀设备维护', priority:'重要紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成电镀VCP填孔、闪镀、龙门线设备维护', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T027', desc:'机械设备保养', priority:'重要不紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成机械设备定期保养计划', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T028', desc:'故障诊断处理', priority:'重要紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'处理多起设备突发故障', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T029', desc:'设备改造升级', priority:'重要不紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'推进设备自动化改造项目', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T030', desc:'备件管理', priority:'重要不紧急', owner:'丁洋', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成备件库存盘点和采购计划', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T031', desc:'设备巡检', priority:'重要紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成设备巡检路线优化', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T032', desc:'新设备安装调试', priority:'重要紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成新设备进场安装调试', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T033', desc:'设备培训', priority:'重要不紧急', owner:'丁洋', status:'已完成', progress:100, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成操作工设备培训计划', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T034', desc:'设备文档管理', priority:'重要不紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'整理设备技术文档', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T035', desc:'安全整改', priority:'重要紧急', owner:'丁洋', status:'进行中', progress:60, startDate:'2026-01-01', endDate:'2026-09-30', progressText:'完成设备安全隐患排查', notifyPeople:'蔡瑞', assignees:'丁洋', process:'智能制造'},
+  {id:'T036', desc:'自动计划专项', priority:'重要紧急', owner:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'更新自动计划专项进度，阻焊自动计划已上线', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T037', desc:'七八楼自动物流专项', priority:'重要紧急', owner:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'从飞书五厂8楼物流专项计划表更新数据', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T038', desc:'智能仓储系统', priority:'重要不紧急', owner:'黄广生', status:'进行中', progress:60, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'完成立体库货位重组方案', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T039', desc:'AGV路径优化', priority:'重要不紧急', owner:'黄广生', status:'进行中', progress:60, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'完成AGV路径优化测试', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T040', desc:'设备验收管理', priority:'重要紧急', owner:'黄广生', status:'进行中', progress:60, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'推进设备验收进度跟踪', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T041', desc:'MES系统优化', priority:'重要不紧急', owner:'黄广生', status:'进行中', progress:60, startDate:'2026-04-01', endDate:'2026-12-31', progressText:'推进MES系统深度对接', notifyPeople:'蔡瑞', assignees:'黄广生', process:'智能制造'},
+  {id:'T042', desc:'AGV调度系统', priority:'重要紧急', owner:'肖永哲', status:'已完成', progress:100, startDate:'2026-04-01', endDate:'2026-06-30', progressText:'二楼跨厂区调度测试已完成，五楼跨厂区调度路线已完成实施', notifyPeople:'蔡瑞', assignees:'肖永哲', process:'智能制造'},
+  {id:'T043', desc:'自动物流项目实施', priority:'重要不紧急', owner:'肖永哲', status:'进行中', progress:60, startDate:'2026-04-01', endDate:'2026-09-30', progressText:'放板机已完成自动物流测试，收板机待测试', notifyPeople:'蔡瑞', assignees:'肖永哲', process:'智能制造'},
+  {id:'T044', desc:'陶瓷磨板自动物流', priority:'重要不紧急', owner:'肖永哲', status:'已完成', progress:100, startDate:'2026-04-01', endDate:'2026-06-30', progressText:'自动物流测试已完成，待上线', notifyPeople:'蔡瑞', assignees:'肖永哲', process:'智能制造'},
+  {id:'T045', desc:'去毛刺自动物流', priority:'重要不紧急', owner:'肖永哲', status:'已停滞', progress:50, startDate:'2026-04-01', endDate:'2026-09-30', progressText:'已完成交互测试与PLC程序更新，待自动计划上线', notifyPeople:'蔡瑞', assignees:'肖永哲', process:'智能制造'},
+  {id:'T046', desc:'外层前处理自动物流', priority:'重要紧急', owner:'肖永哲', status:'进行中', progress:75, startDate:'2026-04-01', endDate:'2026-06-30', progressText:'放板机已完成自动物流测试', notifyPeople:'蔡瑞', assignees:'肖永哲', process:'智能制造'}
 ];
 
 var REAL_PROJECTS = [
@@ -1919,7 +1955,7 @@ function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_dail
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
-var PROJECT_DATA_VERSION = 13;
+var PROJECT_DATA_VERSION = 14;
 function getAllProjects() {
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
