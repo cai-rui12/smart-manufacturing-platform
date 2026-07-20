@@ -1050,6 +1050,39 @@ var REAL_PROJECTS = [
     {name:'1F物流',total:3,done:2,rate:66.7},{name:'2F物流',total:3,done:1,rate:33.3},{name:'3F物流',total:3,done:1,rate:33.3},{name:'4F物流',total:3,done:1,rate:33.3},{name:'5F物流',total:3,done:1,rate:33.3},{name:'6F物流',total:3,done:0,rate:0},{name:'7F物流',total:3,done:1,rate:33.3},{name:'8F物流',total:3,done:3,rate:100},{name:'提升机方案',total:3,done:1,rate:33.3}
   ]},
 ];
+
+var SPECIAL_PROJECTS = [
+  {id:'SP-001', name:'生产参数下发', manager:'郑绪友', total:201, done:185, rate:92.04, 
+   details:'设备参数下发总计201项，已完成185项。未完成：内层7/8/9线曝光机未实现通孔码转曝光码；5/7/8号蚀刻线未配置MES；电镀闪镀线无一体机工单；龙门线需切换新版软件；3#创峰除胶线未实现下发；阻焊单机曝光机未实现自动转码；超声波清洗线待工艺重写CP',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-002', name:'OEE生产效率', manager:'郑绪友', total:26, done:18, rate:69,
+   details:'设备OEE模块总计26项，上线18项，上线率69%。电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理、去氧化、成品酸洗线未上线',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-003', name:'SCADA数字化采集', manager:'湛子昂', total:121, done:121, rate:100,
+   details:'SCADA采集共121项，已完成121项，完成率100%',
+   status:'已完成', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-004', name:'收放板机入网', manager:'湛子昂', total:125, done:125, rate:100,
+   details:'放板机、收板机共125项需入网，已完成125项，完成率100%',
+   status:'已完成', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-005', name:'SCADA智能巡检', manager:'湛子昂', total:9, done:2, rate:22,
+   details:'智能巡检共9个工序需上线，已上线2个工序，完成率22%。9个工序共67条/台设备，已上线37条/台设备，完成率55%',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-006', name:'读码追溯系统', manager:'刘洪文', total:330, done:280, rate:84.8,
+   details:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%，未完成部分为激光钻孔复合。机器人暂未上线，无安装环境',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-007', name:'放板机防混批防呆', manager:'刘洪文', total:26, done:21, rate:81,
+   details:'总计26项，已完成21项，完成率81%。未完成主要原因：电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-008', name:'工序自动过数', manager:'刘洪文', total:98, done:65, rate:66,
+   details:'总计收集生产需求98项，完成65项，完成率66%。阻焊工序开发逻辑已提交IT待测试；AGV已具备搬运绑定工单货架到指定线边仓完成自动过数',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-009', name:'自动物流系统', manager:'梁辉彬', total:83, done:73, rate:88,
+   details:'AGV物流总计83项，点对点物流已导入73项，上线率88%，自动物流上线率28.92%。未完成：内层DES收板区域规划、层压棕化线、塞孔陶瓷磨板线空间、阻焊无尘室载具不匹配',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+  {id:'SP-010', name:'自动计划专项', manager:'黄广生', total:0, done:0, rate:0,
+   details:'各工序自动计划状态：大部分工序无自动计划，部分如前处理线、陶瓷磨板等处于计划部评审中',
+   status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
+];
 // 初始化默认推送群组（仅当localStorage中无数据时）
 (function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })();
 
@@ -1382,6 +1415,7 @@ var M = [
     {id:'milestone-current',label:'📅 当前里程碑'},
     {id:'milestone-history',label:'📚 历史里程碑'},
   ]},
+  {id:'special-projects',label:'📋 智能制造专项',icon:'📋'},
 ]},
 {id:'equipment',label:'🔧 设备管理',icon:'🔧',children:[
   {id:'equip-auto',label:'🤖 自动化设备',children:[
@@ -2174,7 +2208,7 @@ function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_dail
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
-var PROJECT_DATA_VERSION = 18;
+var PROJECT_DATA_VERSION = 19;
 function getAllProjects() {
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
@@ -5415,6 +5449,78 @@ function doChangeProjectStatus(id, newStatus) {
     refresh();
     showToast('项目 ' + id + ' 状态: ' + oldStatus + ' -> ' + newStatus, 'success');
   }
+}
+
+function renderSpecialProjects() {
+  var list = SPECIAL_PROJECTS;
+  var totalDone = 0;
+  var totalItems = 0;
+  for (var i = 0; i < list.length; i++) {
+    totalDone += list[i].done;
+    totalItems += list[i].total;
+  }
+  var avgRate = totalItems > 0 ? (totalDone / totalItems * 100).toFixed(1) : 0;
+  var completedCount = 0;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].status === '已完成') completedCount++;
+  }
+
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">\u{1f4cb} 智能制造专项进度 <span class="bdg">共 ' + list.length + ' 个专项</span></div>';
+  h += '<div class="kpi-row">';
+  h += '<div class="kpi-card"><div class="kpi-value">' + list.length + '</div><div class="kpi-label">专项总数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + completedCount + '</div><div class="kpi-label">已完成</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + (list.length - completedCount) + '</div><div class="kpi-label">进行中</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + avgRate + '%</div><div class="kpi-label">平均完成率</div></div>';
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:16px;margin-top:16px">';
+
+  for (var i = 0; i < list.length; i++) {
+    var sp = list[i];
+    var color = sp.rate >= 100 ? '#2db84d' : sp.rate >= 70 ? '#2f6be5' : sp.rate >= 50 ? '#e68a17' : '#e84855';
+    var statusBg = sp.status === '已完成' ? 'rgba(45,184,77,0.1)' : 'rgba(47,107,229,0.1)';
+    var statusColor = sp.status === '已完成' ? '#2db84d' : '#2f6be5';
+    var r = 40;
+    var c = 2 * Math.PI * r;
+    var dashOffset = c - (sp.rate / 100) * c;
+    var feishuUrl = 'https://bytedance.feishu.cn/wiki/' + sp.feishuDoc;
+
+    h += '<div style="background:var(--w);border-radius:var(--r-lg);padding:20px;border:1px solid var(--br2);box-shadow:var(--sh-sm);transition:border-color .2s,box-shadow .2s" onmouseover="this.style.borderColor=\'' + color + '\';this.style.boxShadow=\'var(--sh)\'" onmouseout="this.style.borderColor=\'var(--br2)\';this.style.boxShadow=\'var(--sh-sm)\'">';
+    h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">';
+    h += '<div style="flex:1;min-width:0">';
+    h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
+    h += '<span style="font-size:12px;color:var(--t3)">' + sp.id + '</span>';
+    h += '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:' + statusBg + ';color:' + statusColor + ';font-weight:600">' + sp.status + '</span>';
+    h += '</div>';
+    h += '<div style="font-size:16px;font-weight:700;color:var(--t);margin-top:4px">' + escapeHtml(sp.name) + '</div>';
+    h += '<div style="font-size:13px;color:var(--t2);margin-top:2px">\u{1f464} ' + escapeHtml(sp.manager) + '</div>';
+    h += '</div>';
+    h += '<div style="position:relative;width:90px;height:90px;flex-shrink:0">';
+    h += '<svg width="90" height="90" viewBox="0 0 90 90" style="transform:rotate(-90deg)">';
+    h += '<circle cx="45" cy="45" r="' + r + '" fill="none" stroke="var(--br2)" stroke-width="7"/>';
+    h += '<circle cx="45" cy="45" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + c + '" stroke-dashoffset="' + dashOffset + '" style="transition:stroke-dashoffset 0.8s ease"/>';
+    h += '</svg>';
+    h += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">';
+    h += '<div style="font-size:18px;font-weight:700;color:' + color + '">' + sp.rate + '%</div>';
+    h += '</div></div></div>';
+    if (sp.total > 0) {
+      h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;font-size:12px;color:var(--t2)">';
+      h += '<span>总计 <b style="color:var(--t)">' + sp.total + '</b> 项</span>';
+      h += '<span>完成 <b style="color:' + color + '">' + sp.done + '</b> 项</span>';
+      h += '<span>剩余 <b style="color:var(--t)">' + (sp.total - sp.done) + '</b> 项</span>';
+      h += '</div>';
+    }
+    h += '<div style="font-size:13px;color:var(--t2);line-height:1.6;margin-bottom:10px;max-height:80px;overflow-y:auto;padding-right:4px">' + escapeHtml(sp.details) + '</div>';
+    h += '<a href="' + feishuUrl + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--blue);text-decoration:none;padding:4px 10px;border-radius:var(--r-sm);background:var(--bl);transition:background .2s" onmouseover="this.style.background=\'var(--bd)\'" onmouseout="this.style.background=\'var(--bl)\'">\u{1f4c4} \u67e5\u770b\u4e91\u6587\u6863</a>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+  h += '<div style="margin-top:24px;padding:16px;background:var(--w);border-radius:var(--r);border:1px solid var(--br2);font-size:12px;color:var(--t3);text-align:center">';
+  h += '\u6570\u636e\u6765\u6e90\uff1a\u667a\u80fd\u5236\u9020\u4e13\u9879\u8fdb\u5ea6\u4e91\u6587\u6863 \u00b7 \u66f4\u65b0\u65f6\u95f4\uff1a2026-07-21';
+  h += '</div>';
+  h += '</div>';
+  return h;
 }
 
 function renderMilestone() {
@@ -11605,6 +11711,7 @@ function renderPage(id) {
     if (id === 'project-completed') return renderProjectList(function(p){return p.status==='已完成';}, '✅ 已完成项目');
     if (id === 'project-planned') return renderProjectList(function(p){return p.status==='规划中';}, '📍 规划中项目');
     if (id === 'milestone-current' || id === 'milestone-history' || id === 'project-milestone') return renderMilestone();
+    if (id === 'special-projects') return renderSpecialProjects();
     
     // 设备管理
     if (id === 'equip-all') return renderEquipList(null, '🔧 全部设备');
