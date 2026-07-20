@@ -1923,7 +1923,7 @@ function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_dail
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
-var PROJECT_DATA_VERSION = 3;
+var PROJECT_DATA_VERSION = 4;
 function getAllProjects() {
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
