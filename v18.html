@@ -1008,7 +1008,7 @@ var QUICK_CARDS = [
   {id:'equip-manage', icon:'🔧', title:'设备管理', desc:'设备清单状态', page:'equip-all'},
   {id:'improve-manage', icon:'💡', title:'每日改善', desc:'改善提案跟踪', page:'improve-list'},
   {id:'auto-task', icon:'🤖', title:'自动化任务', desc:'自动化提醒推送', page:'at-list'},
-  {id:'msg-push', icon:'📨', title:'消息推送', desc:'消息群组推送', page:'msg-push'},
+  {id:'push-center', icon:'📢', title:'推送中心', desc:'群组管理与推送', page:'push-center'},
   {id:'dashboard', icon:'📈', title:'数据看板', desc:'数据可视化', page:'dash-work'},
   {id:'member-manage', icon:'👥', title:'成员管理', desc:'人员权限管理', page:'member-manage'},
   {id:'doc-library', icon:'📚', title:'文档库', desc:'文档资料查询', page:'doc-library'},
@@ -1240,11 +1240,8 @@ var M = [
   {id:'home-config',label:'🎨 首页配置'},
   {id:'cfg-backup',label:'💾 数据备份'},
   {id:'feishu-config',label:'🔗 飞书配置'},
-  {id:'report-push-config',label:'📡 推送配置'},
-  {id:'cfg-theme',label:'🎭 主题配置'},
-  {id:'template-library',label:'📋 模板库'},
-  {id:'push-manage',label:'📢 推送管理'}
-  ,{id:'schedule-push',label:'⏰ 定时推送'}
+  {id:'push-center',label:'📢 推送中心'},
+  {id:'cfg-theme',label:'🎭 主题配置'}
 ]},
 {id:'modules',label:'🧩 模块管理',icon:'🧩',children:[
   {id:'module-list',label:'📦 已安装模块'},
@@ -1922,7 +1919,7 @@ function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_dail
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
-var PROJECT_DATA_VERSION = 12;
+var PROJECT_DATA_VERSION = 13;
 function getAllProjects() {
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
@@ -3117,6 +3114,31 @@ async function sendDailyReportToGroup() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 推送中...'; }
   try {
     var today = new Date().toISOString().split('T')[0];
+    // 优先尝试统一推送系统
+    try {
+      var allPush = getAllDailyReports();
+      var todayPushReports = allPush.filter(function(r) { return r.date === today; });
+      var pushTotalHours = todayPushReports.reduce(function(s, r) { return s + (r.workHours || 0); }, 0);
+      var pushNormalCount = todayPushReports.filter(function(r) { return r.status === '正常'; }).length;
+      var pushBlockedCount = todayPushReports.filter(function(r) { return r.status === '有阻塞'; }).length;
+      var dailyContent = '【' + today + ' 日报聚合】\n';
+      dailyContent += '共 ' + todayPushReports.length + ' 篇日报 | 正常:' + pushNormalCount + ' | 有阻塞:' + pushBlockedCount + ' | 总工时:' + pushTotalHours + 'h\n';
+      dailyContent += '─────────────────';
+      todayPushReports.forEach(function(r) {
+        dailyContent += '\n\n👤 ' + r.reporter + '（' + (r.workHours || 0) + 'h）[' + r.status + ']';
+        dailyContent += '\n工作：' + (r.content || '').substring(0, 80) + (r.content && r.content.length > 80 ? '...' : '');
+        if (r.issues && r.issues !== '无') dailyContent += '\n问题：' + r.issues;
+      });
+      var pushResult = await sendToPushGroup('daily', { title: '日报推送', content: dailyContent });
+      if (pushResult && pushResult.total > 0) {
+        // 统一推送成功，不再走旧逻辑
+        return;
+      }
+      // total === 0：没有配置群组，fallback 到原有离线/在线逻辑
+    } catch(pushErr) {
+      console.error('sendToPushGroup fallback:', pushErr);
+      // 推送异常，继续走旧逻辑
+    }
     if (SERVER_CONFIG.mode !== 'online') {
       // 离线降级：从本地数据聚合日报并生成文本摘要
       var all = getAllDailyReports();
@@ -4129,11 +4151,12 @@ function pushProject(projectId) {
   var p = null;
   for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
   if (!p) { showToast('项目不存在', 'error'); return; }
-  var groups = lsGet('push_groups', [{id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},{id:'g2', name:'设备管理组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']}]);
+  var groups = getPushGroups().filter(function(g){return g.enabled;});
+  if (groups.length === 0) { showToast('请先在推送中心添加启用的群组', 'error'); return; }
   var groupOptions = '<option value="">选择推送群组</option>';
   for (var g = 0; g < groups.length; g++) {
-    var sel = (p.pushConfig && p.pushConfig.group === groups[g].name) ? ' selected' : '';
-    groupOptions += '<option value="' + escapeHtml(groups[g].name) + '"' + sel + '>' + escapeHtml(groups[g].name) + '</option>';
+    var sel = (p.pushConfig && p.pushConfig.group === groups[g].id) ? ' selected' : '';
+    groupOptions += '<option value="' + groups[g].id + '"' + sel + '>' + escapeHtml(groups[g].name) + '</option>';
   }
   var html = '<div class="modal-overlay" id="pushProjectModal" onclick="if(event.target===this)this.remove()">';
   html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>推送项目消息</h3><button onclick="document.getElementById(\'pushProjectModal\').remove()">✕</button></div>';
@@ -4200,27 +4223,18 @@ function savePushTemplate(projectId) {
 }
 
 function doPushProject(projectId) {
-  var group = document.getElementById('pp_group').value;
+  var groupId = document.getElementById('pp_group').value;
   var type = document.getElementById('pp_type').value;
   var remark = document.getElementById('pp_remark').value;
-  if (!group) { showToast('请选择推送群组', 'error'); return; }
+  if (!groupId) { showToast('请选择推送群组', 'error'); return; }
   var projects = getAllProjects();
   var p = null;
   for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
   if (!p) return;
-  var groups = lsGet('push_groups', []);
-  var webhook = '';
-  for (var g = 0; g < groups.length; g++) {
-    if (groups[g].name === group) { webhook = groups[g].webhook; break; }
-  }
-  if (!webhook) { showToast('群组未配置 Webhook', 'error'); return; }
   var card = buildProjectPushCard(p, type, remark);
-  sendFeishuCard(webhook, card, function(ok) {
-    if (ok) showToast('推送成功：' + group);
-    else showToast('推送失败，请检查 Webhook', 'error');
-  });
   var modal = document.getElementById('pushProjectModal');
   if (modal) modal.remove();
+  sendToPushGroup('project', { card: card, groupIds: [groupId], title: '项目推送：' + (p.name||''), content: '项目：' + (p.name||'') + ' | 进度：' + p.progress + '% | 负责人：' + (p.manager||'') + (remark ? '\n备注：' + remark : '') });
 }
 
 function buildProjectPushCard(p, type, remark) {
@@ -7912,7 +7926,7 @@ function renderConfigDashboard() {
   var sections = [
     {id:'config', icon:'⚙️', title:'系统配置', desc:'基本参数、系统设置、界面配置', color:'var(--blue)'},
     {id:'member-manage', icon:'👥', title:'权限管理', desc:'用户管理、角色分配、权限控制', color:'var(--gn)'},
-    {id:'msg-push', icon:'📢', title:'消息推送', desc:'推送规则、通知模板、历史记录', color:'var(--og)'},
+    {id:'push-center', icon:'📢', title:'推送中心', desc:'群组管理、推送关联、模板、历史', color:'var(--og)'},
     {id:'backup-manage', icon:'💾', title:'备份管理', desc:'数据备份、恢复、导入导出', color:'var(--pr)'},
     {id:'about', icon:'ℹ️', title:'关于系统', desc:'版本信息、使用说明、更新日志', color:'var(--t2)'}
   ];
@@ -11234,7 +11248,7 @@ function renderPage(id) {
     if (id === 'at-list' || id === 'auto-task') return renderAutoTaskList();
     if (id === 'at-templates') return renderAutoTaskTemplates();
     if (id === 'at-logs') return renderAutoTaskLogs();
-    if (id === 'msg-push') return renderMsgPush();
+    if (id === 'msg-push' || id === 'push-manage' || id === 'schedule-push' || id === 'template-library' || id === 'report-push-config' || id === 'push-center') return renderPushCenter();
     
     // 系统配置
     if (id === 'member-manage') return renderMemberManage();
@@ -11243,15 +11257,11 @@ function renderPage(id) {
     if (id === 'home-config') return renderHomeConfig();
     if (id === 'cfg-backup') return renderDataBackup();
     if (id === 'feishu-config') return renderFeishuConfig();
-    if (id === 'report-push-config') return renderReportPushConfig();
     if (id === 'cfg-theme') return renderThemeConfig();
     
     // 模块管理
     if (id === 'module-list') return renderModuleListPage();
     if (id === 'module-register') return renderModuleRegisterPage();
-  if (id === 'template-library') return renderTemplateLibraryPage();
-  if (id === 'push-manage') return renderPushManagePage();
-  if (id === 'schedule-push') return renderSchedulePushPage();
     
     // 默认返回
     return '<div class="cd"><div class="pt">页面开发中</div><p>该页面正在建设中，敬请期待。页面ID: ' + id + '</p></div>';
@@ -11844,6 +11854,737 @@ function testPushGroup(id) {
     if(j.code===0) showToast('测试消息发送成功');
     else showToast('发送失败: '+j.msg, 'error');
   }).catch(function(e){showToast('发送失败: '+e.message, 'error')});
+}
+
+// =========================================
+// V18 - 统一推送中心（集中管理所有推送群组、关联配置、模板、历史）
+// =========================================
+
+// 推送类型定义
+var PUSH_TYPES = {
+  daily:    {label:'日报推送', icon:'📃', desc:'日报提交时推送到关联群组'},
+  weekly:   {label:'周报推送', icon:'📅', desc:'周报提交时推送到关联群组'},
+  monthly:  {label:'月报推送', icon:'📆', desc:'月报提交时推送到关联群组'},
+  project:  {label:'项目推送', icon:'📊', desc:'项目进度更新时推送到关联群组'},
+  improve:  {label:'改善推送', icon:'💡', desc:'改善提案提交时推送到关联群组'},
+  equipment:{label:'设备推送', icon:'🔧', desc:'设备故障/保养时推送到关联群组'},
+  task:     {label:'任务推送', icon:'✅', desc:'任务状态变更时推送到关联群组'},
+  message:  {label:'消息推送', icon:'📢', desc:'自定义消息推送到关联群组'},
+  alarm:    {label:'报警推送', icon:'🚨', desc:'设备报警/异常时推送到关联群组'}
+};
+
+// ---- 统一群组管理 ----
+function getPushGroups() {
+  var raw = localStorage.getItem('push_groups');
+  if (!raw || raw === '[]') {
+    // 迁移旧数据：合并 webhooks + push_groups(旧)
+    var oldWebhooks = JSON.parse(localStorage.getItem('webhooks') || '[]');
+    var oldPushGroups = JSON.parse(localStorage.getItem('push_groups') || '[]');
+    var migrated = [];
+    var seen = {};
+    // 先从旧push_groups迁移
+    oldPushGroups.forEach(function(g) {
+      var id = g.id || ('pg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6));
+      var url = g.webhookUrl || g.webhook || '';
+      if (url && !seen[url]) {
+        seen[url] = true;
+        migrated.push({
+          id: id, name: g.name || '未命名群组', webhookUrl: url,
+          enabled: g.enabled !== false, desc: g.desc || '',
+          types: g.types || Object.keys(PUSH_TYPES),
+          createdAt: new Date().toISOString().slice(0,10)
+        });
+      }
+    });
+    // 再从旧webhooks迁移
+    oldWebhooks.forEach(function(w) {
+      if (w.url && !seen[w.url]) {
+        seen[w.url] = true;
+        migrated.push({
+          id: w.id || ('pg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6)),
+          name: w.name || '未命名群组', webhookUrl: w.url,
+          enabled: true, desc: '',
+          types: Object.keys(PUSH_TYPES),
+          createdAt: new Date().toISOString().slice(0,10)
+        });
+      }
+    });
+    if (migrated.length > 0) {
+      localStorage.setItem('push_groups', JSON.stringify(migrated));
+      return migrated;
+    }
+    return [];
+  }
+  return JSON.parse(raw);
+}
+
+function savePushGroups(groups) {
+  localStorage.setItem('push_groups', JSON.stringify(groups));
+}
+
+// ---- 推送关联配置（每种推送类型关联哪些群组）----
+function getPushBindings() {
+  var raw = localStorage.getItem('push_bindings');
+  if (!raw) {
+    // 默认：所有类型关联所有启用的群组
+    var groups = getPushGroups();
+    var enabledIds = groups.filter(function(g){return g.enabled;}).map(function(g){return g.id;});
+    var bindings = {};
+    Object.keys(PUSH_TYPES).forEach(function(type) {
+      bindings[type] = enabledIds.slice();
+    });
+    return bindings;
+  }
+  return JSON.parse(raw);
+}
+
+function savePushBindings(bindings) {
+  localStorage.setItem('push_bindings', JSON.stringify(bindings));
+}
+
+// ---- 统一推送历史 ----
+function getPushHistory() {
+  return JSON.parse(localStorage.getItem('push_history') || '[]');
+}
+
+function savePushHistory(history) {
+  if (history.length > 200) history = history.slice(0, 200);
+  localStorage.setItem('push_history', JSON.stringify(history));
+}
+
+// ---- 统一模板库 ----
+function getPushTemplates() {
+  var raw = localStorage.getItem('push_templates');
+  if (!raw || raw === '[]') {
+    // 迁移旧的全局模板
+    var oldGlobal = JSON.parse(localStorage.getItem('push_global_templates') || '[]');
+    if (oldGlobal.length > 0) {
+      var migrated = oldGlobal.map(function(t) {
+        return {
+          id: t.id || ('pt_' + Date.now() + '_' + Math.random().toString(36).slice(2,6)),
+          name: t.name || '未命名模板', category: t.category || 'message',
+          content: t.content || '', enabled: t.enabled !== false,
+          isDefault: false
+        };
+      });
+      localStorage.setItem('push_templates', JSON.stringify(migrated));
+      return migrated;
+    }
+    // 默认模板
+    var defaults = [
+      {id:'pt_daily_default', name:'默认日报模板', category:'daily', enabled:true, isDefault:true,
+       content:'**日报推送**\n\n📅 日期：{date}\n👤 提交人：{author}\n\n**今日工作：**\n{work}\n\n**明日计划：**\n{plan}'},
+      {id:'pt_project_default', name:'默认项目模板', category:'project', enabled:true, isDefault:true,
+       content:'**项目推送**\n\n📊 项目：{projectName}\n👤 负责人：{leader}\n📈 进度：{progress}%\n📅 截止：{endDate}\n\n**备注：**{remark}'},
+      {id:'pt_improve_default', name:'默认改善模板', category:'improve', enabled:true, isDefault:true,
+       content:'**改善提案推送**\n\n💡 提案：{title}\n👤 提案人：{author}\n🏷 类型：{type}\n\n**问题描述：**\n{problem}\n\n**改善方案：**\n{solution}'},
+      {id:'pt_message_default', name:'默认消息模板', category:'message', enabled:true, isDefault:true,
+       content:'{content}'}
+    ];
+    localStorage.setItem('push_templates', JSON.stringify(defaults));
+    return defaults;
+  }
+  return JSON.parse(raw);
+}
+
+function savePushTemplates(templates) {
+  localStorage.setItem('push_templates', JSON.stringify(templates));
+}
+
+// ---- 统一推送入口函数 ----
+async function sendToPushGroup(type, options) {
+  options = options || {};
+  var groups = [];
+
+  // 获取目标群组
+  if (options.groupIds && options.groupIds.length > 0) {
+    var allGroups = getPushGroups();
+    groups = allGroups.filter(function(g) {
+      return options.groupIds.indexOf(g.id) !== -1 && g.enabled && g.webhookUrl;
+    });
+  } else {
+    // 从关联配置中获取
+    var bindings = getPushBindings();
+    var groupIds = bindings[type] || [];
+    var allGroups2 = getPushGroups();
+    groups = allGroups2.filter(function(g) {
+      return groupIds.indexOf(g.id) !== -1 && g.enabled && g.webhookUrl;
+    });
+  }
+
+  if (groups.length === 0) {
+    showToast('没有可用的推送群组，请先在推送中心配置群组关联', 'error');
+    return { success: 0, failed: 0, total: 0 };
+  }
+
+  // 构建卡片（统一使用 card 格式，符合飞书硬约束）
+  var card = options.card || buildPushCard(type, options);
+
+  // 逐个发送
+  var success = 0, failed = 0;
+  var results = [];
+
+  for (var i = 0; i < groups.length; i++) {
+    var g = groups[i];
+    try {
+      var response = await fetch(g.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ msg_type: 'interactive', card: card })
+      });
+      var result = await response.json();
+      if (result.code === 0) {
+        success++;
+        results.push({ groupId: g.id, groupName: g.name, status: 'success' });
+      } else {
+        failed++;
+        results.push({ groupId: g.id, groupName: g.name, status: 'failed', error: result.msg || 'unknown' });
+      }
+    } catch(e) {
+      failed++;
+      results.push({ groupId: g.id, groupName: g.name, status: 'failed', error: e.message });
+    }
+  }
+
+  // 记录历史
+  var history = getPushHistory();
+  history.unshift({
+    id: 'PH' + Date.now(),
+    time: new Date().toISOString().slice(0,19).replace('T',' '),
+    type: type,
+    groupIds: groups.map(function(gg){return gg.id;}),
+    groupNames: groups.map(function(gg){return gg.name;}).join(', '),
+    title: options.title || (PUSH_TYPES[type] ? PUSH_TYPES[type].label : '推送'),
+    status: failed === 0 ? 'success' : (success === 0 ? 'failed' : 'partial'),
+    detail: '成功:' + success + ',失败:' + failed,
+    content: (options.content || '').substring(0,200),
+    results: results
+  });
+  savePushHistory(history);
+
+  // 提示
+  if (failed === 0) {
+    showToast('推送成功：已发送到 ' + success + ' 个群组');
+  } else if (success === 0) {
+    showToast('推送失败：' + failed + ' 个群组发送失败', 'error');
+  } else {
+    showToast('部分成功：成功 ' + success + ' 个，失败 ' + failed + ' 个');
+  }
+
+  return { success: success, failed: failed, total: groups.length };
+}
+
+// 构建飞书交互卡片
+function buildPushCard(type, options) {
+  var typeInfo = PUSH_TYPES[type] || PUSH_TYPES.message;
+  var title = options.title || typeInfo.label;
+  var content = options.content || '';
+  var elements = [];
+  if (content) {
+    elements.push({ tag: 'div', text: { tag: 'lark_md', content: content } });
+  }
+  if (options.fields && options.fields.length > 0) {
+    var colElements = options.fields.map(function(f) {
+      return { tag: 'div', text: { tag: 'lark_md', content: '**' + f.label + '**\n' + f.value } };
+    });
+    elements.push({ tag: 'column_set', flex_mode: 'bisect', columns: colElements.length === 1 ? [{width:'weighted',weight:1,elements:colElements}] : [{width:'weighted',weight:1,elements:colElements.slice(0,Math.ceil(colElements.length/2))},{width:'weighted',weight:1,elements:colElements.slice(Math.ceil(colElements.length/2))}] });
+  }
+  elements.push({ tag: 'hr' });
+  elements.push({ tag: 'note', elements: [{ tag: 'plain_text', content: '智能制造组管理平台 V18 · ' + new Date().toISOString().slice(0,10) + ' ' + new Date().toISOString().slice(11,16) }] });
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: typeInfo.icon === '🚨' ? 'red' : 'blue', title: { tag: 'plain_text', content: typeInfo.icon + ' ' + title } },
+    elements: elements
+  };
+}
+
+// ---- 推送中心页面 ----
+function renderPushCenter() {
+  var tab = window._pushCenterTab || 'groups';
+  var groups = getPushGroups();
+  var bindings = getPushBindings();
+  var history = getPushHistory();
+  var templates = getPushTemplates();
+
+  var h = '<div class="page-enter">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
+  h += '<div><h2 style="margin:0;font-size:20px">📢 推送中心</h2>';
+  h += '<p style="margin:4px 0 0;font-size:12px;color:var(--t2)">集中管理所有推送群组、关联配置、消息模板和推送历史</p></div>';
+  h += '<button class="btn bp" onclick="showQuickPushModal()">📨 快速推送</button>';
+  h += '</div>';
+
+  // 统计卡片
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="switchPushTab(\'groups\')"><div class="kpi-value">' + groups.length + '</div><div class="kpi-label">推送群组</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="switchPushTab(\'bindings\')"><div class="kpi-value">' + Object.keys(PUSH_TYPES).length + '</div><div class="kpi-label">推送类型</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="switchPushTab(\'templates\')"><div class="kpi-value">' + templates.length + '</div><div class="kpi-label">消息模板</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="switchPushTab(\'history\')"><div class="kpi-value">' + history.length + '</div><div class="kpi-label">推送历史</div></div>';
+  h += '</div>';
+
+  // Tab 切换
+  h += '<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border)">';
+  var tabs = [
+    {id:'groups', label:'群组管理', icon:'👥'},
+    {id:'bindings', label:'推送关联', icon:'🔗'},
+    {id:'templates', label:'模板管理', icon:'📋'},
+    {id:'history', label:'推送历史', icon:'📊'}
+  ];
+  tabs.forEach(function(t) {
+    var active = tab === t.id;
+    h += '<button class="btn ' + (active ? 'bp' : 'bo') + '" style="border-radius:6px 6px 0 0;border-bottom:2px solid ' + (active ? 'var(--blue)' : 'transparent') + ';margin-bottom:-2px" onclick="switchPushTab(\'' + t.id + '\')">' + t.icon + ' ' + t.label + '</button>';
+  });
+  h += '</div>';
+
+  // Tab 内容
+  if (tab === 'groups') h += renderPushCenterGroups(groups);
+  else if (tab === 'bindings') h += renderPushCenterBindings(bindings, groups);
+  else if (tab === 'templates') h += renderPushCenterTemplates(templates);
+  else if (tab === 'history') h += renderPushCenterHistory(history);
+
+  h += '</div>';
+  return h;
+}
+
+function switchPushTab(tab) {
+  window._pushCenterTab = tab;
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+// ---- Tab1: 群组管理 ----
+function renderPushCenterGroups(groups) {
+  var h = '<div style="display:flex;justify-content:space-between;margin-bottom:12px">';
+  h += '<input type="text" class="inp" placeholder="搜索群组名称..." oninput="filterPushGroups(this.value)" style="width:240px">';
+  h += '<button class="btn bp" onclick="showAddPushGroupModal()">➕ 新增群组</button>';
+  h += '</div>';
+
+  if (groups.length === 0) {
+    h += '<div class="cd" style="text-align:center;padding:40px;color:var(--t2)">暂无推送群组，点击「新增群组」添加飞书群组Webhook地址</div>';
+    return h;
+  }
+
+  h += '<div class="table-wrap"><table class="tbl"><thead><tr>';
+  h += '<th>群组名称</th><th>Webhook地址</th><th>状态</th><th>关联类型</th><th>操作</th>';
+  h += '</tr></thead><tbody>';
+  groups.forEach(function(g) {
+    h += '<tr id="pg-row-' + g.id + '">';
+    h += '<td style="font-weight:600">' + (g.name || '') + '</td>';
+    var url = g.webhookUrl || g.webhook || '';
+    var shortUrl = url.length > 50 ? url.substring(0,30) + '...' + url.substring(url.length-15) : url;
+    h += '<td style="font-size:11px;color:var(--t2)" title="' + url + '">' + shortUrl + '</td>';
+    h += '<td>' + (g.enabled !== false ? '<span class="t tg">启用</span>' : '<span class="t tr">禁用</span>') + '</td>';
+    var typeLabels = (g.types || []).map(function(t) { return PUSH_TYPES[t] ? PUSH_TYPES[t].icon : ''; }).join(' ');
+    h += '<td style="font-size:12px">' + typeLabels + '</td>';
+    h += '<td><button class="btn bo sm" onclick="testPushGroupV2(\'' + g.id + '\')">测试</button> ';
+    h += '<button class="btn bo sm" onclick="editPushGroupV2(\'' + g.id + '\')">编辑</button> ';
+    h += '<button class="btn bo sm" style="color:#e74c3c" onclick="deletePushGroupV2(\'' + g.id + '\')">删除</button></td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function filterPushGroups(keyword) {
+  if (!keyword) { document.querySelector('.page-enter').outerHTML = renderPushCenter(); return; }
+  var rows = document.querySelectorAll('tbody tr');
+  rows.forEach(function(r) {
+    var text = r.innerText.toLowerCase();
+    r.style.display = text.indexOf(keyword.toLowerCase()) !== -1 ? '' : 'none';
+  });
+}
+
+// 新增/编辑群组弹窗
+function showAddPushGroupModal() { showPushGroupModal(null); }
+function editPushGroupV2(id) {
+  var groups = getPushGroups();
+  var g = groups.find(function(x){return x.id===id;});
+  if (g) showPushGroupModal(g);
+}
+
+function showPushGroupModal(g) {
+  var isEdit = !!g;
+  g = g || {id:'', name:'', webhookUrl:'', enabled:true, desc:'', types:[]};
+  var h = '<div class="modal-overlay" onclick="closePushGroupModal(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  h += '<div class="modal-box" onclick="event.stopPropagation()" style="background:var(--card);border-radius:12px;padding:24px;width:520px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3)">';
+  h += '<h3 style="margin:0 0 16px">' + (isEdit ? '编辑群组' : '新增群组') + '</h3>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">群组名称 *</label><input type="text" id="pg_name" class="inp" value="' + (g.name||'') + '" placeholder="如：智能制造组全员群" style="width:100%"></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">Webhook地址 *</label><input type="text" id="pg_url" class="inp" value="' + (g.webhookUrl||g.webhook||'') + '" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" style="width:100%"></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">描述</label><input type="text" id="pg_desc" class="inp" value="' + (g.desc||'') + '" placeholder="群组用途说明" style="width:100%"></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">默认关联推送类型</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+  Object.keys(PUSH_TYPES).forEach(function(t) {
+    var checked = (g.types||[]).indexOf(t) !== -1;
+    h += '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:4px"><input type="checkbox" id="pg_type_' + t + '" ' + (checked?'checked':'') + '> ' + PUSH_TYPES[t].icon + ' ' + PUSH_TYPES[t].label + '</label>';
+  });
+  h += '</div></div>';
+  h += '<div style="margin-bottom:16px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="pg_enabled" ' + (g.enabled!==false?'checked':'') + '> 启用此群组</label></div>';
+  h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
+  h += '<button class="btn bo" onclick="closePushGroupModal()">取消</button>';
+  h += '<button class="btn bp" onclick="savePushGroupV2(' + (isEdit ? '\'' + g.id + '\'' : 'null') + ')">保存</button>';
+  h += '</div></div></div>';
+  var old = document.getElementById('pushGroupModal');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'pushGroupModal';
+  div.innerHTML = h;
+  document.body.appendChild(div);
+}
+
+function closePushGroupModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var m = document.getElementById('pushGroupModal');
+  if (m) m.remove();
+}
+
+function savePushGroupV2(id) {
+  var name = document.getElementById('pg_name').value.trim();
+  var url = document.getElementById('pg_url').value.trim();
+  var desc = document.getElementById('pg_desc').value.trim();
+  var enabled = document.getElementById('pg_enabled').checked;
+  var types = [];
+  Object.keys(PUSH_TYPES).forEach(function(t) {
+    var cb = document.getElementById('pg_type_' + t);
+    if (cb && cb.checked) types.push(t);
+  });
+  if (!name) { showToast('请输入群组名称', 'error'); return; }
+  if (!url) { showToast('请输入Webhook地址', 'error'); return; }
+  if (url.indexOf('open.feishu.cn/open-apis/bot/v2/hook/') === -1 && url.indexOf('open.larksuite.com') === -1) {
+    if (!confirm('Webhook地址格式可能不正确，确定保存？')) return;
+  }
+  var groups = getPushGroups();
+  if (id) {
+    var idx = groups.findIndex(function(g){return g.id===id;});
+    if (idx !== -1) {
+      groups[idx].name = name; groups[idx].webhookUrl = url;
+      groups[idx].desc = desc; groups[idx].enabled = enabled;
+      groups[idx].types = types;
+    }
+  } else {
+    groups.push({id:'pg_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name:name, webhookUrl:url, enabled:enabled, desc:desc, types:types, createdAt:new Date().toISOString().slice(0,10)});
+  }
+  savePushGroups(groups);
+  closePushGroupModal();
+  showToast('保存成功');
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+function deletePushGroupV2(id) {
+  if (!confirm('确定删除此群组？关联的推送类型将不再推送到此群组。')) return;
+  var groups = getPushGroups();
+  groups = groups.filter(function(g){return g.id!==id;});
+  savePushGroups(groups);
+  // 同时从关联配置中移除
+  var bindings = getPushBindings();
+  Object.keys(bindings).forEach(function(type) {
+    bindings[type] = (bindings[type]||[]).filter(function(gid){return gid!==id;});
+  });
+  savePushBindings(bindings);
+  showToast('已删除');
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+async function testPushGroupV2(id) {
+  var groups = getPushGroups();
+  var g = groups.find(function(x){return x.id===id;});
+  if (!g || !g.webhookUrl) { showToast('群组配置无效', 'error'); return; }
+  showToast('正在发送测试消息...');
+  try {
+    var card = buildPushCard('message', {
+      title: '推送测试 - 群组"' + g.name + '"',
+      content: '✅ 这是一条测试消息，确认群组Webhook配置正常。\n\n**群组名称：**' + g.name + '\n**Webhook地址：**' + g.webhookUrl.substring(0,40) + '...'
+    });
+    var response = await fetch(g.webhookUrl, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({msg_type:'interactive', card:card})
+    });
+    var result = await response.json();
+    if (result.code === 0) showToast('测试消息发送成功');
+    else showToast('发送失败: ' + (result.msg||'未知错误'), 'error');
+  } catch(e) {
+    showToast('发送失败: ' + e.message, 'error');
+  }
+}
+
+// ---- Tab2: 推送关联 ----
+function renderPushCenterBindings(bindings, groups) {
+  var h = '<div class="cd" style="margin-bottom:12px;padding:12px;background:var(--bg2);font-size:12px;color:var(--t2)">';
+  h += '💡 每种推送类型可关联多个群组。推送时，消息将发送到该类型关联的所有启用群组。点击群组标签可切换关联状态。';
+  h += '</div>';
+
+  if (groups.length === 0) {
+    h += '<div class="cd" style="text-align:center;padding:40px;color:var(--t2)">请先在「群组管理」中添加群组</div>';
+    return h;
+  }
+
+  Object.keys(PUSH_TYPES).forEach(function(type) {
+    var ti = PUSH_TYPES[type];
+    var linked = bindings[type] || [];
+    h += '<div class="cd" style="margin-bottom:12px">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">';
+    h += '<span style="font-size:20px">' + ti.icon + '</span>';
+    h += '<div><div style="font-weight:600">' + ti.label + '</div>';
+    h += '<div style="font-size:11px;color:var(--t2)">' + ti.desc + '</div></div>';
+    h += '<span class="t tp" style="margin-left:auto">已关联 ' + linked.length + ' 个群组</span>';
+    h += '</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    groups.forEach(function(g) {
+      var isLinked = linked.indexOf(g.id) !== -1;
+      h += '<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1px solid ' + (isLinked ? 'var(--blue)' : 'var(--border)') + ';border-radius:6px;cursor:pointer;font-size:12px;background:' + (isLinked ? 'var(--blue-bg,rgba(0,100,200,0.08))' : 'transparent') + '" onclick="togglePushBinding(\'' + type + '\',\'' + g.id + '\')">';
+      h += '<input type="checkbox" ' + (isLinked?'checked':'') + ' style="margin:0"> ';
+      h += (g.enabled !== false ? '' : '🚫 ') + g.name;
+      h += '</label>';
+    });
+    h += '</div></div>';
+  });
+  return h;
+}
+
+function togglePushBinding(type, groupId) {
+  var bindings = getPushBindings();
+  if (!bindings[type]) bindings[type] = [];
+  var idx = bindings[type].indexOf(groupId);
+  if (idx === -1) bindings[type].push(groupId);
+  else bindings[type].splice(idx, 1);
+  savePushBindings(bindings);
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+// ---- Tab3: 模板管理 ----
+function renderPushCenterTemplates(templates) {
+  var h = '<div style="display:flex;justify-content:space-between;margin-bottom:12px">';
+  h += '<select class="inp" onchange="filterPushTemplates(this.value)" style="width:200px"><option value="">全部分类</option>';
+  Object.keys(PUSH_TYPES).forEach(function(t) {
+    h += '<option value="' + t + '">' + PUSH_TYPES[t].icon + ' ' + PUSH_TYPES[t].label + '</option>';
+  });
+  h += '</select>';
+  h += '<button class="btn bp" onclick="showAddTemplateModal()">➕ 新增模板</button>';
+  h += '</div>';
+
+  h += '<div class="table-wrap"><table class="tbl"><thead><tr>';
+  h += '<th>模板名称</th><th>分类</th><th>内容预览</th><th>状态</th><th>操作</th>';
+  h += '</tr></thead><tbody>';
+  templates.forEach(function(t) {
+    h += '<tr id="pt-row-' + t.id + '">';
+    h += '<td style="font-weight:600">' + (t.name||'') + (t.isDefault ? ' <span class="t tp">默认</span>' : '') + '</td>';
+    var catInfo = PUSH_TYPES[t.category] || {icon:'📋',label:t.category};
+    h += '<td>' + catInfo.icon + ' ' + catInfo.label + '</td>';
+    h += '<td style="font-size:11px;color:var(--t2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (t.content||'').substring(0,80) + '</td>';
+    h += '<td>' + (t.enabled !== false ? '<span class="t tg">启用</span>' : '<span class="t tr">禁用</span>') + '</td>';
+    h += '<td><button class="btn bo sm" onclick="previewTemplateV2(\'' + t.id + '\')">预览</button> ';
+    h += '<button class="btn bo sm" onclick="editTemplateV2(\'' + t.id + '\')">编辑</button> ';
+    h += '<button class="btn bo sm" style="color:#e74c3c" onclick="deleteTemplateV2(\'' + t.id + '\')">删除</button></td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function filterPushTemplates(cat) {
+  var rows = document.querySelectorAll('tbody tr');
+  rows.forEach(function(r) {
+    if (!cat) { r.style.display = ''; return; }
+    var cells = r.querySelectorAll('td');
+    r.style.display = cells[1] && cells[1].innerText.indexOf(PUSH_TYPES[cat].label) !== -1 ? '' : 'none';
+  });
+}
+
+function showAddTemplateModal() { showTemplateModalV2(null); }
+function editTemplateV2(id) {
+  var templates = getPushTemplates();
+  var t = templates.find(function(x){return x.id===id;});
+  if (t) showTemplateModalV2(t);
+}
+
+function showTemplateModalV2(t) {
+  var isEdit = !!t;
+  t = t || {id:'', name:'', category:'message', content:'', enabled:true, isDefault:false};
+  var h = '<div class="modal-overlay" onclick="closeTemplateModalV2(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  h += '<div class="modal-box" onclick="event.stopPropagation()" style="background:var(--card);border-radius:12px;padding:24px;width:600px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3)">';
+  h += '<h3 style="margin:0 0 16px">' + (isEdit ? '编辑模板' : '新增模板') + '</h3>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">模板名称 *</label><input type="text" id="pt_name" class="inp" value="' + (t.name||'') + '" style="width:100%"></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">分类</label><select id="pt_category" class="inp" style="width:100%">';
+  Object.keys(PUSH_TYPES).forEach(function(k) {
+    h += '<option value="' + k + '" ' + (t.category===k?'selected':'') + '>' + PUSH_TYPES[k].icon + ' ' + PUSH_TYPES[k].label + '</option>';
+  });
+  h += '</select></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">模板内容（支持Markdown语法，可用变量：{date} {author} {title} {content} 等）</label><textarea id="pt_content" class="inp" rows="8" style="width:100%;font-family:monospace;font-size:12px">' + (t.content||'') + '</textarea></div>';
+  h += '<div style="margin-bottom:16px"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="pt_enabled" ' + (t.enabled!==false?'checked':'') + '> 启用此模板</label></div>';
+  h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
+  h += '<button class="btn bo" onclick="closeTemplateModalV2()">取消</button>';
+  h += '<button class="btn bp" onclick="saveTemplateV2(' + (isEdit ? '\'' + t.id + '\'' : 'null') + ')">保存</button>';
+  h += '</div></div></div>';
+  var old = document.getElementById('templateModalV2');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'templateModalV2';
+  div.innerHTML = h;
+  document.body.appendChild(div);
+}
+
+function closeTemplateModalV2(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var m = document.getElementById('templateModalV2');
+  if (m) m.remove();
+}
+
+function saveTemplateV2(id) {
+  var name = document.getElementById('pt_name').value.trim();
+  var category = document.getElementById('pt_category').value;
+  var content = document.getElementById('pt_content').value;
+  var enabled = document.getElementById('pt_enabled').checked;
+  if (!name) { showToast('请输入模板名称', 'error'); return; }
+  var templates = getPushTemplates();
+  if (id) {
+    var idx = templates.findIndex(function(t){return t.id===id;});
+    if (idx !== -1) {
+      templates[idx].name = name; templates[idx].category = category;
+      templates[idx].content = content; templates[idx].enabled = enabled;
+    }
+  } else {
+    templates.push({id:'pt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), name:name, category:category, content:content, enabled:enabled, isDefault:false});
+  }
+  savePushTemplates(templates);
+  closeTemplateModalV2();
+  showToast('保存成功');
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+function deleteTemplateV2(id) {
+  var templates = getPushTemplates();
+  var t = templates.find(function(x){return x.id===id;});
+  if (t && t.isDefault) { showToast('默认模板不可删除', 'error'); return; }
+  if (!confirm('确定删除此模板？')) return;
+  templates = templates.filter(function(t){return t.id!==id;});
+  savePushTemplates(templates);
+  showToast('已删除');
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+function previewTemplateV2(id) {
+  var templates = getPushTemplates();
+  var t = templates.find(function(x){return x.id===id;});
+  if (!t) return;
+  var content = (t.content||'').replace(/\{date\}/g, new Date().toISOString().slice(0,10))
+    .replace(/\{author\}/g, '张三').replace(/\{title\}/g, '示例标题')
+    .replace(/\{content\}/g, '示例内容').replace(/\{projectName\}/g, '示例项目')
+    .replace(/\{leader\}/g, '李四').replace(/\{progress\}/g, '80')
+    .replace(/\{remark\}/g, '示例备注').replace(/\{problem\}/g, '示例问题')
+    .replace(/\{solution\}/g, '示例方案').replace(/\{type\}/g, '改善类型')
+    .replace(/\{endDate\}/g, '2026-12-31').replace(/\{plan\}/g, '明日计划')
+    .replace(/\{work\}/g, '今日工作内容');
+  var card = buildPushCard(t.category, {title: t.name + '（预览）', content: content});
+  var h = '<div class="modal-overlay" onclick="closePreviewModal(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  h += '<div onclick="event.stopPropagation()" style="background:var(--card);border-radius:12px;padding:24px;width:480px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3)">';
+  h += '<h3 style="margin:0 0 16px">模板预览</h3>';
+  h += '<div style="background:var(--bg2);border-radius:8px;padding:16px;margin-bottom:16px;font-size:13px;white-space:pre-wrap">' + content + '</div>';
+  h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
+  h += '<button class="btn bp" onclick="closePreviewModal()">关闭</button>';
+  h += '</div></div></div>';
+  var old = document.getElementById('previewModal');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'previewModal';
+  div.innerHTML = h;
+  document.body.appendChild(div);
+}
+
+function closePreviewModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var m = document.getElementById('previewModal');
+  if (m) m.remove();
+}
+
+// ---- Tab4: 推送历史 ----
+function renderPushCenterHistory(history) {
+  var h = '<div style="display:flex;justify-content:space-between;margin-bottom:12px">';
+  h += '<select class="inp" onchange="filterPushHistory(this.value)" style="width:200px"><option value="">全部类型</option>';
+  Object.keys(PUSH_TYPES).forEach(function(t) {
+    h += '<option value="' + t + '">' + PUSH_TYPES[t].icon + ' ' + PUSH_TYPES[t].label + '</option>';
+  });
+  h += '</select>';
+  h += '<button class="btn bo" style="color:#e74c3c" onclick="clearPushHistoryV2()">🗑 清空历史</button>';
+  h += '</div>';
+
+  if (history.length === 0) {
+    h += '<div class="cd" style="text-align:center;padding:40px;color:var(--t2)">暂无推送历史记录</div>';
+    return h;
+  }
+
+  h += '<div class="table-wrap"><table class="tbl"><thead><tr>';
+  h += '<th>时间</th><th>类型</th><th>标题</th><th>目标群组</th><th>状态</th><th>详情</th>';
+  h += '</tr></thead><tbody>';
+  history.forEach(function(r) {
+    var ti = PUSH_TYPES[r.type] || {icon:'📋',label:r.type};
+    h += '<tr>';
+    h += '<td style="font-size:11px">' + (r.time||'') + '</td>';
+    h += '<td>' + ti.icon + ' ' + ti.label + '</td>';
+    h += '<td style="font-weight:600">' + (r.title||'') + '</td>';
+    h += '<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + (r.groupNames||'') + '">' + (r.groupNames||'') + '</td>';
+    var statusClass = r.status === 'success' ? 'tg' : (r.status === 'failed' ? 'tr' : 'to');
+    var statusText = r.status === 'success' ? '✅ 成功' : (r.status === 'failed' ? '❌ 失败' : '⚠️ 部分成功');
+    h += '<td><span class="t ' + statusClass + '">' + statusText + '</span></td>';
+    h += '<td style="font-size:11px;color:var(--t2)">' + (r.detail||'') + '</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function filterPushHistory(type) {
+  var rows = document.querySelectorAll('tbody tr');
+  rows.forEach(function(r) {
+    if (!type) { r.style.display = ''; return; }
+    var cells = r.querySelectorAll('td');
+    r.style.display = cells[1] && cells[1].innerText.indexOf(PUSH_TYPES[type].label) !== -1 ? '' : 'none';
+  });
+}
+
+function clearPushHistoryV2() {
+  if (!confirm('确定清空所有推送历史？')) return;
+  savePushHistory([]);
+  showToast('已清空');
+  document.querySelector('.page-enter').outerHTML = renderPushCenter();
+}
+
+// ---- 快速推送弹窗（从推送中心直接发送自定义消息）----
+function showQuickPushModal() {
+  var groups = getPushGroups().filter(function(g){return g.enabled;});
+  if (groups.length === 0) { showToast('请先添加启用的群组', 'error'); return; }
+  var h = '<div class="modal-overlay" onclick="closeQuickPushModal(event)" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center">';
+  h += '<div onclick="event.stopPropagation()" style="background:var(--card);border-radius:12px;padding:24px;width:520px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.3)">';
+  h += '<h3 style="margin:0 0 16px">📨 快速推送</h3>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">推送标题</label><input type="text" id="qp_title" class="inp" placeholder="推送标题" style="width:100%"></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">推送内容</label><textarea id="qp_content" class="inp" rows="5" placeholder="推送内容（支持Markdown）" style="width:100%"></textarea></div>';
+  h += '<div style="margin-bottom:12px"><label style="font-size:12px;color:var(--t2)">选择群组</label><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">';
+  groups.forEach(function(g) {
+    h += '<label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;padding:4px 8px;border:1px solid var(--border);border-radius:4px"><input type="checkbox" class="qp_group" value="' + g.id + '"> ' + g.name + '</label>';
+  });
+  h += '</div></div>';
+  h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
+  h += '<button class="btn bo" onclick="closeQuickPushModal()">取消</button>';
+  h += '<button class="btn bp" onclick="executeQuickPush()">发送推送</button>';
+  h += '</div></div></div>';
+  var old = document.getElementById('quickPushModal');
+  if (old) old.remove();
+  var div = document.createElement('div');
+  div.id = 'quickPushModal';
+  div.innerHTML = h;
+  document.body.appendChild(div);
+}
+
+function closeQuickPushModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  var m = document.getElementById('quickPushModal');
+  if (m) m.remove();
+}
+
+async function executeQuickPush() {
+  var title = document.getElementById('qp_title').value.trim();
+  var content = document.getElementById('qp_content').value.trim();
+  var groupIds = [];
+  document.querySelectorAll('.qp_group:checked').forEach(function(cb) { groupIds.push(cb.value); });
+  if (!content) { showToast('请输入推送内容', 'error'); return; }
+  if (groupIds.length === 0) { showToast('请选择至少一个群组', 'error'); return; }
+  closeQuickPushModal();
+  await sendToPushGroup('message', { title: title || '消息推送', content: content, groupIds: groupIds });
 }
 
 </script>
