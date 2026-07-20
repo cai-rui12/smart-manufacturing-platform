@@ -1963,6 +1963,10 @@ function getAllProjects() {
               mp.description = REAL_PROJECTS[m].description;
               mp.nextPlan = REAL_PROJECTS[m].nextPlan;
               mp.risks = REAL_PROJECTS[m].risks;
+              // V18新字段：更新时间、更新历史、飞书文档关联
+              if (REAL_PROJECTS[m].lastUpdate) mp.lastUpdate = REAL_PROJECTS[m].lastUpdate;
+              if (REAL_PROJECTS[m].updateHistory) mp.updateHistory = REAL_PROJECTS[m].updateHistory;
+              if (REAL_PROJECTS[m].feishuDoc) mp.feishuDoc = REAL_PROJECTS[m].feishuDoc;
               break;
             }
           }
