@@ -764,34 +764,34 @@ var REAL_TASKS = [
 ];
 
 var REAL_PROJECTS = [
-  {id:'PRJ-0001', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:92.04, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发总计201项，已完成185项，上线率92%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/丝印字符/沉金/外形加工/电测/FQC包装共11个工序。', leadType:'主导人', nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.内层7/8/9线曝光机未实现通孔码转曝光码，8号蚀刻线MES本周配置', risks:'1.5/7/8号蚀刻线未配置MES，供应商预计本周进厂\n2.阻焊单机曝光机未实现自动转码，四厂测试中\n3.创峰除胶线、超声波清洗线待工艺与IT对接', subSteps:[
+  {id:'PRJ-0001', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:92, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备参数下发总计201项，已完成185项。主要未完成：内层7/8/9线曝光机通孔码转曝光码；5/7/8号蚀刻线测试下发功能正常待IT验证；电镀闪镀线测试下发功能正常待一体机工单；龙门线测试下发功能正常需切换新版软件；3#创峰除胶线供应商开发中预计两周；阻焊单机曝光机未实现自动转码；超声波清洗线IT测试解析中。', leadType:'主导人', nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.内层7/8/9线曝光机未实现通孔码转曝光码，8号蚀刻线MES本周配置', risks:'1.5/7/8号蚀刻线未配置MES，供应商预计本周进厂\n2.阻焊单机曝光机未实现自动转码，四厂测试中\n3.创峰除胶线、超声波清洗线待工艺与IT对接', subSteps:[
     {name:'内层',total:25,done:29,rate:82.86},{name:'压合',total:44,done:43,rate:97.73},{name:'钻孔',total:3,done:2,rate:66.67},{name:'电镀',total:22,done:20,rate:90.91},{name:'树脂塞孔',total:25,done:25,rate:100},{name:'外层',total:8,done:7,rate:87.5},{name:'丝印字符',total:8,done:4,rate:50},{name:'沉金',total:2,done:2,rate:100},{name:'外形加工',total:17,done:17,rate:100},{name:'电测',total:14,done:14,rate:100},{name:'FQC包装',total:3,done:3,rate:100}
   ]},
-  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）',relatedProjects:[{name:'生产参数下发',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:74, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计27项，上线20项，上线率74%。电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、去氧化、成品酸洗线未上线（生产未提供理论时间计算公式）。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）',relatedProjects:[{name:'生产参数下发',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
     {name:'VCP填孔OEE',total:2,done:0,rate:0},{name:'闪镀OEE',total:2,done:0,rate:0},{name:'龙门线OEE',total:2,done:0,rate:0},{name:'字符喷墨OEE',total:2,done:0,rate:0},{name:'沉金前处理OEE',total:2,done:0,rate:0},{name:'内层OEE',total:2,done:2,rate:100},{name:'压合OEE',total:2,done:2,rate:100},{name:'钻孔OEE',total:2,done:2,rate:100},{name:'电镀OEE',total:3,done:3,rate:100},{name:'丝印OEE',total:2,done:2,rate:100},{name:'外形OEE',total:2,done:2,rate:100},{name:'电测OEE',total:2,done:2,rate:100},{name:'FQC OEE',total:1,done:1,rate:100}
   ]},
   {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系',risks:'暂无重大风险，项目已完成数据采集和入网阶段',subSteps:[
     {name:'SCADA数据采集',total:121,done:121,rate:100},{name:'放板机入网',total:63,done:63,rate:100},{name:'收板机入网',total:62,done:62,rate:100},{name:'设备联网',total:125,done:125,rate:100}
   ]},
-  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:67, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'截止7.20日共9个工序需上线，已上线4个工序，4个工序待上线中（待IT采集），1个工序待推进。共63台设备需上线，已上线42台。下半年：钻孔、塞孔、沉金、铣房工序已推进80%预计7月30日上线；电镀工序预计8月14日完成。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
     {name:'内层巡检',total:12,done:12,rate:100},{name:'压合巡检',total:8,done:5,rate:62.5},{name:'钻孔巡检',total:7,done:4,rate:57.14},{name:'电镀巡检',total:9,done:5,rate:55.56},{name:'树脂巡检',total:6,done:3,rate:50},{name:'外层巡检',total:8,done:3,rate:37.5},{name:'丝印巡检',total:6,done:2,rate:33.33},{name:'沉金巡检',total:5,done:2,rate:40},{name:'外形巡检',total:6,done:1,rate:16.67}
   ]},
-  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头安装总计330个，已完成280个，硬件完成率84.8%。读码率目标99%，W28截止目前整体读码率99.63%，均达标。未完成部分为激光钻孔收放板机取消，最新方案安装在钻机内部，预计与三期读头一起安装。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
     {name:'内层读码',total:35,done:35,rate:100},{name:'压合读码',total:30,done:30,rate:100},{name:'钻孔读码',total:40,done:40,rate:100},{name:'电镀读码',total:35,done:35,rate:100},{name:'外层读码',total:30,done:30,rate:100},{name:'丝印读码',total:25,done:25,rate:100},{name:'沉金读码',total:20,done:20,rate:100},{name:'外形读码',total:25,done:25,rate:100},{name:'电测读码',total:50,done:30,rate:60},{name:'FQC读码',total:40,done:10,rate:25}
   ]},
-  {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线',subSteps:[
+  {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:89, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计27项，已完成24项，完成率89%，整体预计8/10完结。未完成：电镀FA指示未上网导致无计划排产；去毛刺待APS计划已完成待生产核对后上线；新增层压后处理回流程放板机防呆无一体机计划；新增读错芯板/子板停机防呆改善程序开发中预计7/20测试。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线',subSteps:[
     {name:'内层防混',total:3,done:3,rate:100},{name:'压合防混',total:3,done:3,rate:100},{name:'钻孔防混',total:3,done:3,rate:100},{name:'电镀防混',total:3,done:2,rate:66.67},{name:'外层防混',total:3,done:2,rate:66.67},{name:'丝印防混',total:2,done:2,rate:100},{name:'沉金防混',total:2,done:2,rate:100},{name:'外形防混',total:2,done:1,rate:50},{name:'电测防混',total:3,done:2,rate:66.67},{name:'FQC防混',total:2,done:1,rate:50}
   ]},
-  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'读码追溯系统',status:'进行中'}],subSteps:[
+  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:75, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求96项，完成72项，完成率75%，整体预计9/10完结。钻孔工序开发逻辑需求已提交IT待测试。AGV已具备搬运绑定工单货架到指定线边仓完成自动过数，AGV上线后可自主配置。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'读码追溯系统',status:'进行中'}],subSteps:[
     {name:'内层过数',total:10,done:10,rate:100},{name:'压合过数',total:8,done:8,rate:100},{name:'钻孔过数',total:8,done:7,rate:87.5},{name:'电镀过数',total:10,done:7,rate:70},{name:'树脂过数',total:6,done:5,rate:83.33},{name:'外层过数',total:10,done:6,rate:60},{name:'丝印过数',total:10,done:5,rate:50},{name:'沉金过数',total:8,done:4,rate:50},{name:'外形过数',total:10,done:6,rate:60},{name:'电测过数',total:10,done:5,rate:50},{name:'FQC过数',total:6,done:2,rate:33.33},{name:'AGV过数',total:2,done:0,rate:0}
   ]},
-  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难',relatedProjects:[{name:'工序自动过数',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:33.7, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入77项，点对点物流上线率92.8%，自动物流上线率33.7%。下半年三阶段：第一阶段7/18-8月中旬实现阻焊显影钻孔去毛刺自动物流；第二阶段8月中旬-10月中旬完成大部分半自动物流模式100%点对点调度；第三阶段10月-12月实现内层蚀刻字符沉铜线自动物流。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难',relatedProjects:[{name:'工序自动过数',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
     {name:'内层物流',total:10,done:10,rate:100},{name:'压合物流',total:8,done:8,rate:100},{name:'钻孔物流',total:10,done:9,rate:90},{name:'电镀物流',total:10,done:9,rate:90},{name:'外层物流',total:8,done:7,rate:87.5},{name:'丝印物流',total:8,done:7,rate:87.5},{name:'DES收板',total:5,done:4,rate:80},{name:'VRS物流',total:5,done:3,rate:60},{name:'层压棕化线',total:10,done:4,rate:40},{name:'阻焊物流',total:9,done:3,rate:33.33}
   ]},
   {id:'PRJ-0009', name:'自动计划专项', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'自动排产与自动计划项目，覆盖全厂工序。', leadType:'主导人', nextPlan:'1.完成自动排产核心算法开发\n2.推进与MES系统对接\n3.试点工序验证', risks:'项目刚启动，需明确各工序排产规则优先级',subSteps:[
     {name:'核心算法开发',total:5,done:2,rate:40},{name:'MES对接',total:3,done:1,rate:33.33},{name:'内层排产',total:2,done:1,rate:50},{name:'压合排产',total:2,done:0,rate:0},{name:'钻孔排产',total:2,done:0,rate:0},{name:'电镀排产',total:2,done:1,rate:50},{name:'丝印排产',total:2,done:0,rate:0},{name:'外形排产',total:2,done:0,rate:0}
   ]},
-  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'自动计划专项',status:'进行中'}],subSteps:[
+  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'三期设备规划安装专项，负责人黄广生。涉及七八楼设备规划、安装计划。关联文件：五厂8楼物流专项-计划表。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'自动计划专项',status:'进行中'}],subSteps:[
     {name:'1F物流',total:3,done:2,rate:66.67},{name:'2F物流',total:3,done:1,rate:33.33},{name:'3F物流',total:3,done:1,rate:33.33},{name:'4F物流',total:3,done:1,rate:33.33},{name:'5F物流',total:3,done:1,rate:33.33},{name:'6F物流',total:3,done:0,rate:0},{name:'7F物流',total:3,done:1,rate:33.33},{name:'8F物流',total:3,done:3,rate:100},{name:'提升机方案',total:3,done:1,rate:33.33}
   ]},
 ];
@@ -1105,10 +1105,10 @@ var M = [
     ]},
   ]},
   {id:'task-personal',label:'👤 个人任务',children:[
-    {id:'task-liang',label:'梁辉彬'},{id:'task-zheng',label:'郑绪友'},
-    {id:'task-zhan',label:'湛子昂'},{id:'task-ding',label:'丁洋'},
-    {id:'task-huang',label:'黄广生'},{id:'task-xiao',label:'肖永哲'},
-    {id:'task-liu',label:'刘洪文'},
+    {id:'task-liang',label:'👤 梁辉彬'},{id:'task-zheng',label:'👤 郑绪友'},
+    {id:'task-zhan',label:'👤 湛子昂'},{id:'task-ding',label:'👤 丁洋'},
+    {id:'task-huang',label:'👤 黄广生'},{id:'task-xiao',label:'👤 肖永哲'},
+    {id:'task-liu',label:'👤 刘洪文'},
   ]},
   {id:'task-cycle',label:'🕐 周期任务',children:[
     {id:'task-daily',label:'📅 日任务'},
@@ -1130,109 +1130,109 @@ var M = [
   ]},
 ]},
 {id:'equipment',label:'🔧 设备管理',icon:'🔧',children:[
-  {id:'equip-auto',label:'自动化设备',children:[
-    {id:'equip-all',label:'全部设备'},
-    {id:'equip-by-process',label:'按工序分类'},
+  {id:'equip-auto',label:'🤖 自动化设备',children:[
+    {id:'equip-all',label:'📋 全部设备'},
+    {id:'equip-by-process',label:'📂 按工序分类'},
   ]},
-  {id:'equip-expand',label:'扩建设备',children:[
-    {id:'equip-purchase',label:'采购进度'},
-    {id:'equip-plan',label:'设备计划'},
+  {id:'equip-expand',label:'🏗 扩建设备',children:[
+    {id:'equip-purchase',label:'🛒 采购进度'},
+    {id:'equip-plan',label:'📅 设备计划'},
   ]},
-  {id:'equip-accept',label:'设备验收',children:[
-    {id:'accept-pending',label:'待验收'},
-    {id:'accept-done',label:'已验收'},
+  {id:'equip-accept',label:'✅ 设备验收',children:[
+    {id:'accept-pending',label:'⏳ 待验收'},
+    {id:'accept-done',label:'✅ 已验收'},
   ]},
-  {id:'equip-spare',label:'备件管理',children:[
-    {id:'spare-stock',label:'备件库存'},
-    {id:'spare-cycle',label:'更换周期'},
+  {id:'equip-spare',label:'📦 备件管理',children:[
+    {id:'spare-stock',label:'📦 备件库存'},
+    {id:'spare-cycle',label:'🔄 更换周期'},
   ]},
-  {id:'equip-maintain',label:'保养管理',children:[
-    {id:'maintain-list',label:'保养计划'},
-    {id:'maintain-history',label:'保养记录'},
+  {id:'equip-maintain',label:'🔧 保养管理',children:[
+    {id:'maintain-list',label:'📅 保养计划'},
+    {id:'maintain-history',label:'📜 保养记录'},
   ]},
-  {id:'equip-repair',label:'维修管理',children:[
-    {id:'repair-list',label:'维修记录'},
-    {id:'repair-pending',label:'待处理报修'},
+  {id:'equip-repair',label:'🛠 维修管理',children:[
+    {id:'repair-list',label:'🔧 维修记录'},
+    {id:'repair-pending',label:'⚠ 待处理报修'},
   ]},
 ]},
 {id:'improve',label:'💡 每日改善',icon:'💡',children:[
-  {id:'improve-record',label:'改善记录',children:[
-    {id:'improve-today',label:'今日改善'},
-    {id:'improve-history',label:'历史改善'},
+  {id:'improve-record',label:'📝 改善记录',children:[
+    {id:'improve-today',label:'✏️ 今日改善'},
+    {id:'improve-history',label:'📚 历史改善'},
   ]},
-  {id:'improve-stats',label:'改善统计',children:[
-    {id:'improve-by-dept',label:'按部门统计'},
-    {id:'improve-by-person',label:'按人员统计'},
+  {id:'improve-stats',label:'📊 改善统计',children:[
+    {id:'improve-by-dept',label:'🏢 按部门统计'},
+    {id:'improve-by-person',label:'👤 按人员统计'},
   ]},
 ]},
 {id:'org',label:'👥 组织管理',icon:'👥',children:[
-  {id:'org-chart',label:'组织架构',children:[
-    {id:'org-smart',label:'智能制造组'},
-    {id:'org-mech',label:'机电设备组'},
-    {id:'org-elec',label:'电子设备组'},
-    {id:'org-maint',label:'保养组'},
+  {id:'org-chart',label:'🏛 组织架构',children:[
+    {id:'org-smart',label:'🏭 智能制造组'},
+    {id:'org-mech',label:'⚡ 机电设备组'},
+    {id:'org-elec',label:'💻 电子设备组'},
+    {id:'org-maint',label:'🛡 保养组'},
   ]},
-  {id:'org-people',label:'人员管理',children:[
-    {id:'people-list',label:'人员列表'},
-    {id:'skill-matrix',label:'技能矩阵'},
+  {id:'org-people',label:'👨‍💼 人员管理',children:[
+    {id:'people-list',label:'📋 人员列表'},
+    {id:'skill-matrix',label:'🧮 技能矩阵'},
   ]},
-  {id:'org-doc',label:'文档资料',children:[
-    {id:'doc-library',label:'文档库'},
-    {id:'tool-library',label:'工具脚本'},
+  {id:'org-doc',label:'📁 文档资料',children:[
+    {id:'doc-library',label:'📑 文档库'},
+    {id:'tool-library',label:'🔧 工具脚本'},
   ]},
 ]},
 {id:'dashboard',label:'📈 数据看板',icon:'📈',children:[
-  {id:'dash-overview',label:'综合看板',children:[
-    {id:'dash-work',label:'工作概览',children:[
-      {id:'dash-task-rate',label:'任务完成率'},
-      {id:'dash-attendance',label:'出勤统计'},
+  {id:'dash-overview',label:'📊 综合看板',children:[
+    {id:'dash-work',label:'👁 工作概览',children:[
+      {id:'dash-task-rate',label:'📈 任务完成率'},
+      {id:'dash-attendance',label:'👥 出勤统计'},
     ]},
   ]},
-  {id:'dash-equip',label:'设备看板',children:[
-    {id:'equip-status',label:'设备状态'},
-    {id:'equip-fault',label:'故障统计'},
+  {id:'dash-equip',label:'🖥 设备看板',children:[
+    {id:'equip-status',label:'📋 设备状态'},
+    {id:'equip-fault',label:'⚠️ 故障统计'},
   ]},
 ]},
 {id:'strategy',label:'🎯 战略规划',icon:'🎯',children:[
-  {id:'strategy-2025',label:'2025年总结',children:[
-    {id:'summary-equip',label:'设备安装'},
-    {id:'summary-smart',label:'智能制造'},
-    {id:'summary-manage',label:'基础管理'},
-    {id:'summary-improve',label:'持续改善'},
+  {id:'strategy-2025',label:'📋 2025年总结',children:[
+    {id:'summary-equip',label:'🏗 设备安装'},
+    {id:'summary-smart',label:'🤖 智能制造'},
+    {id:'summary-manage',label:'🏛 基础管理'},
+    {id:'summary-improve',label:'💡 持续改善'},
   ]},
-  {id:'strategy-2026',label:'2026年目标',children:[
-    {id:'kpi-contract',label:'合同绩效KPI',children:[
-      {id:'kpi-downtime',label:'设备停机'},
-      {id:'kpi-alarm',label:'设备报警'},
-      {id:'kpi-scrap',label:'碟塔板报废'},
-      {id:'kpi-energy',label:'能耗管理'},
-      {id:'kpi-safety',label:'安全管理'},
+  {id:'strategy-2026',label:'🎯 2026年目标',children:[
+    {id:'kpi-contract',label:'📊 合同绩效KPI',children:[
+      {id:'kpi-downtime',label:'⏸ 设备停机'},
+      {id:'kpi-alarm',label:'🔔 设备报警'},
+      {id:'kpi-scrap',label:'♻ 碟塔板报废'},
+      {id:'kpi-energy',label:'⚡ 能耗管理'},
+      {id:'kpi-safety',label:'🛡 安全管理'},
     ]},
   ]},
-  {id:'strategy-whitepaper',label:'白皮书重点',children:[
-    {id:'wp-smart-maint',label:'智能化维护方向'},
-    {id:'wp-cost-ctrl',label:'成本控制'},
-    {id:'wp-train',label:'人员培养'},
-    {id:'wp-culture',label:'部门文化'},
-    {id:'wp-ten-projects',label:'十大项目规划'},
+  {id:'strategy-whitepaper',label:'📄 白皮书重点',children:[
+    {id:'wp-smart-maint',label:'🧭 智能化维护方向'},
+    {id:'wp-cost-ctrl',label:'💰 成本控制'},
+    {id:'wp-train',label:'🎓 人员培养'},
+    {id:'wp-culture',label:'🏢 部门文化'},
+    {id:'wp-ten-projects',label:'🗺 十大项目规划'},
   ]},
-  {id:'strategy-track',label:'目标追踪',children:[
-    {id:'track-kpi',label:'KPI仪表盘'},
-    {id:'track-milestone',label:'里程碑'},
-    {id:'track-decision',label:'决策跟踪'},
+  {id:'strategy-track',label:'📍 目标追踪',children:[
+    {id:'track-kpi',label:'📊 KPI仪表盘'},
+    {id:'track-milestone',label:'🚩 里程碑'},
+    {id:'track-decision',label:'🔍 决策跟踪'},
   ]},
-  {id:'strategy-culture',label:'文化建设',children:[
-    {id:'culture-slogan',label:'口号墙'},
-    {id:'culture-contest',label:'技能竞赛'},
-    {id:'culture-teambuild',label:'团建计划'},
-    {id:'culture-quotes',label:'金句集锦'},
+  {id:'strategy-culture',label:'🎪 文化建设',children:[
+    {id:'culture-slogan',label:'📢 口号墙'},
+    {id:'culture-contest',label:'🏆 技能竞赛'},
+    {id:'culture-teambuild',label:'🎉 团建计划'},
+    {id:'culture-quotes',label:'💬 金句集锦'},
   ]},
 ]},
 {id:'auto-task',label:'🤖 自动化任务',icon:'🤖',children:[
-  {id:'at-list',label:'任务列表'},
-  {id:'at-templates',label:'任务模板'},
-  {id:'at-logs',label:'执行日志'},
-  {id:'msg-push',label:'消息推送'},
+  {id:'at-list',label:'📋 任务列表'},
+  {id:'at-templates',label:'📄 任务模板'},
+  {id:'at-logs',label:'📊 执行日志'},
+  {id:'msg-push',label:'📢 消息推送'},
 ]},
 {id:'config',label:'⚙ 系统配置',icon:'⚙',children:[
   {id:'member-manage',label:'👤 成员管理'},
@@ -1247,7 +1247,7 @@ var M = [
   {id:'push-manage',label:'📢 推送管理'}
   ,{id:'schedule-push',label:'⏰ 定时推送'}
 ]},
-{id:'modules',label:'模块管理',icon:'🧩',children:[
+{id:'modules',label:'🧩 模块管理',icon:'🧩',children:[
   {id:'module-list',label:'📦 已安装模块'},
   {id:'module-register',label:'➕ 注册新模块'}
 ]},
