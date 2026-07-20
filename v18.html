@@ -1673,12 +1673,15 @@ async function detectServer() {
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url;
+      window._serverUrl = url;
       localStorage.setItem('v13_server_url', url);
       localStorage.setItem('v13_server_enabled', 'true');
       updateSyncStatusBadge('connected', '已连接');
       addSyncLog('服务器连接成功: ' + url + (result.data ? ' (版本: ' + (result.data.version || '-') + ', 运行: ' + Math.round(result.data.uptime || 0) + '秒)' : ''));
       // 自动同步本地数据到服务器
       await syncLocalToServer();
+      // 服务器连接成功后自动拉取数据
+      loadServerData();
       return;
     }
   }
@@ -1748,7 +1751,8 @@ function updateSyncStatusBadge(status, text) {
     badge.style.color = '#8f959e';
     var qCount = getOfflineQueueCount();
     var qInfo = qCount > 0 ? ' (' + qCount + '条待同步)' : '';
-    badge.innerHTML = (text || '离线') + qInfo + ' <span onclick="manualConnect(event)" style="margin-left:4px;padding:1px 5px;font-size:10px;border-radius:3px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;">重连</span>';
+    var offlineText = (text && text !== '本地模式') ? text : '离线(本地数据)';
+    badge.innerHTML = offlineText + qInfo + ' <span onclick="manualConnect(event)" style="margin-left:4px;padding:1px 5px;font-size:10px;border-radius:3px;border:1px solid #ccc;background:#fff;color:#666;cursor:pointer;">重连</span>';
   } else if (status === 'connected' || (SERVER_CONFIG.mode === 'online' && SYNC_STATE.status !== 'syncing' && SYNC_STATE.status !== 'error')) {
     badge.style.background = '#e8f8e8';
     badge.style.color = '#34c724';
@@ -2203,13 +2207,96 @@ function mergeData(builtIn, localKey) {
   } catch(e) { return builtIn; }
 }
 
-function getAllTasks() { return mergeData(REAL_TASKS, 'local_tasks'); }
+// 远程数据缓存（从服务器API拉取的数据）
+var _remoteTasks = null;
+var _remoteProjects = null;
+var _remoteSpecials = null;
+var _remoteSyncStatus = null;
+var _serverDataLoaded = false;
+
+async function loadServerData() {
+  if (!window._serverUrl || _serverDataLoaded) return;
+  try {
+    // 并行拉取任务、项目、专项、同步状态
+    var results = await Promise.all([
+      apiRequest('GET', '/api/feishu/tasks'),
+      apiRequest('GET', '/api/feishu/projects'),
+      apiRequest('GET', '/api/feishu/specials'),
+      apiRequest('GET', '/api/feishu/sync-status')
+    ]);
+    
+    if (results[0] && results[0].code === 0 && Array.isArray(results[0].data)) {
+      _remoteTasks = results[0].data;
+    }
+    if (results[1] && results[1].code === 0 && Array.isArray(results[1].data)) {
+      _remoteProjects = results[1].data;
+    }
+    if (results[2] && results[2].code === 0 && Array.isArray(results[2].data)) {
+      _remoteSpecials = results[2].data;
+    }
+    if (results[3] && results[3].code === 0) {
+      _remoteSyncStatus = results[3].data;
+    }
+    _serverDataLoaded = true;
+    
+    // 保存到localStorage作为缓存
+    if (_remoteTasks && _remoteTasks.length > 0) {
+      try { localStorage.setItem('server_tasks', JSON.stringify(_remoteTasks)); localStorage.setItem('server_tasks_time', Date.now()); } catch(e) {}
+    }
+    if (_remoteProjects && _remoteProjects.length > 0) {
+      try { localStorage.setItem('server_projects', JSON.stringify(_remoteProjects)); } catch(e) {}
+    }
+    if (_remoteSpecials && _remoteSpecials.length > 0) {
+      try { localStorage.setItem('server_specials', JSON.stringify(_remoteSpecials)); } catch(e) {}
+    }
+    
+    // 更新同步状态为服务器数据
+    var badge = document.getElementById('syncStatusBadge');
+    if (badge) {
+      badge.textContent = '已同步(服务器数据)';
+      badge.style.background = '#2db84d';
+      badge.style.color = '#fff';
+    }
+  } catch(e) {
+    console.log('加载服务器数据失败: ' + e.message);
+    // 尝试从localStorage缓存恢复
+    try {
+      var cached = localStorage.getItem('server_tasks');
+      if (cached) _remoteTasks = JSON.parse(cached);
+      cached = localStorage.getItem('server_projects');
+      if (cached) _remoteProjects = JSON.parse(cached);
+      cached = localStorage.getItem('server_specials');
+      if (cached) _remoteSpecials = JSON.parse(cached);
+    } catch(e2) {}
+  }
+}
+
+function getAllTasks() {
+  // 优先使用服务器数据
+  if (_remoteTasks && _remoteTasks.length > 0) return _remoteTasks;
+  // 其次使用localStorage缓存的服务器数据
+  try {
+    var cached = localStorage.getItem('server_tasks');
+    if (cached) { var parsed = JSON.parse(cached); if (parsed.length > 0) return parsed; }
+  } catch(e) {}
+  // 最后兜底使用硬编码数据
+  return mergeData(REAL_TASKS, 'local_tasks');
+}
 function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_daily'); }
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
 var PROJECT_DATA_VERSION = 19;
 function getAllProjects() {
+  // 优先使用服务器数据
+  if (_remoteProjects && _remoteProjects.length > 0) {
+    try { localStorage.setItem('server_projects', JSON.stringify(_remoteProjects)); } catch(e) {}
+    return _remoteProjects;
+  }
+  try {
+    var _sp = localStorage.getItem('server_projects');
+    if (_sp) { var _parsed = JSON.parse(_sp); if (_parsed.length > 0) return _parsed; }
+  } catch(e) {}
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
   (function(){
@@ -2272,6 +2359,14 @@ function getAllProjects() {
     } catch(e) {}
   })();
   return mergeData(REAL_PROJECTS, 'local_projects');
+}
+function getAllSpecials() {
+  if (_remoteSpecials && _remoteSpecials.length > 0) return _remoteSpecials;
+  try {
+    var cached = localStorage.getItem('server_specials');
+    if (cached) { var parsed = JSON.parse(cached); if (parsed.length > 0) return parsed; }
+  } catch(e) {}
+  return SPECIAL_PROJECTS || [];
 }
 function getAllEquips() { return mergeData(REAL_EQUIPMENTS, 'local_equips'); }
 function getAllImproves() { return mergeData(REAL_IMPROVEMENTS, 'local_improves'); }
