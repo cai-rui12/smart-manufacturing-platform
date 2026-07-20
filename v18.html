@@ -1922,7 +1922,7 @@ function getAllDailyReports() { return mergeData(REAL_DAILY_REPORTS, 'local_dail
 function getAllWeeklyReports() { return mergeData(REAL_WEEKLY_REPORTS, 'local_weekly'); }
 function getAllMonthlyReports() { return mergeData(REAL_MONTHLY_REPORTS, 'local_monthly'); }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
-var PROJECT_DATA_VERSION = 8;
+var PROJECT_DATA_VERSION = 9;
 function getAllProjects() {
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
@@ -3924,6 +3924,43 @@ function renderPersonalTask(personName) {
   return renderTaskList(function(t){ return t.owner === personName; }, personName + ' 的任务');
 }
 
+// 每日任务 - 显示今日任务
+function renderDailyTaskToday() {
+  var tasks = getAllTasks();
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  // 过滤今日任务
+  var todayTasks = tasks.filter(function(t) {
+    return t.dueDate === todayStr || (t.createDate === todayStr) || (t.planDate === todayStr);
+  });
+  // 如果没有匹配日期的，则取所有周期为"日"的任务
+  var cycleDaily = [
+    {id:'CT001', desc:'每日设备巡检', owner:'智能制造组', cycle:'日', status:'进行中', progress:80},
+    {id:'CT002', desc:'每日安全检查', owner:'安全员', cycle:'日', status:'进行中', progress:100}
+  ];
+  var list = todayTasks.length > 0 ? todayTasks : cycleDaily;
+
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">📋 每日任务 <span class="bdg">今日 ' + todayStr + '</span></div>';
+  h += '<div class="kpi-row">';
+  h += '<div class="kpi-card"><div class="kpi-value">' + list.length + '</div><div class="kpi-label">今日任务</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + list.filter(function(t){return t.status==='进行中';}).length + '</div><div class="kpi-label">进行中</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + list.filter(function(t){return t.status==='已完成';}).length + '</div><div class="kpi-label">已完成</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + list.filter(function(t){return t.status==='待开始';}).length + '</div><div class="kpi-label">待开始</div></div>';
+  h += '</div>';
+  h += '<div class="cd"><div class="ct">今日任务列表</div>';
+  h += '<table class="dt"><thead><tr><th>编号</th><th>任务名称</th><th>负责人</th><th>状态</th><th>进度</th></tr></thead><tbody>';
+  list.forEach(function(t) {
+    h += '<tr><td>' + (t.id || '-') + '</td><td>' + (t.title || t.desc || t.name || '-') + '</td><td>' + (t.assignee || t.owner || '-') + '</td>';
+    h += '<td><span class="t ' + (typeof getStatusClass === 'function' ? getStatusClass(t.status) : '') + '">' + t.status + '</span></td>';
+    h += '<td><div class="progress-bar"><div class="progress-fill" style="width:' + (t.progress || 0) + '%"></div></div></td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '</div>';
+  return h;
+}
+
 function renderCycleTask(cycleType) {
   var titleMap = {daily:'日任务', weekly:'周任务', monthly:'月任务'};
   var cycleMap = {daily:'日', weekly:'周', monthly:'月'};
@@ -5547,6 +5584,54 @@ var EQUIP_ACCEPT_DEFAULTS = [
 function getAllEquipAccepts() { return mergeData(EQUIP_ACCEPT_DEFAULTS, 'local_equip_accepts'); }
 function saveLocalEquipAccepts(arr) { lsSet('local_equip_accepts', arr); }
 
+// 验收总览 - 显示待验收和已验收统计
+function renderEquipAcceptOverview() {
+  var allEquips = getAllEquipAccepts();
+  var pending = allEquips.filter(function(e){return e.status==='待验收';});
+  var done = allEquips.filter(function(e){return e.status==='已验收';});
+
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">验收管理总览 <span class="bdg">全部 ' + allEquips.length + ' 项</span></div>';
+
+  h += '<div class="kpi-row">';
+  h += '<div class="kpi-card"><div class="kpi-value">' + allEquips.length + '</div><div class="kpi-label">总验收项</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + pending.length + '</div><div class="kpi-label">待验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + done.length + '</div><div class="kpi-label">已验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + (allEquips.length > 0 ? Math.round(done.length/allEquips.length*100) : 0) + '%</div><div class="kpi-label">验收率</div></div>';
+  h += '</div>';
+
+  // 快速导航
+  h += '<div class="g2">';
+  h += '<div class="cd" style="cursor:pointer;padding:24px;text-align:center" onclick="goToPage(\'accept-pending\')">';
+  h += '<div style="font-size:36px;margin-bottom:8px">⏳</div>';
+  h += '<div style="font-size:20px;font-weight:700;color:var(--og)">' + pending.length + '</div>';
+  h += '<div style="font-weight:600;margin-top:4px">待验收设备</div>';
+  h += '<div style="font-size:12px;color:var(--t2)">点击查看待验收列表</div>';
+  h += '</div>';
+  h += '<div class="cd" style="cursor:pointer;padding:24px;text-align:center" onclick="goToPage(\'accept-done\')">';
+  h += '<div style="font-size:36px;margin-bottom:8px">✅</div>';
+  h += '<div style="font-size:20px;font-weight:700;color:var(--gn)">' + done.length + '</div>';
+  h += '<div style="font-weight:600;margin-top:4px">已验收设备</div>';
+  h += '<div style="font-size:12px;color:var(--t2)">点击查看已验收列表</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // 最近验收记录
+  h += '<div class="cd"><div class="ct">最近验收记录</div>';
+  h += '<table class="dt"><thead><tr><th>设备名称</th><th>验收状态</th><th>验收人</th><th>验收日期</th></tr></thead><tbody>';
+  var recent = allEquips.slice(-5).reverse();
+  recent.forEach(function(e) {
+    var cls = e.status === '已验收' ? 'tg' : 'to';
+    h += '<tr><td>' + (e.name || e.equipName || '-') + '</td>';
+    h += '<td><span class="t ' + cls + '">' + e.status + '</span></td>';
+    h += '<td>' + (e.acceptor || e.operator || '-') + '</td>';
+    h += '<td>' + (e.acceptDate || e.date || '-') + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '</div>';
+  return h;
+}
+
 function renderEquipAccept(status) {
   var title = status === 'done' ? '已验收设备' : '待验收设备';
   var allEquips = getAllEquipAccepts();
@@ -5758,6 +5843,55 @@ var SPARE_DEFAULTS = [
 
 function getAllSpares() { return mergeData(SPARE_DEFAULTS, 'local_spares'); }
 function saveLocalSpares(arr) { lsSet('local_spares', arr); }
+
+// 备件总览
+function renderSpareOverview() {
+  var allSpares = getAllSpares();
+  var totalStock = allSpares.reduce(function(s,p){return s + (parseInt(p.stock) || 0);}, 0);
+  var lowStock = allSpares.filter(function(s){return (parseInt(s.stock)||0) < (parseInt(s.minStock)||5);});
+  var totalValue = allSpares.reduce(function(s,p){return s + (parseFloat(p.price)||0) * (parseInt(p.stock)||0);}, 0);
+
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">🔩 备件管理总览 <span class="bdg">' + allSpares.length + ' 种备件</span></div>';
+
+  h += '<div class="kpi-row">';
+  h += '<div class="kpi-card"><div class="kpi-value">' + allSpares.length + '</div><div class="kpi-label">备件种类</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + totalStock + '</div><div class="kpi-label">库存总量</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + lowStock.length + '</div><div class="kpi-label">低库存预警</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + totalValue.toFixed(0) + '</div><div class="kpi-label">库存总价值(元)</div></div>';
+  h += '</div>';
+
+  // 快速导航
+  h += '<div class="g2">';
+  h += '<div class="cd" style="cursor:pointer;padding:24px;text-align:center" onclick="goToPage(\'spare-stock\')">';
+  h += '<div style="font-size:36px;margin-bottom:8px">📦</div>';
+  h += '<div style="font-weight:600">库存明细</div>';
+  h += '<div style="font-size:12px;color:var(--t2)">查看所有备件库存详情</div>';
+  h += '</div>';
+  h += '<div class="cd" style="cursor:pointer;padding:24px;text-align:center" onclick="goToPage(\'spare-cycle\')">';
+  h += '<div style="font-size:36px;margin-bottom:8px">🔄</div>';
+  h += '<div style="font-weight:600">更换周期</div>';
+  h += '<div style="font-size:12px;color:var(--t2)">查看备件更换周期管理</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // 低库存预警列表
+  if (lowStock.length > 0) {
+    h += '<div class="cd"><div class="ct">⚠️ 低库存预警</div>';
+    h += '<table class="dt"><thead><tr><th>备件名称</th><th>当前库存</th><th>最低库存</th><th>规格</th><th>操作</th></tr></thead><tbody>';
+    lowStock.forEach(function(s) {
+      h += '<tr><td>' + (s.name || s.spareName || '-') + '</td>';
+      h += '<td><span class="t tr">' + (s.stock || 0) + '</span></td>';
+      h += '<td>' + (s.minStock || 5) + '</td>';
+      h += '<td>' + (s.spec || '-') + '</td>';
+      h += '<td><button class="btn btn-sm" onclick="goToPage(\'spare-stock\')">去补货</button></td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
 
 function renderSpare(kind) {
   var title = kind === 'cycle' ? '备件更换周期' : '备件库存';
@@ -6504,6 +6638,71 @@ function renderOrgDept(dept) {
     h += '</div>';
     return h;
   } catch(e) { return '<div class="cd"><div class="status-bar error">组织架构渲染错误: ' + e.message + '</div></div>'; }
+}
+
+// 组织总览页面 - 显示全厂汇总统计与快速导航
+function renderOrgOverview() {
+  try {
+    var depts = ['智能制造组','机电设备组','电子设备组','保养组'];
+    var deptKeys = {'智能制造组':'org-smart','机电设备组':'org-mech','电子设备组':'org-elec','保养组':'org-maint'};
+    var deptIcons = {'智能制造组':'🏭','机电设备组':'⚙️','电子设备组':'🔌','保养组':'🔧'};
+    var deptDesc = {'智能制造组':'负责智能制造系统规划、MES实施、数据采集与分析','机电设备组':'负责机械设备维护、故障诊断、预防性保养','电子设备组':'负责电气系统维护、PLC编程、自动化改造','保养组':'负责设备日常保养、润滑管理、备件管理'};
+
+    var totalPeople = PEOPLE_OBJ.length;
+    var totalLeaders = PEOPLE_OBJ.filter(function(p){return (p.group||'').indexOf('部门领导')!==-1 || (p.group||'').indexOf('组领导')!==-1;}).length;
+    var totalEngineers = PEOPLE_OBJ.filter(function(p){return (p.group||'').indexOf('工程师')!==-1;}).length;
+
+    var h = '<div class="page-enter">';
+    h += '<div class="pt">🏢 组织管理总览 <span class="bdg">全厂概览</span></div>';
+
+    // 汇总统计卡片
+    h += '<div class="kpi-row">';
+    h += '<div class="kpi-card"><div class="kpi-value">' + totalPeople + '</div><div class="kpi-label">总人数</div></div>';
+    h += '<div class="kpi-card"><div class="kpi-value">4</div><div class="kpi-label">部门数</div></div>';
+    h += '<div class="kpi-card"><div class="kpi-value">' + totalLeaders + '</div><div class="kpi-label">管理岗</div></div>';
+    h += '<div class="kpi-card"><div class="kpi-value">' + totalEngineers + '</div><div class="kpi-label">技术岗</div></div>';
+    h += '</div>';
+
+    // 快速导航区
+    h += '<div class="cd"><div class="ct">导航 - 点击进入部门详情</div>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">';
+    depts.forEach(function(dept) {
+      var people = PEOPLE_OBJ.filter(function(p){return p.dept === dept;});
+      var leaders = people.filter(function(p){return (p.group||'').indexOf('部门领导')!==-1 || (p.group||'').indexOf('组领导')!==-1;});
+      var engineers = people.filter(function(p){return (p.group||'').indexOf('工程师')!==-1;});
+      h += '<div class="cd" style="cursor:pointer" onclick="goToPage(\'' + deptKeys[dept] + '\')">';
+      h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+      h += '<span style="font-size:28px">' + deptIcons[dept] + '</span>';
+      h += '<div><div style="font-weight:600;font-size:15px">' + dept + '</div>';
+      h += '<div style="font-size:11px;color:var(--t2)">' + people.length + '人</div></div>';
+      h += '</div>';
+      h += '<div style="font-size:12px;color:var(--t2);margin-bottom:8px">' + deptDesc[dept] + '</div>';
+      h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+      h += '<span class="t tp">管理 ' + leaders.length + '</span>';
+      h += '<span class="t tx">技术 ' + engineers.length + '</span>';
+      h += '</div>';
+      h += '<div style="margin-top:8px;font-size:11px;color:var(--blue);text-align:right">查看详情 →</div>';
+      h += '</div>';
+    });
+    h += '</div></div>';
+
+    // 快捷入口
+    h += '<div class="g2">';
+    h += '<div class="cd" style="cursor:pointer;text-align:center;padding:24px" onclick="goToPage(\'org-chart\')">';
+    h += '<div style="font-size:32px;margin-bottom:8px">📊</div>';
+    h += '<div style="font-weight:600">组织架构图</div>';
+    h += '<div style="font-size:12px;color:var(--t2)">查看完整组织树形结构</div>';
+    h += '</div>';
+    h += '<div class="cd" style="cursor:pointer;text-align:center;padding:24px" onclick="goToPage(\'member-manage\')">';
+    h += '<div style="font-size:32px;margin-bottom:8px">👥</div>';
+    h += '<div style="font-weight:600">人员管理</div>';
+    h += '<div style="font-size:12px;color:var(--t2)">管理全员信息与权限</div>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '</div>';
+    return h;
+  } catch(e) { return '<div class="cd"><div class="status-bar error">组织总览渲染错误: ' + e.message + '</div></div>'; }
 }
 
 function renderOrgChart() {
@@ -7691,6 +7890,49 @@ function clearPushHistory() {
 // V10 - 成员管理 + 权限配置
 // =========================================
 var showPasswords = false;
+
+// 系统配置总览页面
+function renderConfigDashboard() {
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">⚙️ 系统配置总览 <span class="bdg">管理后台</span></div>';
+
+  // 配置概览卡片
+  h += '<div class="kpi-row">';
+  h += '<div class="kpi-card"><div class="kpi-value">V18</div><div class="kpi-label">系统版本</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + new Date().toISOString().slice(0,10).replace(/-/g,'.') + '</div><div class="kpi-label">数据版本</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + PEOPLE_OBJ.length + '</div><div class="kpi-label">用户数</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">12</div><div class="kpi-label">功能模块</div></div>';
+  h += '</div>';
+
+  // 配置分区导航
+  h += '<div class="cd"><div class="ct">配置分区 - 点击进入</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">';
+
+  var sections = [
+    {id:'config', icon:'⚙️', title:'系统配置', desc:'基本参数、系统设置、界面配置', color:'var(--blue)'},
+    {id:'member-manage', icon:'👥', title:'权限管理', desc:'用户管理、角色分配、权限控制', color:'var(--gn)'},
+    {id:'msg-push', icon:'📢', title:'消息推送', desc:'推送规则、通知模板、历史记录', color:'var(--og)'},
+    {id:'backup-manage', icon:'💾', title:'备份管理', desc:'数据备份、恢复、导入导出', color:'var(--pr)'},
+    {id:'about', icon:'ℹ️', title:'关于系统', desc:'版本信息、使用说明、更新日志', color:'var(--t2)'}
+  ];
+
+  sections.forEach(function(s) {
+    h += '<div class="cd" style="cursor:pointer;border-left:4px solid ' + s.color + '" onclick="goToPage(\'' + s.id + '\')">';
+    h += '<div style="display:flex;align-items:center;gap:12px">';
+    h += '<span style="font-size:32px">' + s.icon + '</span>';
+    h += '<div>';
+    h += '<div style="font-weight:600;font-size:15px">' + s.title + '</div>';
+    h += '<div style="font-size:12px;color:var(--t2);margin-top:2px">' + s.desc + '</div>';
+    h += '</div>';
+    h += '<div style="margin-left:auto;font-size:18px;color:var(--t3)">→</div>';
+    h += '</div>';
+    h += '</div>';
+  });
+
+  h += '</div></div>';
+  h += '</div>';
+  return h;
+}
 
 function renderMemberManage() {
   var all = PEOPLE_OBJ;
@@ -9815,6 +10057,39 @@ function saveStrategySummaryContent(type, content) {
   } catch(e) {}
 }
 
+// 战略总览 - 索引导航页
+function renderStrategyOverview() {
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">🎯 战略规划总览 <span class="bdg">导航中心</span></div>';
+
+  var sections = [
+    {id:'summary-smart', icon:'📊', title:'智能制造年度总结', desc:'2025年智能制造组年度工作总结与成果回顾', gradient:'linear-gradient(135deg,#667eea,#764ba2)'},
+    {id:'summary-equip', icon:'🔧', title:'设备管理年度总结', desc:'2025年设备管理、维护保养工作全面总结', gradient:'linear-gradient(135deg,#f093fb,#f5576c)'},
+    {id:'summary-manage', icon:'📋', title:'管理效能年度总结', desc:'2025年团队管理、制度优化工作总结', gradient:'linear-gradient(135deg,#4facfe,#00f2fe)'},
+    {id:'summary-improve', icon:'💡', title:'改善成果年度总结', desc:'2025年持续改善、创新项目成果汇总', gradient:'linear-gradient(135deg,#43e97b,#38f9d7)'},
+    {id:'strategy-whitepaper', icon:'📖', title:'白皮书', desc:'智能制造维保白皮书、成本控制、培训体系等专题文档', gradient:'linear-gradient(135deg,#fa709a,#fee140)'},
+    {id:'strategy-track', icon:'📈', title:'追踪评估', desc:'KPI追踪、里程碑管理、决策记录等追踪管理', gradient:'linear-gradient(135deg,#a18cd1,#fbc2eb)'},
+    {id:'strategy-culture', icon:'🏗️', title:'文化建设', desc:'团队文化、标语口号、活动竞赛、团队建设', gradient:'linear-gradient(135deg,#ffecd2,#fcb69f)'}
+  ];
+
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">';
+  sections.forEach(function(s) {
+    h += '<div class="cd" style="cursor:pointer;overflow:hidden" onclick="goToPage(\'' + s.id + '\')">';
+    h += '<div style="height:6px;background:' + s.gradient + ';margin:-16px -16px 16px -16px"></div>';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">';
+    h += '<span style="font-size:32px">' + s.icon + '</span>';
+    h += '<div style="font-weight:600;font-size:16px">' + s.title + '</div>';
+    h += '</div>';
+    h += '<div style="font-size:13px;color:var(--t2);line-height:1.6">' + s.desc + '</div>';
+    h += '<div style="margin-top:12px;font-size:12px;color:var(--blue);text-align:right">进入查看 →</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
 function renderStrategySummary(type) {
   var defaultData = strategySummaryData[type] || strategySummaryData['summary-smart'];
   var customContent = getStrategySummaryContent(type);
@@ -10232,6 +10507,39 @@ function saveWhitepaperContent(type, content) {
   } catch(e) {}
 }
 
+// 白皮书总览/索引页
+function renderWhitepaperOverview() {
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">📖 白皮书总览 <span class="bdg">专题文档</span></div>';
+
+  var papers = [
+    {id:'wp-smart-maint', icon:'🤖', title:'智能制造维保白皮书', desc:'智能设备维保策略、预测性维护方案与实施路径', tag:'核心文档'},
+    {id:'wp-cost-ctrl', icon:'💰', title:'成本控制白皮书', desc:'设备维保成本分析、降本增效策略与效果评估', tag:'管理文档'},
+    {id:'wp-train', icon:'🎓', title:'培训体系白皮书', desc:'技术培训体系设计、课程规划与能力提升方案', tag:'人才发展'},
+    {id:'wp-culture', icon:'🌟', title:'文化建设白皮书', desc:'企业文化体系、价值观塑造与文化落地实践', tag:'文化文档'},
+    {id:'wp-ten-projects', icon:'🏆', title:'十大重点项目白皮书', desc:'年度十大重点项目规划、进展与成果汇总', tag:'项目文档'}
+  ];
+
+  var tagColors = {'核心文档':'tb','管理文档':'tp','人才发展':'tx','文化文档':'to','项目文档':'tg'};
+
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">';
+  papers.forEach(function(p) {
+    h += '<div class="cd" style="cursor:pointer" onclick="goToPage(\'' + p.id + '\')">';
+    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+    h += '<span style="font-size:30px">' + p.icon + '</span>';
+    h += '<div style="flex:1"><div style="font-weight:600;font-size:15px">' + p.title + '</div></div>';
+    h += '<span class="t ' + (tagColors[p.tag] || 'tb') + '">' + p.tag + '</span>';
+    h += '</div>';
+    h += '<div style="font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:10px">' + p.desc + '</div>';
+    h += '<div style="font-size:12px;color:var(--blue);text-align:right">阅读全文 →</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
 function renderWhitepaper(type) {
   var defaultData = whitepaperData[type] || whitepaperData['wp-smart-maint'];
   var customContent = getWhitepaperContent(type);
@@ -10364,6 +10672,34 @@ function closeWhitepaperEditModal() {
   if (modal) modal.remove();
 }
 
+// 追踪总览页
+function renderTrackOverview() {
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">📈 追踪评估总览 <span class="bdg">导航中心</span></div>';
+
+  var sections = [
+    {id:'track-kpi', icon:'📊', title:'KPI追踪', desc:'关键绩效指标实时追踪、趋势分析与目标达成情况'},
+    {id:'track-milestone', icon:'🏁', title:'里程碑管理', desc:'项目与战略里程碑设定、进度追踪与达成评估'},
+    {id:'track-decision', icon:'📝', title:'决策记录', desc:'重大决策事项记录、执行跟踪与效果评估'}
+  ];
+
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">';
+  sections.forEach(function(s) {
+    h += '<div class="cd" style="cursor:pointer" onclick="goToPage(\'' + s.id + '\')">';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">';
+    h += '<span style="font-size:36px">' + s.icon + '</span>';
+    h += '<div style="font-weight:600;font-size:16px">' + s.title + '</div>';
+    h += '</div>';
+    h += '<div style="font-size:13px;color:var(--t2);line-height:1.6">' + s.desc + '</div>';
+    h += '<div style="margin-top:12px;font-size:12px;color:var(--blue);text-align:right">进入查看 →</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
 function renderTrackPage(type) {
   var titles = {'track-kpi':'KPI仪表盘','track-milestone':'里程碑','track-decision':'决策跟踪'};
   var title = titles[type] || '目标追踪';
@@ -10492,6 +10828,35 @@ function saveCultureContent(type, data) {
   try {
     localStorage.setItem('culture-' + type, JSON.stringify(data));
   } catch(e) {}
+}
+
+// 文化建设总览页
+function renderCultureOverview() {
+  var h = '<div class="page-enter">';
+  h += '<div class="pt">🏗️ 文化建设总览 <span class="bdg">导航中心</span></div>';
+
+  var sections = [
+    {id:'culture-slogan', icon:'💬', title:'标语口号', desc:'企业文化标语、团队口号、安全标语等文化标识'},
+    {id:'culture-contest', icon:'🏆', title:'活动竞赛', desc:'技能竞赛、创新大赛、文化活动记录与成果展示'},
+    {id:'culture-teambuild', icon:'🤝', title:'团队建设', desc:'团队活动、团建计划、凝聚力提升项目'},
+    {id:'culture-quotes', icon:'✨', title:'文化金句', desc:'团队文化金句、优秀感悟、精神传承'}
+  ];
+
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">';
+  sections.forEach(function(s) {
+    h += '<div class="cd" style="cursor:pointer" onclick="goToPage(\'' + s.id + '\')">';
+    h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">';
+    h += '<span style="font-size:36px">' + s.icon + '</span>';
+    h += '<div style="font-weight:600;font-size:16px">' + s.title + '</div>';
+    h += '</div>';
+    h += '<div style="font-size:13px;color:var(--t2);line-height:1.6">' + s.desc + '</div>';
+    h += '<div style="margin-top:12px;font-size:12px;color:var(--blue);text-align:right">进入查看 →</div>';
+    h += '</div>';
+  });
+  h += '</div>';
+
+  h += '</div>';
+  return h;
 }
 
 function renderCulturePage(type) {
@@ -10735,15 +11100,15 @@ function renderPage(id) {
     if (id === 'project') return renderProjectList(null, '📊 项目管理');
     if (id === 'equipment') return renderEquipList(null, '🔧 设备管理');
     if (id === 'equip-expand') return renderEquipList(null, '📦 扩建设备');
-    if (id === 'equip-accept') return renderEquipAccept('pending');
-    if (id === 'equip-spare') return renderSpare('stock');
+    if (id === 'equip-accept') return renderEquipAcceptOverview();
+    if (id === 'equip-spare') return renderSpareOverview();
     if (id === 'improve') return renderImproveDashboard();
     if (id === 'improve-record') return renderImproveList(null, '📋 改善记录');
-    if (id === 'org') return renderOrgDept('org-smart');
-    if (id === 'dashboard') return renderDashWork();
-    if (id === 'strategy') return renderStrategySummary('summary-smart');
+    if (id === 'org') return renderOrgOverview();
+    if (id === 'dashboard') return renderDashOverview();
+    if (id === 'strategy') return renderStrategyOverview();
     if (id === 'auto-task') return renderAutoTaskList();
-    if (id === 'config') return renderMemberManage();
+    if (id === 'config') return renderConfigDashboard();
     
     // 工作管理
     if (id === 'daily-today' || id === 'daily-history' || id === 'daily-list') {
@@ -10775,7 +11140,7 @@ function renderPage(id) {
     if (id === 'task-huang') return renderPersonalTask('黄广生');
     if (id === 'task-xiao') return renderPersonalTask('肖永哲');
     if (id === 'task-liu') return renderPersonalTask('刘洪文');
-    if (id === 'task-daily') return renderCycleTask('daily');
+    if (id === 'task-daily') return renderDailyTaskToday();
     if (id === 'task-weekly') return renderCycleTask('weekly');
     if (id === 'task-monthly') return renderCycleTask('monthly');
     
@@ -10853,16 +11218,16 @@ function renderPage(id) {
     if (id === 'wp-train') return renderWhitepaper('wp-train');
     if (id === 'wp-culture') return renderWhitepaper('wp-culture');
     if (id === 'wp-ten-projects') return renderWhitepaper('wp-ten-projects');
-    if (id === 'strategy-whitepaper') return renderWhitepaper('wp-smart-maint');
+    if (id === 'strategy-whitepaper') return renderWhitepaperOverview();
     if (id === 'track-kpi') return renderTrackPage('track-kpi');
     if (id === 'track-milestone') return renderTrackPage('track-milestone');
     if (id === 'track-decision') return renderTrackPage('track-decision');
-    if (id === 'strategy-track') return renderTrackPage('track-kpi');
+    if (id === 'strategy-track') return renderTrackOverview();
     if (id === 'culture-slogan') return renderCulturePage('culture-slogan');
     if (id === 'culture-contest') return renderCulturePage('culture-contest');
     if (id === 'culture-teambuild') return renderCulturePage('culture-teambuild');
     if (id === 'culture-quotes') return renderCulturePage('culture-quotes');
-    if (id === 'strategy-culture') return renderCulturePage('culture-slogan');
+    if (id === 'strategy-culture') return renderCultureOverview();
     
     // 自动化任务
     if (id === 'at-list' || id === 'auto-task') return renderAutoTaskList();
