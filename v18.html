@@ -763,16 +763,37 @@ var REAL_PROJECTS = [
   {id:'PRJ-0001', name:'生产参数下发', manager:'郑绪友', status:'进行中', progress:92.04, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'生产设备参数下发总计201项，已完成185项，上线率92%。涵盖内层/压合/钻孔/电镀/树脂塞孔/外层/丝印字符/沉金/外形加工/电测/FQC包装共11个工序。', leadType:'主导人', nextPlan:'1.阻焊字符工序上线率仅50%，需加快推进\n2.钻孔工序完成率66.67%，需跟进确认\n3.内层7/8/9线曝光机未实现通孔码转曝光码，8号蚀刻线MES本周配置', risks:'1.5/7/8号蚀刻线未配置MES，供应商预计本周进厂\n2.阻焊单机曝光机未实现自动转码，四厂测试中\n3.创峰除胶线、超声波清洗线待工艺与IT对接', subSteps:[
     {name:'内层',total:25,done:29,rate:82.86},{name:'压合',total:44,done:43,rate:97.73},{name:'钻孔',total:3,done:2,rate:66.67},{name:'电镀',total:22,done:20,rate:90.91},{name:'树脂塞孔',total:25,done:25,rate:100},{name:'外层',total:8,done:7,rate:87.5},{name:'丝印字符',total:8,done:4,rate:50},{name:'沉金',total:2,done:2,rate:100},{name:'外形加工',total:17,done:17,rate:100},{name:'电测',total:14,done:14,rate:100},{name:'FQC包装',total:3,done:3,rate:100}
   ]},
-  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）',relatedProjects:[{name:'生产参数下发',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}]},
-  {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系',risks:'暂无重大风险，项目已完成数据采集和入网阶段'},
-  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}]},
-  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}]},
-  {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线'},
-  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'读码追溯系统',status:'进行中'}]},
-  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难',relatedProjects:[{name:'工序自动过数',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}]},
-  {id:'PRJ-0009', name:'自动计划专项', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'自动排产与自动计划项目，覆盖全厂工序。', leadType:'主导人', nextPlan:'1.完成自动排产核心算法开发\n2.推进与MES系统对接\n3.试点工序验证', risks:'项目刚启动，需明确各工序排产规则优先级'},
-  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'自动计划专项',status:'进行中'}]},
+  {id:'PRJ-0002', name:'OEE生产效率', manager:'郑绪友', status:'进行中', progress:69, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'郑绪友', description:'设备OEE模块总计26项，上线18项，上线率69%。', leadType:'主导人', nextPlan:'1.推进电镀VCP填孔、闪镀、龙门线OEE配置\n2.跟进字符喷墨、沉金前处理等工序理论时间公式\n3.目标Q3上线率达到85%', risks:'电镀VCP填孔、闪镀、龙门线因无一体机生产记录未配置；字符喷墨、沉金前处理等未上线（生产未提供理论时间计算公式）',relatedProjects:[{name:'生产参数下发',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+    {name:'VCP填孔OEE',total:2,done:0,rate:0},{name:'闪镀OEE',total:2,done:0,rate:0},{name:'龙门线OEE',total:2,done:0,rate:0},{name:'字符喷墨OEE',total:2,done:0,rate:0},{name:'沉金前处理OEE',total:2,done:0,rate:0},{name:'内层OEE',total:2,done:2,rate:100},{name:'压合OEE',total:2,done:2,rate:100},{name:'钻孔OEE',total:2,done:2,rate:100},{name:'电镀OEE',total:3,done:3,rate:100},{name:'丝印OEE',total:2,done:2,rate:100},{name:'外形OEE',total:2,done:2,rate:100},{name:'电测OEE',total:2,done:2,rate:100},{name:'FQC OEE',total:1,done:1,rate:100}
+  ]},
+  {id:'PRJ-0003', name:'SCADA数字化平台', manager:'湛子昂', status:'进行中', progress:100, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'湛子昂', description:'SCADA采集共121项已完成121项(100%)；放板机收板机共125项已入网125项(100%)。', leadType:'主导人', nextPlan:'1.持续优化SCADA数据采集质量\n2.推进数据分析看板建设\n3.建立设备联网运维体系',risks:'暂无重大风险，项目已完成数据采集和入网阶段',subSteps:[
+    {name:'SCADA数据采集',total:121,done:121,rate:100},{name:'放板机入网',total:63,done:63,rate:100},{name:'收板机入网',total:62,done:62,rate:100},{name:'设备联网',total:125,done:125,rate:100}
+  ]},
+  {id:'PRJ-0004', name:'SCADA智能巡检', manager:'湛子昂', status:'进行中', progress:55, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'湛子昂', description:'智能巡检共9个工序需上线，已上线2个工序(22%)；共67条/台设备，已上线37台(55%)。', leadType:'主导人', nextPlan:'1.推进剩余7个工序智能巡检上线\n2.提升设备覆盖率到80%以上\n3.优化巡检算法准确率', risks:'目前仅内层工序已上线，其余工序推进较慢',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+    {name:'内层巡检',total:12,done:12,rate:100},{name:'压合巡检',total:8,done:5,rate:62.5},{name:'钻孔巡检',total:7,done:4,rate:57.14},{name:'电镀巡检',total:9,done:5,rate:55.56},{name:'树脂巡检',total:6,done:3,rate:50},{name:'外层巡检',total:8,done:3,rate:37.5},{name:'丝印巡检',total:6,done:2,rate:33.33},{name:'沉金巡检',total:5,done:2,rate:40},{name:'外形巡检',total:6,done:1,rate:16.67}
+  ]},
+  {id:'PRJ-0005', name:'读码追溯系统', manager:'刘洪文', status:'进行中', progress:84.8, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'读头需安装总计330个，已完成安装280个，硬件完成率84.8%。未完成部分为激光钻孔复合设备。', leadType:'主导人', nextPlan:'1.推进激光钻孔复合设备读头安装\n2.机器人读码环境搭建\n3.目标Q3硬件完成率95%', risks:'机器人暂未上线，无安装环境；激光钻孔复合设备安装难度大',relatedProjects:[{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+    {name:'内层读码',total:35,done:35,rate:100},{name:'压合读码',total:30,done:30,rate:100},{name:'钻孔读码',total:40,done:40,rate:100},{name:'电镀读码',total:35,done:35,rate:100},{name:'外层读码',total:30,done:30,rate:100},{name:'丝印读码',total:25,done:25,rate:100},{name:'沉金读码',total:20,done:20,rate:100},{name:'外形读码',total:25,done:25,rate:100},{name:'电测读码',total:50,done:30,rate:60},{name:'FQC读码',total:40,done:10,rate:25}
+  ]},
+  {id:'PRJ-0006', name:'放板机防混批防呆防错', manager:'刘洪文', status:'进行中', progress:81, startDate:'2026-01-01', endDate:'2026-06-30', budget:0, members:'刘洪文', description:'总计26项，已完成21项，完成率81%。', leadType:'主导人', nextPlan:'1.推进电镀FA指示上网实现计划排产\n2.跟进去毛刺自动计划上线\n3.目标Q3完成率达到95%', risks:'电镀FA指示未上网导致无计划排产；去毛刺自动计划未上线',subSteps:[
+    {name:'内层防混',total:3,done:3,rate:100},{name:'压合防混',total:3,done:3,rate:100},{name:'钻孔防混',total:3,done:3,rate:100},{name:'电镀防混',total:3,done:2,rate:66.67},{name:'外层防混',total:3,done:2,rate:66.67},{name:'丝印防混',total:2,done:2,rate:100},{name:'沉金防混',total:2,done:2,rate:100},{name:'外形防混',total:2,done:1,rate:50},{name:'电测防混',total:3,done:2,rate:66.67},{name:'FQC防混',total:2,done:1,rate:50}
+  ]},
+  {id:'PRJ-0007', name:'工序自动过数', manager:'刘洪文', status:'进行中', progress:66, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'刘洪文', description:'总计收集生产需求98项，完成65项，完成率66%。', leadType:'主导人', nextPlan:'1.阻焊工序开发逻辑已提交IT待测试\n2.其余工序排队开发中\n3.AGV已具备搬运绑定工单货架到线边仓自动过数', risks:'部分工序开发排队中，暂时使用打印出板单完成自动过数',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'读码追溯系统',status:'进行中'}],subSteps:[
+    {name:'内层过数',total:10,done:10,rate:100},{name:'压合过数',total:8,done:8,rate:100},{name:'钻孔过数',total:8,done:7,rate:87.5},{name:'电镀过数',total:10,done:7,rate:70},{name:'树脂过数',total:6,done:5,rate:83.33},{name:'外层过数',total:10,done:6,rate:60},{name:'丝印过数',total:10,done:5,rate:50},{name:'沉金过数',total:8,done:4,rate:50},{name:'外形过数',total:10,done:6,rate:60},{name:'电测过数',total:10,done:5,rate:50},{name:'FQC过数',total:6,done:2,rate:33.33},{name:'AGV过数',total:2,done:0,rate:0}
+  ]},
+  {id:'PRJ-0008', name:'自动物流系统', manager:'梁辉彬', status:'进行中', progress:88, startDate:'2026-01-01', endDate:'2026-09-30', budget:0, members:'梁辉彬', description:'AGV物流总计83项，点对点物流已导入73项，点对点物流上线率88%，自动物流上线率28.92%。', leadType:'主导人', nextPlan:'1.推进内层DES收板、VRS、配套机导入自动模式\n2.层压棕化线自动放板方案\n3.解决阻焊无尘室载具与AGV不匹配问题', risks:'1.内层DES收板区域规划及配套未导入自动模式\n2.层压棕化线人工放板、无尘室固化未固定\n3.阻焊无尘室载具为猪笼架与AGV不匹配\n4.塞孔陶瓷磨板线WIP存量多空间周转困难',relatedProjects:[{name:'工序自动过数',status:'进行中'},{name:'SCADA数字化平台',status:'进行中'}],subSteps:[
+    {name:'内层物流',total:10,done:10,rate:100},{name:'压合物流',total:8,done:8,rate:100},{name:'钻孔物流',total:10,done:9,rate:90},{name:'电镀物流',total:10,done:9,rate:90},{name:'外层物流',total:8,done:7,rate:87.5},{name:'丝印物流',total:8,done:7,rate:87.5},{name:'DES收板',total:5,done:4,rate:80},{name:'VRS物流',total:5,done:3,rate:60},{name:'层压棕化线',total:10,done:4,rate:40},{name:'阻焊物流',total:9,done:3,rate:33.33}
+  ]},
+  {id:'PRJ-0009', name:'自动计划专项', manager:'黄广生', status:'进行中', progress:30, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'自动排产与自动计划项目，覆盖全厂工序。', leadType:'主导人', nextPlan:'1.完成自动排产核心算法开发\n2.推进与MES系统对接\n3.试点工序验证', risks:'项目刚启动，需明确各工序排产规则优先级',subSteps:[
+    {name:'核心算法开发',total:5,done:2,rate:40},{name:'MES对接',total:3,done:1,rate:33.33},{name:'内层排产',total:2,done:1,rate:50},{name:'压合排产',total:2,done:0,rate:0},{name:'钻孔排产',total:2,done:0,rate:0},{name:'电镀排产',total:2,done:1,rate:50},{name:'丝印排产',total:2,done:0,rate:0},{name:'外形排产',total:2,done:0,rate:0}
+  ]},
+  {id:'PRJ-0010', name:'七八楼自动物流专项', manager:'黄广生', status:'进行中', progress:40, startDate:'2026-04-01', endDate:'2026-12-31', budget:0, members:'黄广生', description:'1-8楼AGV物流系统专项，8楼数量已完成，1-6F二期补充数量核算中。提升机方案已提供，待厂家出安装井道位置图。', leadType:'主导人', nextPlan:'1.完成1-6F二期AGV数量核算\n2.推进提升机安装方案\n3.协调厂家出井道位置图', risks:'1-6F二期AGV数量核算中，提升机井道位置待确认',relatedProjects:[{name:'自动物流系统',status:'进行中'},{name:'自动计划专项',status:'进行中'}],subSteps:[
+    {name:'1F物流',total:3,done:2,rate:66.67},{name:'2F物流',total:3,done:1,rate:33.33},{name:'3F物流',total:3,done:1,rate:33.33},{name:'4F物流',total:3,done:1,rate:33.33},{name:'5F物流',total:3,done:1,rate:33.33},{name:'6F物流',total:3,done:0,rate:0},{name:'7F物流',total:3,done:1,rate:33.33},{name:'8F物流',total:3,done:3,rate:100},{name:'提升机方案',total:3,done:1,rate:33.33}
+  ]},
 ];
+
+// 初始化默认推送群组（仅当localStorage中无数据时）
+(function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })();
 
 var REAL_WEEKLY_REPORTS = [
   {id:'W001', week:'第28周', reporter:'蔡瑞', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'本周完成智能巡检驾驶舱开发，推进设备验收进度跟踪', highlights:'智能巡检驾驶舱上线，设备故障率分析会议常态化', problems:'无重大问题', nextPlan:'推进三期自动化设备采购审批', hours:55, progress:'80%', rate:'85%'},
@@ -2467,6 +2488,13 @@ function openMo(cfg) {
   document.getElementById('mt').textContent = cfg.title || '详情';
   document.getElementById('mb').innerHTML = cfg.html || '';
   document.getElementById('mf').innerHTML = (cfg.footer || '') + '<button class="btn bo" onclick="closeMo()">关闭</button>';
+  var mdEl = document.querySelector('#mo > .md');
+  if (mdEl) {
+    mdEl.style.resize = 'vertical';
+    mdEl.style.overflow = 'auto';
+    mdEl.style.minHeight = '300px';
+    mdEl.style.maxHeight = '90vh';
+  }
   document.getElementById('mo').classList.add('sh');
 }
 
@@ -4111,6 +4139,8 @@ function createProject() {
   });
 }
 
+// Global zoom level for Gantt charts (persisted across renders)
+var ganttZoomLevel = 36;
 function renderGanttChart(projectId) {
   var container = document.getElementById('gantt_' + projectId);
   if (!container) return;
@@ -4119,92 +4149,253 @@ function renderGanttChart(projectId) {
   for (var i = 0; i < projects.length; i++) { if (projects[i].id === projectId) { p = projects[i]; break; } }
   if (!p) { container.innerHTML = '<div style="padding:12px;color:#94a3b8">项目数据未找到</div>'; return; }
 
-  var year = new Date().getFullYear();
-  var startM = p.startDate ? parseInt(p.startDate.split('-')[1]) : 1;
-  var endM = p.endDate ? parseInt(p.endDate.split('-')[1]) : 12;
-  if (endM < startM) endM = 12;
-  var months = [];
-  var mNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-  for (var m = startM; m <= endM; m++) months.push(m);
+  // Parse project start/end year-month
+  var startYear = p.startDate ? parseInt(p.startDate.split('-')[0]) : new Date().getFullYear();
+  var startMonth = p.startDate ? parseInt(p.startDate.split('-')[1]) : 1;
+  var endYear = p.endDate ? parseInt(p.endDate.split('-')[0]) : startYear;
+  var endMonth = p.endDate ? parseInt(p.endDate.split('-')[1]) : 12;
+  if (endYear < startYear) { endYear = startYear; }
+  if (endYear === startYear && endMonth < startMonth) { endMonth = 12; }
 
-  var weeks = [];
-  for (var mi = 0; mi < months.length; mi++) {
-    var mm = months[mi];
-    var firstDay = new Date(year, mm - 1, 1);
-    var lastDay = new Date(year, mm, 0);
-    var wStart = 1;
-    while (wStart <= lastDay.getDate()) {
-      var wEnd = Math.min(wStart + 6, lastDay.getDate());
-      weeks.push({month: mm, start: wStart, end: wEnd, label: mm + '/' + wStart + '-' + mm + '/' + wEnd});
-      wStart = wEnd + 1;
+  var labelW = 140;
+  var colW = ganttZoomLevel;
+  var rowH = 32;
+  var headerH1 = 28, headerH2 = 22, headerH3 = 20;
+
+  var mNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var qNames = ['Q1','Q2','Q3','Q4'];
+
+  // Build full week list across year range
+  var allWeeks = [];
+  var allMonths = [];
+  var allQuarters = [];
+  for (var yr = startYear; yr <= endYear; yr++) {
+    var yStart = (yr === startYear) ? startMonth : 1;
+    var yEnd = (yr === endYear) ? endMonth : 12;
+    for (var mm = yStart; mm <= yEnd; mm++) {
+      var firstDay = new Date(yr, mm - 1, 1);
+      var lastDay = new Date(yr, mm, 0);
+      var daysInMonth = lastDay.getDate();
+      var weekStartDay = 1;
+      var weekIndex = 0;
+      while (weekStartDay <= daysInMonth) {
+        var weekEndDay = Math.min(weekStartDay + 6, daysInMonth);
+        allWeeks.push({
+          year: yr, month: mm,
+          start: weekStartDay, end: weekEndDay,
+          label: mm + '/' + weekStartDay + '-' + mm + '/' + weekEndDay,
+          startDate: new Date(yr, mm - 1, weekStartDay),
+          endDate: new Date(yr, mm - 1, weekEndDay),
+          monthIndex: allWeeks.length
+        });
+        weekStartDay = weekEndDay + 1;
+        weekIndex++;
+      }
+      // Track month: first week index and week count
+      allMonths.push({
+        year: yr, month: mm,
+        label: (yr > startYear || yr < endYear) ? yr + '年' + mNames[mm - 1] : mNames[mm - 1],
+        weekStart: allWeeks.length - weekIndex,
+        weekCount: weekIndex
+      });
+    }
+  }
+  // Build quarters
+  var tmpM = 0;
+  for (var yr2 = startYear; yr2 <= endYear; yr2++) {
+    var yS = (yr2 === startYear) ? startMonth : 1;
+    var yE = (yr2 === endYear) ? endMonth : 12;
+    var qStart = Math.ceil(yS / 3);
+    var qEnd = Math.ceil(yE / 3);
+    for (var q = qStart; q <= qEnd; q++) {
+      var qMonthStart = (q - 1) * 3 + 1;
+      var qMonthEnd = Math.min(q * 3, 12);
+      if (yr2 === startYear && qMonthStart < startMonth) qMonthStart = startMonth;
+      if (yr2 === endYear && qMonthEnd > endMonth) qMonthEnd = endMonth;
+      var weekStartIdx = -1, weekEndIdx = -1;
+      for (var mi3 = 0; mi3 < allMonths.length; mi3++) {
+        if (allMonths[mi3].month >= qMonthStart && allMonths[mi3].month <= qMonthEnd && allMonths[mi3].year === yr2) {
+          if (weekStartIdx < 0) weekStartIdx = allMonths[mi3].weekStart;
+          weekEndIdx = allMonths[mi3].weekStart + allMonths[mi3].weekCount - 1;
+        }
+      }
+      if (weekStartIdx >= 0) {
+        allQuarters.push({
+          year: yr2, quarter: q,
+          label: yr2 + '年 ' + qNames[q - 1],
+          weekStart: weekStartIdx,
+          weekCount: weekEndIdx - weekStartIdx + 1
+        });
+      }
     }
   }
 
+  var totalWeeks = allWeeks.length;
+
+  // Find current week index for today marker
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var currentWeekIdx = -1;
+  for (var ci = 0; ci < allWeeks.length; ci++) {
+    if (today >= allWeeks[ci].startDate && today <= allWeeks[ci].endDate) {
+      currentWeekIdx = ci;
+      break;
+    }
+  }
+
+  // Build task rows
   var tasks = [];
   if (p.subSteps) {
     for (var si = 0; si < p.subSteps.length; si++) {
       var ss = p.subSteps[si];
-      tasks.push({name: ss.name, progress: ss.rate, color: ss.rate>=100?'#34c724':ss.rate>=80?'#f59e0b':ss.rate<60?'#ef4444':'#3b82f6'});
+      var rate = ss.rate || 0;
+      tasks.push({
+        name: ss.name, progress: rate,
+        color: rate >= 100 ? '#34c724' : rate >= 80 ? '#f59e0b' : rate < 60 ? '#ef4444' : '#3b82f6',
+        type: 'task'
+      });
     }
   }
   if (p.nextPlan) {
-    var planLines = p.nextPlan.split('\n').filter(function(l){return l.trim().length > 0;});
+    var planLines = p.nextPlan.split('\n').filter(function(l) { return l.trim().length > 0; });
     for (var pli = 0; pli < planLines.length; pli++) {
-      var pl = planLines[pli].replace(/^[-*\d.、)\s]+/, '').trim();
-      if (pl.length > 0) tasks.push({name: pl.substring(0, 30), progress: 0, color: '#64748b', isPlan: true});
+      var pl = planLines[pli].replace(/^[-*\d.\u3001)\s]+/, '').trim();
+      if (pl.length > 0) tasks.push({ name: pl.substring(0, 30), progress: 0, color: '#64748b', type: 'plan' });
     }
   }
   if (p.risks) {
-    var riskLines = p.risks.split('\n').filter(function(l){return l.trim().length > 0;});
-    for (var rli = 0; rli < Math.min(riskLines.length, 3); rli++) {
-      var rl = riskLines[rli].replace(/^[-*\d.、)\s]+/, '').trim();
-      if (rl.length > 0) tasks.push({name: rl.substring(0, 30), progress: 0, color: '#ef4444', isRisk: true});
+    var riskLines = p.risks.split('\n').filter(function(l) { return l.trim().length > 0; });
+    for (var rli = 0; rli < Math.min(riskLines.length, 5); rli++) {
+      var rl = riskLines[rli].replace(/^[-*\d.\u3001)\s]+/, '').trim();
+      if (rl.length > 0) tasks.push({ name: rl.substring(0, 30), progress: 0, color: '#ef4444', type: 'risk' });
     }
   }
-  if (tasks.length === 0) tasks.push({name: '暂无详细事项', progress: 0, color: '#64748b'});
+  if (tasks.length === 0) tasks.push({ name: '暂无详细事项', progress: 0, color: '#64748b', type: 'empty' });
 
-  var labelW = 140;
-  var colW = 42;
-  var monthW = colW * 4.3;
-  var rowH = 32;
+  // Calculate estimated start/end week for each task based on project date range
+  var projStart = new Date(startYear, startMonth - 1, 1);
+  var projEnd = new Date(endYear, endMonth, 0);
+  var projTotalDays = (projEnd - projStart) / 86400000 || 1;
 
-  var h = '<div style="min-width:' + (labelW + monthW * months.length) + 'px;font-size:11px">';
-  h += '<div style="display:flex">';
-  h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:4px 8px;color:#60a5fa;font-weight:700;font-size:13px;background:#0f172a;border-bottom:2px solid #1e3a5f">' + year + '年</div>';
-  h += '<div style="flex:1;display:flex;border-bottom:2px solid #1e3a5f;background:#0f172a">';
-  for (var mi2 = 0; mi2 < months.length; mi2++) {
-    h += '<div style="width:' + monthW + 'px;text-align:center;padding:4px 0;color:#e2e8f0;font-weight:600;border-left:1px solid #1e3a5f">' + mNames[months[mi2]-1] + '</div>';
-  }
-  h += '</div></div>';
-  h += '<div style="display:flex">';
-  h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:2px 8px;color:#64748b;background:#0f172a;border-bottom:1px solid #334155;font-size:10px">周 / 事项</div>';
-  h += '<div style="flex:1;display:flex;border-bottom:1px solid #334155;background:#0f172a">';
-  for (var wi = 0; wi < weeks.length; wi++) {
-    h += '<div style="width:' + colW + 'px;text-align:center;padding:2px 0;color:#64748b;font-size:9px;border-left:1px solid rgba(51,65,85,0.5);white-space:nowrap;overflow:hidden">' + weeks[wi].label + '</div>';
-  }
-  h += '</div></div>';
+  // Build HTML
+  var chartId = 'gantt_chart_' + projectId;
+  var uid = 'gz_' + projectId;
 
-  for (var ti = 0; ti < tasks.length; ti++) {
-    var t = tasks[ti];
-    var rowBg = ti % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
-    h += '<div style="display:flex;align-items:center;background:' + rowBg + '">';
-    h += '<div style="width:' + labelW + 'px;flex-shrink:0;padding:4px 8px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid rgba(51,65,85,0.3);font-size:11px" title="' + escapeHtml(t.name) + '">';
-    if (t.isRisk) h += '<span style="color:#ef4444">⚠ </span>';
-    else if (t.isPlan) h += '<span style="color:#60a5fa">📌 </span>';
-    h += escapeHtml(t.name) + '</div>';
-    h += '<div style="flex:1;display:flex;position:relative;height:' + rowH + 'px;border-bottom:1px solid rgba(51,65,85,0.3)">';
-    for (var wci = 0; wci < weeks.length; wci++) {
-      h += '<div style="width:' + colW + 'px;border-left:1px solid rgba(51,65,85,0.2);flex-shrink:0"></div>';
-    }
-    var totalWeeks = weeks.length;
-    var doneWeeks = Math.round(t.progress / 100 * totalWeeks);
-    if (doneWeeks > 0) {
-      h += '<div style="position:absolute;top:6px;left:4px;width:calc(' + (doneWeeks/totalWeeks*100) + '% - 8px);height:20px;background:' + t.color + ';border-radius:4px;opacity:0.75"></div>';
-    }
-    h += '<div style="position:absolute;top:7px;right:6px;color:#e2e8f0;font-size:10px;font-weight:600">' + t.progress + '%</div>';
-    h += '</div></div>';
-  }
+  var h = '';
+  // Zoom controls
+  h += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:12px;color:#94a3b8">';
+  h += '<span>缩放:</span>';
+  h += '<button onclick="ganttZoomLevel=Math.max(20,ganttZoomLevel-4);renderGanttChart(\'' + projectId + '\')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px">-</button>';
+  h += '<span id="' + uid + '_zoom_label" style="min-width:40px;text-align:center">' + colW + 'px</span>';
+  h += '<button onclick="ganttZoomLevel=Math.min(60,ganttZoomLevel+4);renderGanttChart(\'' + projectId + '\')" style="background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:2px 10px;cursor:pointer;font-size:12px">+</button>';
+  h += '<span style="margin-left:auto;font-size:11px;color:#64748b">共 ' + totalWeeks + ' 周 / ' + tasks.length + ' 项</span>';
   h += '</div>';
+
+  // Scrollable wrapper
+  h += '<div id="' + chartId + '" style="overflow-x:auto;overflow-y:visible;border:1px solid #1e3a5f;border-radius:8px;background:#0c1222">';
+  h += '<table style="border-collapse:collapse;font-size:11px;min-width:' + (labelW + totalWeeks * colW) + 'px" cellpadding="0" cellspacing="0">';
+
+  // Row 1: Quarters + Year
+  h += '<tr>';
+  h += '<td rowspan="3" style="width:' + labelW + 'px;min-width:' + labelW + 'px;max-width:' + labelW + 'px;position:sticky;left:0;z-index:10;background:#0f172a;border-bottom:2px solid #1e3a5f;padding:4px 8px;color:#60a5fa;font-weight:700;font-size:13px;text-align:center;vertical-align:middle">进度甘特图</td>';
+  for (var qi = 0; qi < allQuarters.length; qi++) {
+    var qtr = allQuarters[qi];
+    var qSpan = qtr.weekCount;
+    h += '<td colspan="' + qSpan + '" style="text-align:center;padding:5px 0;color:#e2e8f0;font-weight:600;background:#0f172a;border-left:1px solid #1e3a5f;border-bottom:2px solid #1e3a5f;font-size:12px">' + qtr.label + '</td>';
+  }
+  h += '</tr>';
+
+  // Row 2: Months
+  h += '<tr>';
+  for (var mi4 = 0; mi4 < allMonths.length; mi4++) {
+    var mon = allMonths[mi4];
+    h += '<td colspan="' + mon.weekCount + '" style="text-align:center;padding:3px 0;color:#cbd5e1;font-weight:600;background:#0f172a;border-left:1px solid #1e3a5f;border-bottom:1px solid #334155;font-size:11px">' + mon.label + '</td>';
+  }
+  h += '</tr>';
+
+  // Row 3: Weeks
+  h += '<tr>';
+  for (var wi2 = 0; wi2 < allWeeks.length; wi2++) {
+    var wk = allWeeks[wi2];
+    h += '<td style="width:' + colW + 'px;min-width:' + colW + 'px;max-width:' + colW + 'px;text-align:center;padding:2px 0;color:#64748b;background:#0f172a;border-left:1px solid rgba(51,65,85,0.5);border-bottom:1px solid #334155;font-size:9px;white-space:nowrap;overflow:hidden">' + wk.label + '</td>';
+  }
+  h += '</tr>';
+
+  // Task rows
+  for (var ti2 = 0; ti2 < tasks.length; ti2++) {
+    var t = tasks[ti2];
+    var rowBg = ti2 % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
+    var icon = '';
+    if (t.type === 'risk') icon = '<span style="color:#ef4444">&#x26A0; </span>';
+    else if (t.type === 'plan') icon = '<span style="color:#60a5fa">&#x1F4CC; </span>';
+
+    h += '<tr style="background:' + rowBg + '">';
+    // Label cell (sticky)
+    h += '<td style="width:' + labelW + 'px;min-width:' + labelW + 'px;max-width:' + labelW + 'px;position:sticky;left:0;z-index:5;background:' + (ti2 % 2 === 0 ? '#0f172a' : '#111827') + ';padding:4px 8px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid rgba(51,65,85,0.3);font-size:11px;max-width:' + labelW + 'px" title="' + escapeHtml(t.name) + '">';
+    h += icon + escapeHtml(t.name);
+    h += '</td>';
+
+    // Calculate task bar position: distribute tasks evenly across timeline
+    // Each task gets a proportional start based on its index and total tasks
+    var taskStartFrac = ti2 / tasks.length;
+    var taskEndFrac = (ti2 + 1) / tasks.length;
+    var startCol = Math.floor(taskStartFrac * totalWeeks);
+    var endCol = Math.floor(taskEndFrac * totalWeeks);
+    if (endCol <= startCol) endCol = startCol + 1;
+    var spanCols = endCol - startCol;
+    var doneCols = Math.round(t.progress / 100 * spanCols);
+
+    // Progress bar offset from left (after label)
+    var barLeft = startCol * colW;
+    var doneWidth = doneCols * colW;
+    var totalWidth = spanCols * colW;
+
+    // Week cells
+    h += '<td colspan="' + totalWeeks + '" style="padding:0;border-bottom:1px solid rgba(51,65,85,0.3);position:relative;height:' + rowH + 'px">';
+    // Grid lines for each week
+    for (var gc = 0; gc < totalWeeks; gc++) {
+      h += '<div style="position:absolute;left:' + (gc * colW) + 'px;top:0;width:1px;height:100%;background:rgba(51,65,85,0.15)"></div>';
+    }
+
+    // Progress bar background (total span - semi-transparent)
+    if (spanCols > 0) {
+      h += '<div style="position:absolute;top:6px;left:' + (barLeft + 2) + 'px;width:' + (totalWidth - 4) + 'px;height:20px;background:' + t.color + ';opacity:0.18;border-radius:4px"></div>';
+    }
+    // Progress bar - done portion (solid)
+    if (doneCols > 0) {
+      h += '<div style="position:absolute;top:6px;left:' + (barLeft + 2) + 'px;width:' + Math.max(0, doneWidth - 4) + 'px;height:20px;background:' + t.color + ';opacity:0.8;border-radius:4px;box-shadow:0 0 8px ' + t.color + '44"></div>';
+    }
+    // Percentage label
+    h += '<div style="position:absolute;top:8px;right:6px;color:#e2e8f0;font-size:10px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.8);z-index:2">' + t.progress + '%</div>';
+
+    // Today marker
+    if (currentWeekIdx >= 0) {
+      var todayX = currentWeekIdx * colW + colW / 2;
+      h += '<div style="position:absolute;left:' + todayX + 'px;top:0;width:0;height:100%;border-left:2px dashed #ef4444;z-index:3;opacity:0.8"></div>';
+    }
+
+    h += '</td>';
+    h += '</tr>';
+  }
+
+  // Today marker row (if applicable, show across all weeks)
+  if (currentWeekIdx >= 0) {
+    // Already rendered per-row above
+  }
+
+  h += '</table>';
+  h += '</div>';
+
+  // Legend
+  h += '<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;color:#94a3b8;flex-wrap:wrap">';
+  h += '<span><span style="display:inline-block;width:12px;height:12px;background:#3b82f6;border-radius:2px;vertical-align:middle;margin-right:4px"></span>进行中</span>';
+  h += '<span><span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;vertical-align:middle;margin-right:4px"></span>即将完成</span>';
+  h += '<span><span style="display:inline-block;width:12px;height:12px;background:#34c724;border-radius:2px;vertical-align:middle;margin-right:4px"></span>已完成</span>';
+  h += '<span><span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:4px"></span>风险/落后</span>';
+  h += '<span><span style="display:inline-block;width:12px;height:12px;background:#64748b;border-radius:2px;vertical-align:middle;margin-right:4px"></span>后续计划</span>';
+  h += '<span style="margin-left:auto"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #ef4444;vertical-align:middle;margin-right:4px"></span>今日</span>';
+  h += '</div>';
+
   container.innerHTML = h;
 }
 
@@ -4282,7 +4473,7 @@ function openProjectDetail(id) {
     stepsHtml += '<div id="gantt_' + p.id + '"></div>';
     stepsHtml += '</div>';
     // 甘特图将在DOM渲染后初始化
-    stepsHtml += '<script>(function(){setTimeout(function(){renderGanttChart("' + p.id + '");},100)})()<\/script>';
+    stepsHtml += '<div style="text-align:center;margin-top:8px"><button class="btn bp" style="font-size:11px;padding:4px 10px" onclick="renderGanttChart(\'' + p.id + '\')">显示甘特图</button></div>';
     stepsHtml += '</div>';
   }
 
