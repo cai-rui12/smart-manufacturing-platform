@@ -182,6 +182,12 @@ table.dt tr{transition:var(--tr-fast)}
 .tg{background:linear-gradient(135deg,#e6f9ec,#d0f2da);color:var(--gn)}
 .to{background:linear-gradient(135deg,#fef5e6,#fde8c8);color:var(--or)}
 .tr{background:linear-gradient(135deg,#fde8ea,#fbd0d4);color:var(--rd)}
+.toggle-switch{position:relative;display:inline-block;width:42px;height:22px;vertical-align:middle;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:22px;transition:.3s}
+.toggle-slider:before{content:"";position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle-switch input:checked+.toggle-slider{background:var(--gn)}
+.toggle-switch input:checked+.toggle-slider:before{transform:translateX(20px)}
 .tx{background:linear-gradient(135deg,#f0f2f5,#e4e7ec);color:var(--t3)}
 .tp{background:linear-gradient(135deg,#f0ebff,#e0d6ff);color:var(--pp)}
 
@@ -7851,7 +7857,8 @@ function renderAutoTaskList() {
   h += '<div class="kpi-card"><div class="kpi-value">' + all.length + '</div><div class="kpi-label">任务总数</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(t){return t.status==='启用';}).length + '</div><div class="kpi-label">已启用</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">' + all.filter(function(t){return t.status!=='启用';}).length + '</div><div class="kpi-label">已停用</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">15</div><div class="kpi-label">执行次数(今日)</div></div>';
+  var todayLogs = lsGet('auto_task_logs', []).filter(function(l){ var d = new Date(l.time || l.timestamp || 0); var now = new Date(); return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate(); });
+  h += '<div class="kpi-card"><div class="kpi-value">' + todayLogs.length + '</div><div class="kpi-label">执行次数(今日)</div></div>';
   h += '</div>';
   h += '<div class="bg">';
   h += '<input class="fi" style="width:200px" placeholder="搜索任务..." value="' + search + '" oninput="setSearch(\'autotask\',this.value);setPage(\'autotask\',1);refresh()">';
@@ -7886,7 +7893,7 @@ function renderAutoTaskList() {
       h += '<td>' + t.action + '</td>';
       h += '<td>' + t.trigger + '</td>';
       h += '<td>' + t.schedule + '</td>';
-      h += '<td><span class="t ' + (t.status==='启用'?'tg':'tx') + '">' + t.status + '</span></td>';
+      h += '<td><label class="toggle-switch" onclick="event.stopPropagation()"><input type="checkbox"' + (t.status==='启用'?' checked':'') + ' onchange="toggleAutoTaskStatus(\'' + t.id + '\',this.checked)"><span class="toggle-slider"></span></label></td>';
       h += '<td>' + (t.lastRun || '-') + '</td>';
       h += '<td>';
       h += '<button class="btn-sm gs" id="btnRunAutoTask_' + t.id + '" onclick="event.stopPropagation();runAutoTask(\'' + t.id + '\')" title="执行">▶</button> ';
@@ -7905,6 +7912,20 @@ function renderAutoTaskList() {
 
 function autoTaskPageChange(p) { setPage('autotask', p); refresh(); }
 function refreshAutoTaskList() { lsSet('autotask_type', ''); lsSet('autotask_status', ''); setSearch('autotask', ''); setPage('autotask', 1); refresh(); }
+function toggleAutoTaskStatus(id, enabled) {
+  var local = lsGet('local_autotasks', []);
+  var idx = local.findIndex(function(x){ return x.id === id; });
+  if (idx >= 0) {
+    local[idx].status = enabled ? '启用' : '停用';
+  } else {
+    var all = getAllAutoTasks();
+    var t = all.find(function(x){ return x.id === id; });
+    if (t) { var copy = Object.assign({}, t); copy.status = enabled ? '启用' : '停用'; local.push(copy); }
+  }
+  saveLocalAutoTasks(local);
+  saveData('auto_tasks', local);
+  refresh();
+}
 
 function createAutoTask() {
   var types = ['日报提醒','周报提醒','月报提醒','任务提醒','设备保养提醒','验收提醒','安全提醒','备件提醒','新员工入职提醒','周报逾期提醒','月底汇总提醒','设备检定提醒','改善提醒','生日提醒','会议提醒'];
