@@ -1087,7 +1087,20 @@ var SPECIAL_PROJECTS = [
    status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
 ];
 // 初始化默认推送群组（仅当localStorage中无数据时）
-(function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })();
+(function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })()
+(function push_groups_server_restore(){
+  if (typeof SERVER_URL !== 'undefined' && SERVER_URL) {
+    fetch(SERVER_URL + '/api/push-groups').then(function(r){return r.json()}).then(function(groups){
+      if (groups && groups.length > 0) {
+        var local = lsGet('push_groups', []);
+        if (local.length < groups.length) {
+          lsSet('push_groups', groups);
+          console.log('[恢复] push_groups 从服务器恢复了 ' + groups.length + ' 个群组');
+        }
+      }
+    }).catch(function(){});
+  }
+})();;
 
 var REAL_WEEKLY_REPORTS = [
   {id:'W001', week:'第28周', reporter:'蔡瑞', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'本周完成智能巡检驾驶舱开发，推进设备验收进度跟踪', highlights:'智能巡检驾驶舱上线，设备故障率分析会议常态化', problems:'无重大问题', nextPlan:'推进三期自动化设备采购审批', hours:55, progress:'80%', rate:'85%'},
