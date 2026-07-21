@@ -1087,20 +1087,7 @@ var SPECIAL_PROJECTS = [
    status:'进行中', feishuDoc:'WwqWdqWDYojZfnx4WiDcEDxTnSb'},
 ];
 // 初始化默认推送群组（仅当localStorage中无数据时）
-(function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })()
-(function push_groups_server_restore(){
-  if (typeof SERVER_URL !== 'undefined' && SERVER_URL) {
-    fetch(SERVER_URL + '/api/push-groups').then(function(r){return r.json()}).then(function(groups){
-      if (groups && groups.length > 0) {
-        var local = lsGet('push_groups', []);
-        if (local.length < groups.length) {
-          lsSet('push_groups', groups);
-          console.log('[恢复] push_groups 从服务器恢复了 ' + groups.length + ' 个群组');
-        }
-      }
-    }).catch(function(){});
-  }
-})();;
+(function(){ if (!lsGet('push_groups') || lsGet('push_groups',[]).length === 0) { lsSet('push_groups', [{name:'智能制造组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true},{name:'设备管理组',webhook:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c',enabled:true}]); } })();
 
 var REAL_WEEKLY_REPORTS = [
   {id:'W001', week:'第28周', reporter:'蔡瑞', time:'2026-07-10', status:'已提交', weekStartDate:'2026-07-07', weekEndDate:'2026-07-11', summary:'本周完成智能巡检驾驶舱开发，推进设备验收进度跟踪', highlights:'智能巡检驾驶舱上线，设备故障率分析会议常态化', problems:'无重大问题', nextPlan:'推进三期自动化设备采购审批', hours:55, progress:'80%', rate:'85%'},
@@ -13427,6 +13414,43 @@ function deployToGitHub() {
     if (btn) { btn.textContent = '☁️ 线上'; btn.disabled = false; btn.style.opacity = '1'; }
   })();
 }
+
+
+(function SERVER_DATA_RESTORE(){
+  setTimeout(function(){
+    if(typeof SERVER_URL==='undefined'||!SERVER_URL)return;
+    var restored=0;
+    var tasks=[];
+
+    // 1. Restore push_groups from dedicated API
+    tasks.push(fetch(SERVER_URL+'/api/push-groups').then(function(r){return r.json()}).then(function(g){
+      if(g&&Array.isArray(g)&&g.length>0){var l=lsGet('push_groups',[]);if(l.length<g.length){lsSet('push_groups',JSON.stringify(g));restored++;console.log('[restore] push_groups: '+g.length);}}
+    }).catch(function(){}));
+
+    // 2. Sync current localStorage TO server first (save desktop data for mobile)
+    (function(){
+      var items=[];
+      for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.length>2)items.push({key:k,value:v});}
+      if(items.length===0)return;
+      fetch(SERVER_URL+'/api/localstorage/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items})}).catch(function(){});
+    })();
+
+    // 3. Restore ls_ data from server
+    tasks.push(fetch(SERVER_URL+'/api/localstorage/sync').then(function(r){return r.json()}).then(function(res){
+      if(!res||!res.data)return;
+      Object.keys(res.data).forEach(function(key){
+        try{var sv=res.data[key];var lv=lsGet(key);
+          if(!lv||lv==='null'||lv==='[]'){if(sv&&sv!=='null'&&sv!=='[]'){lsSet(key,sv);restored++;}}
+          else if(sv&&sv.charAt(0)==='['){try{if(JSON.parse(sv).length>JSON.parse(lv).length){lsSet(key,sv);restored++;}}catch(e){}}
+        }catch(e){}
+      });
+    }).catch(function(){}));
+
+    Promise.all(tasks.map(function(t){return t.catch(function(){})})).then(function(){
+      if(restored>0){console.log('[restore] total: '+restored);try{refresh();}catch(e){}}
+    });
+  },1200);
+})();
 
 </script>
 </body>
