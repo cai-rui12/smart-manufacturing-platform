@@ -88,7 +88,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
+:root{--green:#10b981;
   --blue:#2f6be5;--blue-h:#4a85f5;--bl:#edf3fe;--bd:#1d58c9;
   --bg:#f0f2f5;--bg-s:#e8eaef;--w:#fff;--w2:#fafbfc;
   --t:#1a1f36;--t2:#5a6270;--t3:#97a0ae;
@@ -516,6 +516,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
       <div class="bc" id="breadcrumb"></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
         <span id="syncStatusBadge" onclick="showConnectionInfo()" title="点击显示连接详情" style="font-size:11px;padding:3px 10px;border-radius:20px;background:var(--bg-s);color:var(--t3);cursor:pointer;font-weight:600;letter-spacing:.2px;border:1px solid var(--br)">离线</span>
+        <button id="manualSyncBtn" onclick="manualSyncNow()"
+         title="立即同步所有数据" style="padding:3px 8px;border:1px solid var(--blue);border-radius:12px;background:transparent;color:var(--blue);font-size:12px;cursor:pointer;transition:var(--tr-fast)">🔄 同步</button>
+        <button id="deployBtn" onclick="deployToGitHub()" title="推送当前版本到GitHub Pages线上" style="padding:3px 8px;border:1px solid var(--green);border-radius:12px;background:transparent;color:var(--green);font-size:12px;cursor:pointer;transition:var(--tr-fast);margin-left:4px">☁️ 线上</button>
         <button class="btn-sm bo" onclick="exportAllData()" title="导出全部数据">&#128190; 导出</button>
         <button class="btn-sm bo" onclick="importAllData()" title="导入全部数据">&#128190; 导入</button>
         <span id="userLabel" style="font-size:12px;color:var(--t2);font-weight:500"></span>
@@ -1196,7 +1199,13 @@ var AUTO_TASK_TEMPLATES = [
   {id:'TPL012', name:'月底汇总完成提醒', type:'月报提醒', action:'生成报表', trigger:'定时', schedule:'每月最后一个工作日', status:'启用', lastRun:'2026-06-30 17:00', target:'部门领导', template:'本月工作汇总报告已生成，请查阅。', remark:'月底生成月度汇总报告'},
   {id:'TPL013', name:'设备检定周期提醒', type:'设备保养提醒', action:'邮件', trigger:'定时', schedule:'每季度', status:'启用', lastRun:'2026-06-01 09:00', target:'设备管理员', template:'以下设备即将到达检定周期，请安排检定。', remark:'每季度提醒设备检定'},
   {id:'TPL014', name:'改善提交率提醒', type:'改善提醒', action:'飞书消息推送', trigger:'定时', schedule:'每周一统计', status:'启用', lastRun:'2026-07-07 09:00', target:'各组组长', template:'上周各组改善提交率统计如下。', remark:'每周统计改善提交率并通报'},
-  {id:'TPL015', name:'年度改善维护计划', type:'改善提醒', action:'生成报表', trigger:'定时', schedule:'每年12月', status:'启用', lastRun:'2025-12-15 09:00', target:'部门领导', template:'年度改善维护计划已生成，请审议。', remark:'每年12月生成下年度计划'}
+  {id:'TPL015', name:'年度改善维护计划', type:'改善提醒', action:'生成报表', trigger:'定时', schedule:'每年12月', status:'启用', lastRun:'2025-12-15 09:00', target:'部门领导', template:'年度改善维护计划已生成，请审议。', remark:'每年12月生成下年度计划'},
+  // ---- 飞书数据同步任务（读取飞书多维表格） ----
+  {id:'TPL016', name:'同步飞书日报多维表格', type:'飞书数据同步', action:'读取多维表格', trigger:'定时', schedule:'每天 08:00', status:'启用', lastRun:'', target:'系统', template:'', source:'daily_bitable', detail:'从飞书多维表格读取日报数据并同步到本地'},
+  {id:'TPL017', name:'同步飞书周报多维表格', type:'飞书数据同步', action:'读取多维表格', trigger:'定时', schedule:'每周一 08:00', status:'启用', lastRun:'', target:'系统', template:'', source:'weekly_bitable', detail:'从飞书多维表格读取周报数据并同步到本地'},
+  {id:'TPL018', name:'同步飞书月报多维表格', type:'飞书数据同步', action:'读取多维表格', trigger:'定时', schedule:'每月1日 08:00', status:'启用', lastRun:'', target:'系统', template:'', source:'monthly_bitable', detail:'从飞书多维表格读取月报数据并同步到本地'},
+  {id:'TPL019', name:'同步飞书设备台账', type:'飞书数据同步', action:'读取多维表格', trigger:'定时', schedule:'每天 06:00', status:'启用', lastRun:'', target:'系统', template:'', source:'equip_bitable', detail:'从飞书多维表格读取设备台账数据并同步到本地'},
+  {id:'TPL020', name:'同步飞书改善提案表', type:'飞书数据同步', action:'读取多维表格', trigger:'定时', schedule:'每天 06:30', status:'启用', lastRun:'', target:'系统', template:'', source:'improve_bitable', detail:'从飞书多维表格读取改善提案数据并同步到本地'}
 ];
 
 // =========================================
@@ -3072,6 +3081,8 @@ function exportCSV(data, filename) {
   link.href = URL.createObjectURL(blob);
   link.download = (filename || 'export') + '_' + new Date().toISOString().slice(0,10) + '.csv';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  // 同时保存到服务器exports目录
+  (async function(){ try { if(SERVER_CONFIG&&SERVER_CONFIG.enabled){ var csvText='\uFEFF'+csv; var fname=(filename||'export')+'_'+new Date().toISOString().slice(0,10)+'.csv'; var r=await fetch(API_BASE+'/api/save-file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:fname,content:csvText,contentType:'text/csv;charset=utf-8'})}); if(r.ok){var d=await r.json();if(d.success)showToast('已保存到服务器exports: '+d.filename,'success');} } }catch(e){} })();
 }
 
 function exportJSON(data, filename) {
@@ -3080,6 +3091,8 @@ function exportJSON(data, filename) {
   link.href = URL.createObjectURL(blob);
   link.download = (filename || 'export') + '_' + new Date().toISOString().slice(0,10) + '.json';
   document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  // 同时保存到服务器exports目录
+  (async function(){ try { if(SERVER_CONFIG&&SERVER_CONFIG.enabled){ var jsonText=JSON.stringify(data,null,2); var fname=(filename||'export')+'_'+new Date().toISOString().slice(0,10)+'.json'; var r=await fetch(API_BASE+'/api/save-file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:fname,content:jsonText,contentType:'application/json'})}); if(r.ok){var d=await r.json();if(d.success)showToast('已保存到服务器exports: '+d.filename,'success');} } }catch(e){} })();
 }
 
 // V15 - 打印当前页面内容
@@ -8003,6 +8016,40 @@ async function runAutoTask(id) {
   if (!t) return;
 
   // 非日报提醒类型给出toast提示
+  if (t.type === '飞书数据同步') {
+    // 飞书数据同步任务
+    if (!confirm('确定立即执行：' + t.name + '？')) return;
+    var syncBtn = document.getElementById('btnRunAutoTask_' + id);
+    if (syncBtn) { syncBtn.disabled = true; syncBtn.innerHTML = '⏳ 同步中...'; }
+    showToast('正在从飞书同步数据...', 'info');
+    (async function() {
+      try {
+        var result = await syncFeishuBitableData(t.source || '');
+        var now2 = new Date();
+        var ts2 = now2.getFullYear()+'-'+String(now2.getMonth()+1).padStart(2,'0')+'-'+String(now2.getDate()).padStart(2,'0')+' '+String(now2.getHours()).padStart(2,'0')+':'+String(now2.getMinutes()).padStart(2,'0');
+        var logs2 = lsGet('auto_task_logs', []);
+        if (result && result.success) {
+          logs2.unshift({id:'LOG'+Date.now(), taskId:id, taskName:t.name, time:ts2, status:'成功', result:'同步'+(result.count||0)+'条数据'});
+          showToast('同步成功：' + (result.count||0) + '条数据', 'success');
+        } else {
+          logs2.unshift({id:'LOG'+Date.now(), taskId:id, taskName:t.name, time:ts2, status:'失败', result:result?result.error:'同步失败'});
+          showToast('同步失败: ' + (result?result.error:'未知错误'), 'error');
+        }
+        lsSet('auto_task_logs', logs2.slice(0,100));
+        var local2 = lsGet('local_autotasks', []);
+        var idx2 = local2.findIndex(function(x){return x.id===id});
+        if(idx2>=0) local2[idx2].lastRun = ts2;
+        lsSet('local_autotasks', local2);
+        saveData('auto_tasks', local2);
+      } catch(e) {
+        showToast('同步异常: '+e.message, 'error');
+      }
+      if (syncBtn) { syncBtn.disabled = false; syncBtn.innerHTML = '▶'; }
+      refresh();
+    })();
+    return;
+  }
+
   if (t.type !== '日报提醒') {
     showToast('当前任务类型为"' + t.type + '"，暂不支持手动执行。仅"日报提醒"类型支持立即推送日报。', 'warn');
     return;
@@ -13227,6 +13274,145 @@ async function executeQuickPush() {
   if (groupIds.length === 0) { showToast('请选择至少一个群组', 'error'); return; }
   closeQuickPushModal();
   await sendToPushGroup('message', { title: title || '消息推送', content: content, groupIds: groupIds });
+}
+
+
+function manualSyncNow() {
+  var btn = document.getElementById('manualSyncBtn');
+  if (btn) { btn.textContent = '⏳ 同步中'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  setSyncStatus('syncing');
+  showToast('正在同步所有数据...', 'info');
+  (async function() {
+    try {
+      await doFullSync();
+      setSyncStatus('connected');
+      showToast('同步完成', 'success');
+    } catch(e) {
+      setSyncStatus('error');
+      showToast('同步失败: ' + e.message, 'error');
+    }
+    if (btn) { btn.textContent = '🔄 同步'; btn.disabled = false; btn.style.opacity = '1'; }
+    refresh();
+  })();
+}
+
+
+function syncFeishuBitableData(source) {
+  return new Promise(function(resolve) {
+    var token = lsGet('feishu_personal_base_token', '');
+    if (!token || token === 'YOUR_FEISHU_TOKEN_HERE') {
+      resolve({success: false, error: '未配置飞书PersonalBaseToken', count: 0});
+      return;
+    }
+    var tableMappings = lsGet('feishu_table_mappings', {});
+    var mapping = tableMappings[source];
+    if (!mapping || !mapping.appToken || !mapping.tableId) {
+      resolve({success: false, error: '未配置多维表格映射: ' + source, count: 0});
+      return;
+    }
+    var url = 'https://open.feishu.cn/open-apis/bitable/v1/apps/' + mapping.appToken + '/tables/' + mapping.tableId + '/records';
+    fetch(url, {method:'GET', headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'}})
+    .then(function(res){return res.json()})
+    .then(function(data) {
+      if (data.code === 0 && data.data && data.data.items) {
+        var records = data.data.items;
+        var localKey = source.replace('_bitable', '');
+        if (localKey === 'daily') localKey = 'local_daily';
+        else if (localKey === 'weekly') localKey = 'local_weekly';
+        else if (localKey === 'monthly') localKey = 'local_monthly';
+        else if (localKey === 'equip') localKey = 'local_equips';
+        else if (localKey === 'improve') localKey = 'local_improves';
+        var existing = lsGet(localKey, []);
+        var idMap = {};
+        existing.forEach(function(r){idMap[r.id||r.record_id]=r;});
+        records.forEach(function(fr){
+          var fid = fr.record_id || fr.id;
+          if(idMap[fid]){Object.keys(fr.fields||{}).forEach(function(k){idMap[fid][k]=fr.fields[k]});idMap[fid]._synced=new Date().toISOString();}
+          else{var newItem=Object.assign({id:fid},fr.fields||{});newItem._synced=new Date().toISOString();existing.push(newItem);}
+        });
+        lsSet(localKey, existing);
+        resolve({success:true, count:records.length, source:source});
+      } else {
+        resolve({success:false, error:data.msg||'飞书API返回错误', count:0});
+      }
+    })
+    .catch(function(e){resolve({success:false, error:e.message, count:0})});
+  });
+}
+
+
+function deployToGitHub() {
+  var btn = document.getElementById('deployBtn');
+  if (btn) { btn.textContent = '⏳ 部署中...'; btn.disabled = true; btn.style.opacity = '0.5'; }
+  showToast('正在推送到 GitHub Pages...', 'info');
+  (async function() {
+    try {
+      // 先检查服务器是否在线
+      var statusRes = await fetch(API_BASE + '/api/deploy-status');
+      var statusData = await statusRes.json();
+      if (!statusData.canDeploy) {
+        // Token未配置，显示配置指引
+        openMo({
+          title: '配置 GitHub Token',
+          html: '<div style="padding:16px;font-size:13px;line-height:1.8">' +
+            '<p style="color:var(--t2);margin-bottom:12px">服务器未配置 GitHub Token，请按以下步骤操作：</p>' +
+            '<p><b>1.</b> 打开 <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--blue)">https://github.com/settings/tokens</a></p>' +
+            '<p><b>2.</b> 点击 "Generate new token (classic)"</p>' +
+            '<p><b>3.</b> 勾选 <code>repo</code> 权限，生成 Token</p>' +
+            '<p><b>4.</b> 在服务器目录 <code>smart-manufacturing-server/</code> 下创建文件 <code>.github_token</code>，内容为刚才复制的 Token</p>' +
+            '<p><b>5.</b> 重启服务器</p>' +
+            '<p style="margin-top:12px"><b>线上地址：</b></p>' +
+            '<div style="background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px;margin-top:6px">' +
+            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
+            '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制</p>' +
+            '</div>' +
+            '</div>',
+          btns: [{text:'关闭', onclick:'closeMo()'}]
+        });
+        if (btn) { btn.textContent = '☁️ 线上'; btn.disabled = false; btn.style.opacity = '1'; }
+        return;
+      }
+
+      // 执行部署
+      var res = await fetch(API_BASE + '/api/deploy-to-github', {method:'POST', headers:{'Content-Type':'application/json'}});
+      var data = await res.json();
+      if (data.success) {
+        openMo({
+          title: '部署成功',
+          html: '<div style="padding:16px;font-size:13px;line-height:1.8">' +
+            '<p style="color:var(--green);font-size:15px;font-weight:600;margin-bottom:12px">已成功推送到 GitHub Pages</p>' +
+            '<p>提交记录: <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px;font-size:11px">' + (data.commit||'').substring(0,12) + '</code></p>' +
+            '<p style="margin-top:8px">约 1-2 分钟后生效，请稍后访问：</p>' +
+            '<div style="background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px;margin-top:8px">' +
+            '<input type="text" value="' + data.url + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
+            '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制到剪贴板</p>' +
+            '</div>' +
+            '</div>',
+          btns: [{text:'关闭', onclick:'closeMo()'}]
+        });
+        showToast('部署成功！', 'success');
+      } else {
+        openMo({
+          title: '部署失败',
+          html: '<div style="padding:16px;font-size:13px;line-height:1.8;color:var(--red)">' +
+            '<p>' + (data.error || '未知错误') + '</p>' +
+            '<div style="margin-top:12px;background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px">' +
+            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
+            '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制</p>' +
+            '</div>' +
+            '</div>',
+          btns: [{text:'关闭', onclick:'closeMo()'}]
+        });
+        showToast('部署失败: ' + (data.error || '未知错误'), 'error');
+      }
+    } catch(e) {
+      showToast('部署异常: ' + e.message, 'error');
+    }
+    if (btn) { btn.textContent = '☁️ 线上'; btn.disabled = false; btn.style.opacity = '1'; }
+  })();
 }
 
 </script>
