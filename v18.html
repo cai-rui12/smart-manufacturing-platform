@@ -1582,7 +1582,7 @@ var SERVER_CONFIG = {
 var API_BASE = '';
 
 function setServerUrl(url) {
-  SERVER_CONFIG.url = url;
+  SERVER_CONFIG ? SERVER_CONFIG.url : "" = url;
   SERVER_CONFIG.enabled = !!url;
   SERVER_CONFIG.mode = !!url ? 'online' : 'offline';
   API_BASE = url;
@@ -1664,7 +1664,7 @@ async function detectServer() {
     var url = candidates[i];
     var result = await tryConnectServer(url, 3000);
     if (result) {
-      SERVER_CONFIG.url = url;
+      SERVER_CONFIG ? SERVER_CONFIG.url : "" = url;
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url;
@@ -1684,7 +1684,7 @@ async function detectServer() {
   // 所有候选URL都失败
   SERVER_CONFIG.enabled = false;
   SERVER_CONFIG.mode = 'offline';
-  SERVER_CONFIG.url = '';
+  SERVER_CONFIG ? SERVER_CONFIG.url : "" = '';
   localStorage.setItem('v13_server_url', '');
   API_BASE = '';
   updateSyncStatusBadge('offline', '本地模式');
@@ -1722,7 +1722,7 @@ async function connectToServer(url) {
   addSyncLog('手动连接: ' + url);
   var result = await tryConnectServer(url, 3000);
   if (result) {
-    SERVER_CONFIG.url = url;
+    SERVER_CONFIG ? SERVER_CONFIG.url : "" = url;
     SERVER_CONFIG.enabled = true;
     SERVER_CONFIG.mode = 'online';
     API_BASE = url;
@@ -1769,13 +1769,13 @@ function updateSyncStatusBadge(status, text) {
 
 async function manualConnect(e) {
   if (e) e.stopPropagation();
-  var url = SERVER_CONFIG.url || 'https://compiled-sensitivity-airports-major.trycloudflare.com';
+  var url = SERVER_CONFIG ? SERVER_CONFIG.url : "" || 'https://compiled-sensitivity-airports-major.trycloudflare.com';
   if (url && url.trim()) {
     updateSyncStatusBadge('syncing', '重连中...');
     addSyncLog('手动连接到: ' + url.trim());
     var result = await tryConnectServer(url.trim(), 5000);
     if (result) {
-      SERVER_CONFIG.url = url.trim();
+      SERVER_CONFIG ? SERVER_CONFIG.url : "" = url.trim();
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url.trim();
@@ -1794,7 +1794,7 @@ async function manualConnect(e) {
 function showConnectionInfo() {
   var info = [];
   info.push('当前状态: ' + (SERVER_CONFIG.mode || 'unknown'));
-  info.push('服务器URL: ' + (SERVER_CONFIG.url || '未设置'));
+  info.push('服务器URL: ' + (SERVER_CONFIG ? SERVER_CONFIG.url : "" || '未设置'));
   info.push('隧道URL: https://compiled-sensitivity-airports-major.trycloudflare.com');
   info.push('局域网URL: http://172.24.20.28:3000');
   info.push('');
@@ -2030,14 +2030,14 @@ function stopAutoPing() {
 }
 
 async function autoPingServer() {
-  if (!SERVER_CONFIG.url) return;
+  if (!SERVER_CONFIG ? SERVER_CONFIG.url : "") return;
   try {
-    var res = await tryConnectServer(SERVER_CONFIG.url, 10000);
+    var res = await tryConnectServer(SERVER_CONFIG ? SERVER_CONFIG.url : "", 10000);
     if (res) {
       // Was offline, now online -> replay queue
       if (SERVER_CONFIG.mode === 'offline') {
         SERVER_CONFIG.mode = 'online';
-        API_BASE = SERVER_CONFIG.url;
+        API_BASE = SERVER_CONFIG ? SERVER_CONFIG.url : "";
         updateSyncStatusBadge('connected', '已同步');
         addSyncLog('网络恢复，自动重连成功');
         showToast('网络已恢复，正在同步离线操作...', 'success');
@@ -2191,9 +2191,9 @@ function lsGet(key, def) {
 function lsSet(key, val) {
   try { localStorage.setItem('v9_' + key, JSON.stringify(val)); } catch(e) {}
   var criticalKeys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','msg_templates'];
-  if (SERVER_CONFIG.mode === 'online' && criticalKeys.indexOf(key) !== -1) {
+  if (typeof SERVER_CONFIG !== "undefined" && SERVER_CONFIG && SERVER_CONFIG.mode === "online" && criticalKeys.indexOf(key) !== -1) {
     try {
-      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
+      fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({items:[{key:'v9_'+key,value:JSON.stringify(val)}]})
@@ -9004,7 +9004,7 @@ async function importLocalToServer() {
 async function toggleServerConnection() {
   if (SERVER_CONFIG.mode === 'online') {
     // 断开连接
-    if (!confirm('确定断开与服务器 ' + SERVER_CONFIG.url + ' 的连接？')) return;
+    if (!confirm('确定断开与服务器 ' + SERVER_CONFIG ? SERVER_CONFIG.url : "" + ' 的连接？')) return;
     SERVER_CONFIG.enabled = false;
     SERVER_CONFIG.mode = 'offline';
     API_BASE = '';
@@ -9131,7 +9131,7 @@ var ALL_FEISHU_TABLES = [
 ];
 
 function renderFeishuConfig() {
-  var savedUrl = SERVER_CONFIG.url || 'http://localhost:3000';
+  var savedUrl = SERVER_CONFIG ? SERVER_CONFIG.url : "" || 'http://localhost:3000';
   var savedAppId = lsGet('feishu_app_id', '');
   var savedAppSecret = lsGet('feishu_app_secret', '');
   var tableMappings = lsGet('feishu_table_mappings', DEFAULT_TABLE_MAPPINGS);
@@ -9189,8 +9189,8 @@ function renderFeishuConfig() {
   var serverConnError = localStorage.getItem('v13_server_connect_error');
   h += '<div class="cd">';
   h += '<div class="ct">服务器连接配置 <span class="bdg" style="background:' + (SERVER_CONFIG.mode === 'online' ? '#e8f8e8;color:var(--gn)' : '#f0f0f0;color:var(--t3)') + '">' + (SERVER_CONFIG.mode === 'online' ? '已连接' : '未连接') + '</span></div>';
-  if (SERVER_CONFIG.url) {
-    h += '<div style="font-size:12px;color:var(--t2);margin-bottom:8px">当前服务器: <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;word-break:break-all">' + SERVER_CONFIG.url + '</code></div>';
+  if (SERVER_CONFIG ? SERVER_CONFIG.url : "") {
+    h += '<div style="font-size:12px;color:var(--t2);margin-bottom:8px">当前服务器: <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;word-break:break-all">' + SERVER_CONFIG ? SERVER_CONFIG.url : "" + '</code></div>';
   }
   h += '<div style="font-size:11px;color:var(--t3);margin-bottom:8px">候选地址: <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:10px">' + SERVER_URL_CANDIDATES.join('</code>, <code style="background:#f0f0f0;padding:1px 4px;border-radius:3px;font-size:10px">') + '</code></div>';
   h += '<div class="form-field"><label>后端服务器地址</label>';
@@ -9202,7 +9202,7 @@ function renderFeishuConfig() {
   h += '<div style="margin-top:6px"><button class="btn-sm bp" onclick="refreshTunnelUrls()">&#8635; 刷新隧道URL列表</button></div>';
   h += '<div id="serverConnResult" style="margin-top:8px;font-size:12px">';
   if (SERVER_CONFIG.mode === 'online') {
-    h += '<span style="color:var(--gn)">&#10004; 已连接到 ' + SERVER_CONFIG.url + '</span>';
+    h += '<span style="color:var(--gn)">&#10004; 已连接到 ' + SERVER_CONFIG ? SERVER_CONFIG.url : "" + '</span>';
   } else if (serverConnError) {
     h += '<span style="color:var(--rd)">&#10008; ' + serverConnError + '</span>';
   }
@@ -12197,7 +12197,7 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     initAuth();
     // V13 - 初始化同步状态并自动检测服务器连接
-    API_BASE = SERVER_CONFIG.url;
+    API_BASE = SERVER_CONFIG ? SERVER_CONFIG.url : "";
     updateSyncStatusBadge();
   } catch(e) {
     console.error('Init error:', e);
@@ -13432,7 +13432,7 @@ function manualSyncNow() {
         if (v && v.length > 2) items.push({key: k, value: v});
       }
       if (items.length > 0 && SERVER_CONFIG.mode === 'online') {
-        var uploadRes = await fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
+        var uploadRes = await fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({items: items})
@@ -13676,7 +13676,7 @@ function connectRealtimeSync(){
         if(v && v.length > 2) items.push({key:k,value:v});
       }
       if(items.length <= 5) return;
-      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
+      fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({items:items})
