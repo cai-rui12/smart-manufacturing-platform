@@ -1591,6 +1591,7 @@ var SERVER_CONFIG = {
   enabled: localStorage.getItem('v13_server_enabled') !== 'false',
   mode: localStorage.getItem('v13_server_enabled') !== 'false' ? 'online' : 'offline'
 };
+var SERVER_URL = SERVER_CONFIG.url;
 
 var API_BASE = '';
 
@@ -1599,6 +1600,7 @@ function setServerUrl(url) {
   SERVER_CONFIG.enabled = !!url;
   SERVER_CONFIG.mode = !!url ? 'online' : 'offline';
   API_BASE = url;
+  SERVER_URL = url;
   localStorage.setItem('v13_server_url', url || '');
   localStorage.setItem('v13_server_enabled', (!!url).toString());
   updateSyncStatusBadge();
@@ -1681,6 +1683,7 @@ async function detectServer() {
       SERVER_CONFIG.enabled = true;
       SERVER_CONFIG.mode = 'online';
       API_BASE = url;
+      SERVER_URL = url;
       window._serverUrl = url;
       localStorage.setItem('v13_server_url', url);
       localStorage.setItem('v13_server_enabled', 'true');
@@ -12722,7 +12725,8 @@ var PUSH_TYPES = {
 
 // ---- 统一群组管理 ----
 function getPushGroups() {
-  var raw = localStorage.getItem('push_groups');
+  // V9 前缀兼容：优先读取 v9_push_groups，回退到 push_groups
+  var raw = localStorage.getItem('v9_push_groups') || localStorage.getItem('push_groups');
   if (!raw || raw === '[]') {
     // 迁移旧数据：合并 webhooks + push_groups(旧)
     var oldWebhooks = JSON.parse(localStorage.getItem('webhooks') || '[]');
@@ -12766,12 +12770,13 @@ function getPushGroups() {
 }
 
 function savePushGroups(groups) {
+  localStorage.setItem('v9_push_groups', JSON.stringify(groups));
   localStorage.setItem('push_groups', JSON.stringify(groups));
 }
 
 // ---- 推送关联配置（每种推送类型关联哪些群组）----
 function getPushBindings() {
-  var raw = localStorage.getItem('push_bindings');
+  var raw = localStorage.getItem('v9_push_bindings') || localStorage.getItem('push_bindings');
   if (!raw) {
     // 默认：所有类型关联所有启用的群组
     var groups = getPushGroups();
@@ -12786,22 +12791,24 @@ function getPushBindings() {
 }
 
 function savePushBindings(bindings) {
+  localStorage.setItem('v9_push_bindings', JSON.stringify(bindings));
   localStorage.setItem('push_bindings', JSON.stringify(bindings));
 }
 
 // ---- 统一推送历史 ----
 function getPushHistory() {
-  return JSON.parse(localStorage.getItem('push_history') || '[]');
+  return JSON.parse(localStorage.getItem('v9_push_history') || localStorage.getItem('push_history') || '[]');
 }
 
 function savePushHistory(history) {
   if (history.length > 200) history = history.slice(0, 200);
+  localStorage.setItem('v9_push_history', JSON.stringify(history));
   localStorage.setItem('push_history', JSON.stringify(history));
 }
 
 // ---- 统一模板库 ----
 function getPushTemplates() {
-  var raw = localStorage.getItem('push_templates');
+  var raw = localStorage.getItem('v9_push_templates') || localStorage.getItem('push_templates');
   if (!raw || raw === '[]') {
     // 迁移旧的全局模板
     var oldGlobal = JSON.parse(localStorage.getItem('push_global_templates') || '[]');
@@ -12835,6 +12842,7 @@ function getPushTemplates() {
 }
 
 function savePushTemplates(templates) {
+  localStorage.setItem('v9_push_templates', JSON.stringify(templates));
   localStorage.setItem('push_templates', JSON.stringify(templates));
 }
 
