@@ -496,7 +496,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
         <input type="password" id="loginPwd" placeholder="初始密码: 123456">
       </div>
       <button class="login-btn" onclick="doLogin();quickLogin()">登 录</button>
-      <button class="login-btn" style="background:#34c724;margin-top:8px;font-size:14px" onclick="quickLogin()">快速登录</button>
+      <button class="login-btn" style="background:#34c724;margin-top:8px;font-size:14px" onclick="if(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:')quickLogin();else showToast('生产环境不支持快速登录','warn')">快速登录</button>
       <div class="login-hint">首次登录将强制修改密码 | 数据保存在本地浏览器</div>
     </div>
     <div id="changePwdForm" style="display:none">
@@ -526,7 +526,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
          title="立即同步所有数据" style="padding:3px 8px;border:1px solid var(--blue);border-radius:12px;background:transparent;color:var(--blue);font-size:12px;cursor:pointer;transition:var(--tr-fast)">🔄 同步</button>
         <button id="deployBtn" onclick="deployToGitHub()" title="推送当前版本到GitHub Pages线上" style="padding:3px 8px;border:1px solid var(--green);border-radius:12px;background:transparent;color:var(--green);font-size:12px;cursor:pointer;transition:var(--tr-fast);margin-left:4px">☁️ 线上</button>
         <button class="btn-sm bo" onclick="exportAllData()" title="导出全部数据">&#128190; 导出</button>
-        <button class="btn-sm bo" onclick="importAllData()" title="导入全部数据">&#128190; 导入</button>
+        <button class="btn-sm bo" onclick="importAllData()" title="导入全部数据">&#128194; 导入</button>
         <span id="userLabel" style="font-size:12px;color:var(--t2);font-weight:500"></span>
         <button class="btn-sm bo" onclick="doLogout()">退出</button>
       </div>
@@ -1246,13 +1246,7 @@ var DEFAULT_WEBHOOKS = [
 // =========================================
 // V17 - 推送历史
 // =========================================
-var DEFAULT_PUSH_HISTORY = [
-  {id:'PH001', time:'2026-07-10 17:00:00', target:'智能制造组全员', type:'日报提醒', status:'成功', content:'各位同事好，今日日报请于17:00前提交'},
-  {id:'PH002', time:'2026-07-10 09:00:00', target:'设备保养群', type:'保养提醒', status:'成功', content:'今日设备保养任务清单已生成'},
-  {id:'PH003', time:'2026-07-10 08:30:00', target:'安全管理群', type:'安全提醒', status:'成功', content:'请按计划进行今日安全巡检'},
-  {id:'PH004', time:'2026-07-09 17:00:00', target:'智能制造组全员', type:'日报提醒', status:'成功', content:'各位同事好，今日日报请于17:00前提交'},
-  {id:'PH005', time:'2026-07-09 14:30:00', target:'项目管理群', type:'验收通知', status:'成功', content:'设备安装完成，请安排验收'}
-];
+var DEFAULT_PUSH_HISTORY = [];
 
 // =========================================
 // V17 - 权限矩阵默认值
@@ -2506,6 +2500,7 @@ function saveHomeConfig(c) { lsSet('home_config', c); }
 // =========================================
 // V17 - 密码混淆存储 (base64 + salt)
 // =========================================
+// [安全妥协] PWD_SALT 硬编码 - 修改此值将导致已存储的密码全部失效,仅在新部署时更换
 var PWD_SALT = 'SMP@2026!#';
 function obfuscatePwd(pwd) {
   var salted = pwd + '|' + PWD_SALT;
@@ -3111,7 +3106,7 @@ function printPage() {
 function exportAllData() {
   try {
     var data = {
-      version: 'v15',
+      version: 'v18',
       exportTime: new Date().toISOString(),
       tasks: lsGet('local_tasks', []),
       daily: lsGet('local_daily', []),
@@ -3130,7 +3125,7 @@ function exportAllData() {
       memberApplies: lsGet('local_member_applies', []),
       webhooks: lsGet('webhooks', []),
       pushHistory: lsGet('push_history', []),
-      passwords: lsGet('passwords', {}),
+      // passwords: lsGet('passwords', {}), // 安全：不导出密码
       userRoles: lsGet('user_roles', {}),
       permissionMatrix: lsGet('permission_matrix', {}),
       homeConfig: lsGet('home_config', {}),
@@ -3193,7 +3188,7 @@ async function clearLocalAndRestore() {
   if (!confirm('确定要清除本地所有数据并从服务器恢复吗？\n\n此操作不可撤销！')) return;
   if (!confirm('再次确认：这将清除您本地的所有任务、日报、项目等数据！')) return;
   try {
-    var keys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks'];
+    var keys = ['local_tasks','local_daily','local_weekly','local_monthly','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_equip_accepts','local_spares','local_member_applies','local_safety','local_energy','local_trainings','push_groups','msg_templates','push_history','auto_task_logs'];
     keys.forEach(function(key) { localStorage.removeItem('v9_' + key); });
     addSyncLog('本地数据已清除');
     if (SERVER_CONFIG.mode === 'online') {
@@ -3280,10 +3275,10 @@ function renderHome() {
   var activeEquips = equips.filter(function(e){ return e.status === '运行中'; }).length;
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card" onclick="goToPage(\'task-all-list\')"><div class="kpi-value">' + tasks.length + '</div><div class="kpi-label">全部任务</div><div class="kpi-sub">已完成 ' + doneTasks + ' 个</div></div>';
-  h += '<div class="kpi-card" onclick="goToPage(\'daily-today\')"><div class="kpi-value">' + reports.length + '</div><div class="kpi-label">日报总数</div><div class="kpi-sub">本月提交 ' + reports.length + ' 篇</div></div>';
+  h += '<div class="kpi-card" onclick="goToPage(\'daily-today\')"><div class="kpi-value">' + reports.length + '</div><div class="kpi-label">日报总数</div><div class="kpi-sub">本月提交 ' + reports.filter(function(r){return r.date && r.date.startsWith(new Date().getFullYear()+'-'+(new Date().getMonth()+1).toString().padStart(2,'0'))}).length + ' 篇</div></div>';
   h += '<div class="kpi-card" onclick="goToPage(\'project-all\')"><div class="kpi-value">' + projects.length + '</div><div class="kpi-label">进行项目</div><div class="kpi-sub">活跃项目 ' + projects.filter(function(p){return p.status==='进行中';}).length + ' 个</div></div>';
   h += '<div class="kpi-card" onclick="goToPage(\'equip-all\')"><div class="kpi-value">' + activeEquips + '/' + equips.length + '</div><div class="kpi-label">设备运行</div><div class="kpi-sub">运行率 ' + (equips.length ? Math.round(activeEquips/equips.length*100) : 0) + '%</div></div>';
-  h += '<div class="kpi-card" onclick="goToPage(\'improve-today\')"><div class="kpi-value">' + improves.length + '</div><div class="kpi-label">改善提案</div><div class="kpi-sub">本月累计 ' + improves.length + ' 条</div></div>';
+  h += '<div class="kpi-card" onclick="goToPage(\'improve-today\')"><div class="kpi-value">' + improves.length + '</div><div class="kpi-label">改善提案</div><div class="kpi-sub">本月累计 ' + improves.filter(function(r){return r.date && r.date.startsWith(new Date().getFullYear()+'-'+(new Date().getMonth()+1).toString().padStart(2,'0'))}).length + ' 条</div></div>';
   h += '<div class="kpi-card" onclick="goToPage(\'people-list\')"><div class="kpi-value">' + PEOPLE_OBJ.length + '</div><div class="kpi-label">团队人数</div><div class="kpi-sub">智能制造组 ' + PEOPLE_OBJ.filter(function(p){return p.dept==='智能制造组';}).length + ' 人</div></div>';
   h += '</div>';
   
@@ -8071,11 +8066,6 @@ async function runAutoTask(id) {
     return;
   }
 
-  if (t.type !== '日报提醒') {
-    showToast('当前任务类型为"' + t.type + '"，暂不支持手动执行。仅"日报提醒"类型支持立即推送日报。', 'warn');
-    return;
-  }
-
   if (!confirm('确定立即执行任务：' + t.name + '？')) return;
 
   // 检查服务器连接
@@ -8212,8 +8202,13 @@ function useTemplate(id) {
   refresh();
 }
 
+var autoTaskLogSearch = '';
 function renderAutoTaskLogs() {
   var logs = lsGet('auto_task_logs', []);
+  if (autoTaskLogSearch) {
+    var kw = autoTaskLogSearch.toLowerCase();
+    logs = logs.filter(function(l){ return (l.taskName||'').toLowerCase().indexOf(kw)!==-1 || (l.result||'').toLowerCase().indexOf(kw)!==-1 || (l.time||'').indexOf(kw)!==-1; });
+  }
   if (logs.length === 0) {
     // 空状态：不生成示例数据，显示提示
     var h = '<div class="page-enter">';
@@ -8233,7 +8228,7 @@ function renderAutoTaskLogs() {
   h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + logs.filter(function(l){return l.status!=='成功';}).length + '</div><div class="kpi-label">失败</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value">' + Math.round(logs.filter(function(l){return l.status==='成功';}).length/Math.max(logs.length,1)*100) + '%</div><div class="kpi-label">成功率</div></div>';
   h += '</div>';
-  h += '<div class="bg"><input class="fi" style="width:240px" placeholder="搜索日志..."><button class="btn bo">&#8635; 刷新</button><button class="btn bo" onclick="clearAutoTaskLogs()">清空日志</button></div>';
+  h += '<div class="bg"><input class="fi" style="width:240px" placeholder="搜索日志..." oninput="autoTaskLogSearch=this.value;refresh()"><button class="btn bo" onclick="refresh()">&#8635; 刷新</button><button class="btn bo" onclick="clearAutoTaskLogs()">清空日志</button></div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>日志ID</th><th>任务名称</th><th>执行时间</th><th>状态</th><th>执行结果</th><th>操作</th></tr></thead><tbody>';
   logs.slice(0, 20).forEach(function(l) {
@@ -8764,7 +8759,7 @@ function changeMemberRole(eid) {
 function resetMemberPwd(eid) {
   if (!confirm('确定重置该成员密码为 123456？')) return;
   var passwords = lsGet('passwords', {});
-  passwords[eid] = '123456';
+  passwords[eid] = obfuscatePwd('123456');
   lsSet('passwords', passwords);
   showToast('密码已重置为 123456', 'warn');
   refresh();
@@ -8772,7 +8767,13 @@ function resetMemberPwd(eid) {
 
 function removeMember(eid) {
   if (!confirm('确定删除此成员？')) return;
-  showToast('演示版本暂不支持删除成员（人员来自组织架构）', 'info');
+  var people = lsGet('people_obj', {});
+  if (people[eid]) { delete people[eid]; lsSet('people_obj', people); }
+  var members = lsGet('members', []);
+  members = members.filter(function(m){return m.id !== eid;});
+  lsSet('members', members);
+  showToast('成员已删除', 'success');
+  refresh();
 }
 
 function renderPermConfig() {
@@ -9047,8 +9048,10 @@ function testServerConnection() {
 // =========================================
 
 // V12 - 飞书多维表格配置常量
-var FEISHU_APP_TOKEN = 'SZT8bHeYsaA3PYsQ7Fvc3uvGn4d';
-var FEISHU_PERSONAL_BASE_TOKEN = 'pt-YTaKT2V-ta6Rw0cRKdlcSQ4JjrNfNNxnaJCQTWqfAQAAAYDDfOpLgGK4i_lq';
+// 飞书 Token - 请在系统设置中配置,不要在此硬编码
+var FEISHU_APP_TOKEN = lsGet('feishu_app_token', '');
+// 飞书个人多维表格 Token - 请在系统设置中配置,不要在此硬编码
+var FEISHU_PERSONAL_BASE_TOKEN = lsGet('feishu_personal_base_token', '');
 var DEFAULT_TABLE_MAPPINGS = [
   {type:'daily_reports', tableName:'日报', appToken:FEISHU_APP_TOKEN, tableId:'tblTZeRLum8uf7mJ'},
   {type:'tasks', tableName:'任务总表', appToken:FEISHU_APP_TOKEN, tableId:'tblIqmcPBvnYfBc8'},
@@ -10273,7 +10276,7 @@ function renderEquipStatus() {
   } else {
     h += '<table class="dt"><thead><tr><th>设备编号</th><th>设备名称</th><th>工序</th><th>位置</th><th>状态</th><th>操作</th></tr></thead><tbody>';
     faultEquips.forEach(function(e) {
-      h += '<tr><td>' + e.equipNo + '</td><td>' + e.name + '</td><td>' + e.process + '</td><td>' + e.location + '</td><td><span class="t tr">故障</span></td><td><button class="btn-sm bo">报修</button></td></tr>';
+      h += '<tr><td>' + e.equipNo + '</td><td>' + e.name + '</td><td>' + e.process + '</td><td>' + e.location + '</td><td><span class="t tr">故障</span></td><td><button class="btn-sm bo" onclick="curPage=\'repair\';refresh()">报修</button></td></tr>';
     });
     h += '</tbody></table>';
   }
@@ -10321,29 +10324,53 @@ function initEquipStatusCharts() {
 }
 
 function renderEquipFault() {
+  var repairs = getAllRepairs();
+  var equips = getAllEquips();
+  var now = new Date();
+  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  var monthRepairs = repairs.filter(function(r) {
+    var t = new Date(r.reportTime);
+    return t >= monthStart && t <= now;
+  });
+  var totalDuration = 0;
+  monthRepairs.forEach(function(r) {
+    if (r.reportTime && r.handleTime) {
+      var diff = new Date(r.handleTime) - new Date(r.reportTime);
+      if (diff > 0) totalDuration += Math.round(diff / 60000);
+    }
+  });
+  var avgDuration = monthRepairs.length > 0 ? (totalDuration / monthRepairs.length).toFixed(1) : 0;
+  var faultRate = equips.length > 0 ? (monthRepairs.length / equips.length * 100).toFixed(1) : 0;
+  var equipFaultMap = {};
+  monthRepairs.forEach(function(r) {
+    var name = r.equipName || '\u672a\u77e5\u8bbe\u5907';
+    if (!equipFaultMap[name]) equipFaultMap[name] = {count:0, minutes:0};
+    equipFaultMap[name].count++;
+    if (r.reportTime && r.handleTime) {
+      var diff = new Date(r.handleTime) - new Date(r.reportTime);
+      if (diff > 0) equipFaultMap[name].minutes += Math.round(diff / 60000);
+    }
+  });
+  var topFaults = Object.keys(equipFaultMap).map(function(name) {
+    return {name:name, count:equipFaultMap[name].count, minutes:equipFaultMap[name].minutes};
+  }).sort(function(a,b){ return b.count - a.count || b.minutes - a.minutes; }).slice(0, 5);
+  if (topFaults.length === 0) topFaults = [{name:'\u6682\u65e0\u6570\u636e', count:0, minutes:0}];
   var h = '<div class="page-enter">';
-  h += '<div class="pt">⚠️ 故障统计 <span class="bdg">故障分析</span></div>';
+  h += '<div class="pt">\u26a0\ufe0f \u6545\u969c\u7edf\u8ba1 <span class="bdg">\u6545\u969c\u5206\u6790</span></div>';
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">23</div><div class="kpi-label">本月故障数</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">580min</div><div class="kpi-label">停机时长</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">25.2min</div><div class="kpi-label">平均修复时间</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">4.2%</div><div class="kpi-label">故障率</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + monthRepairs.length + '</div><div class="kpi-label">\u672c\u6708\u6545\u969c\u6570</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + totalDuration + 'min</div><div class="kpi-label">\u505c\u673a\u65f6\u957f</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + avgDuration + 'min</div><div class="kpi-label">\u5e73\u5747\u4fee\u590d\u65f6\u95f4</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value">' + faultRate + '%</div><div class="kpi-label">\u6545\u969c\u7387</div></div>';
   h += '</div>';
   h += '<div class="g2">';
-  h += '<div class="cd"><div class="ct">故障趋势（近30天）</div><div class="ch"><canvas id="efChart1"></canvas></div></div>';
-  h += '<div class="cd"><div class="ct">故障类型分布</div><div class="ch"><canvas id="efChart2"></canvas></div></div>';
+  h += '<div class="cd"><div class="ct">\u6545\u969c\u8d8b\u52bf\uff08\u8fd130\u5929\uff09</div><div class="ch"><canvas id="efChart1"></canvas></div></div>';
+  h += '<div class="cd"><div class="ct">\u6545\u969c\u7c7b\u578b\u5206\u5e03</div><div class="ch"><canvas id="efChart2"></canvas></div></div>';
   h += '</div>';
-  h += '<div class="cd"><div class="ct">故障TOP5设备</div>';
-  var topFaults = [
-    {name:'3#内层前处理二工位机', count:8, time:'120min'},
-    {name:'6#MCP铜缸', count:5, time:'80min'},
-    {name:'1#沉铜线', count:4, time:'60min'},
-    {name:'AGV搬运车3号', count:3, time:'45min'},
-    {name:'热压机5号', count:3, time:'40min'}
-  ];
-  h += '<table class="dt"><thead><tr><th>排名</th><th>设备名称</th><th>故障次数</th><th>累计停机</th><th>操作</th></tr></thead><tbody>';
+  h += '<div class="cd"><div class="ct">\u6545\u969cTOP5\u8bbe\u5907</div>';
+  h += '<table class="dt"><thead><tr><th>\u6392\u540d</th><th>\u8bbe\u5907\u540d\u79f0</th><th>\u6545\u969c\u6b21\u6570</th><th>\u7d2f\u8ba1\u505c\u673a</th><th>\u64cd\u4f5c</th></tr></thead><tbody>';
   topFaults.forEach(function(f, i) {
-    h += '<tr><td>' + (i+1) + '</td><td>' + f.name + '</td><td>' + f.count + ' 次</td><td>' + f.time + '</td><td><button class="btn-sm bo">详情</button></td></tr>';
+    h += '<tr><td>' + (i+1) + '</td><td>' + f.name + '</td><td>' + f.count + ' \u6b21</td><td>' + f.minutes + 'min</td><td><button class="btn-sm bo" onclick="curPage=\'equip-detail\';refresh()">\u8be6\u60c5</button></td></tr>';
   });
   h += '</tbody></table></div>';
   h += '</div>';
@@ -10352,22 +10379,31 @@ function renderEquipFault() {
 
 function initEquipFaultCharts() {
   try {
+    var repairs = getAllRepairs();
     var c1 = document.getElementById('efChart1');
     if (c1) {
       if (chartInstances.ef1) chartInstances.ef1.destroy();
       var days = [];
       var data = [];
+      var dayCountMap = {};
+      repairs.forEach(function(r) {
+        if (!r.reportTime) return;
+        var d = new Date(r.reportTime);
+        var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        dayCountMap[key] = (dayCountMap[key] || 0) + 1;
+      });
       for (var i = 29; i >= 0; i--) {
         var d = new Date();
         d.setDate(d.getDate() - i);
+        var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         days.push((d.getMonth()+1) + '/' + d.getDate());
-        data.push(Math.floor(Math.random() * 3) + 1);
+        data.push(dayCountMap[key] || 0);
       }
       chartInstances.ef1 = new Chart(c1, {
         type: 'line',
         data: {
           labels: days,
-          datasets: [{label:'故障次数', data:data, borderColor:'#f54a45', backgroundColor:'rgba(245,74,69,0.1)', fill:true, tension:0.3}]
+          datasets: [{label:'\u6545\u969c\u6b21\u6570', data:data, borderColor:'#f54a45', backgroundColor:'rgba(245,74,69,0.1)', fill:true, tension:0.3}]
         },
         options: {responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
       });
@@ -10375,11 +10411,31 @@ function initEquipFaultCharts() {
     var c2 = document.getElementById('efChart2');
     if (c2) {
       if (chartInstances.ef2) chartInstances.ef2.destroy();
+      var typeLabels = ['\u7535\u6c14\u6545\u969c','\u673a\u68b0\u6545\u969c','\u4f20\u611f\u6545\u969c','\u8f6f\u4ef6\u6545\u969c','\u5176\u4ed6'];
+      var typeCounts = [0, 0, 0, 0, 0];
+      var keywords = [
+        ['\u7535','\u7535\u673a','\u7535\u6e90','\u7ebf\u7f06','\u77ed\u8def','\u65ad\u8def','\u7535\u538b','\u7535\u6d41','\u63a5\u89e6\u5668','\u7ee7\u7535\u5668','PLC'],
+        ['\u8f74\u627f','\u9f7f\u8f6e','\u78e8\u635f','\u677e\u52a8','\u65ad\u88c2','\u5f02\u54cd','\u632f\u52a8','\u5361\u987f','\u4e0b\u6ed1','\u62b1\u95f8','\u673a\u68b0'],
+        ['\u4f20\u611f','\u63a2\u6d4b\u5668','\u626b\u7801','\u8bc6\u522b','\u611f\u5e94','\u68c0\u6d4b\u5668','\u5149\u7535','\u63a2\u5934'],
+        ['\u8f6f\u4ef6','\u7cfb\u7edf','\u6b7b\u673a','\u5c4f\u5e55','\u95ea','\u56fa\u4ef6','\u517c\u5bb9','\u7f51\u7edc','MES','\u6570\u636e'],
+        []
+      ];
+      repairs.forEach(function(r) {
+        var desc = (r.faultDesc || '').toLowerCase();
+        var matched = false;
+        for (var k = 0; k < 4; k++) {
+          for (var j = 0; j < keywords[k].length; j++) {
+            if (desc.indexOf(keywords[k][j]) >= 0) { typeCounts[k]++; matched = true; break; }
+          }
+          if (matched) break;
+        }
+        if (!matched) typeCounts[4]++;
+      });
       chartInstances.ef2 = new Chart(c2, {
         type: 'pie',
         data: {
-          labels: ['电气故障','机械故障','传感故障','软件故障','其他'],
-          datasets: [{data:[8, 6, 4, 3, 2], backgroundColor:['#f54a45','#ff9800','#3370ff','#7c3aed','#8f959e']}]
+          labels: typeLabels,
+          datasets: [{data:typeCounts, backgroundColor:['#f54a45','#ff9800','#3370ff','#7c3aed','#8f959e']}]
         },
         options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
       });
@@ -10462,13 +10518,42 @@ function initTaskRateCharts() {
     var c2 = document.getElementById('trChart2');
     if (c2) {
       if (chartInstances.tr2) chartInstances.tr2.destroy();
+      var doneByMonth = {};
+      var newByMonth = {};
+      tasks.forEach(function(t) {
+        if (t.status === '\u5df2\u5b8c\u6210') {
+          var dStr = t.actualEndDate || t.endDate || '';
+          if (dStr) {
+            var dd = new Date(dStr);
+            if (!isNaN(dd.getTime())) {
+              var mk = dd.getFullYear() + '-' + String(dd.getMonth()+1).padStart(2,'0');
+              doneByMonth[mk] = (doneByMonth[mk] || 0) + 1;
+            }
+          }
+        }
+        if (t.startDate) {
+          var sd = new Date(t.startDate);
+          if (!isNaN(sd.getTime())) {
+            var sk = sd.getFullYear() + '-' + String(sd.getMonth()+1).padStart(2,'0');
+            newByMonth[sk] = (newByMonth[sk] || 0) + 1;
+          }
+        }
+      });
+      var allMonths = {};
+      Object.keys(doneByMonth).forEach(function(m){ allMonths[m]=1; });
+      Object.keys(newByMonth).forEach(function(m){ allMonths[m]=1; });
+      var monthKeys = Object.keys(allMonths).sort();
+      var mLabels = monthKeys.map(function(m){ return parseInt(m.split('-')[1]) + '\u6708'; });
+      var doneData = monthKeys.map(function(m){ return doneByMonth[m] || 0; });
+      var newData = monthKeys.map(function(m){ return newByMonth[m] || 0; });
+      if (monthKeys.length === 0) { mLabels = ['\u6682\u65e0\u6570\u636e']; doneData = [0]; newData = [0]; }
       chartInstances.tr2 = new Chart(c2, {
         type: 'line',
         data: {
-          labels: ['1月','2月','3月','4月','5月','6月','7月'],
+          labels: mLabels,
           datasets: [
-            {label:'完成任务', data:[12,15,18,22,25,28,32], borderColor:'#34c724', backgroundColor:'rgba(52,199,36,0.1)', fill:true, tension:0.3},
-            {label:'新增任务', data:[15,18,20,25,28,30,35], borderColor:'#3370ff', backgroundColor:'rgba(51,112,255,0.1)', fill:true, tension:0.3}
+            {label:'\u5b8c\u6210\u4efb\u52a1', data:doneData, borderColor:'#34c724', backgroundColor:'rgba(52,199,36,0.1)', fill:true, tension:0.3},
+            {label:'\u65b0\u589e\u4efb\u52a1', data:newData, borderColor:'#3370ff', backgroundColor:'rgba(51,112,255,0.1)', fill:true, tension:0.3}
           ]
         },
         options: {responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true}}}
@@ -13384,7 +13469,7 @@ function deployToGitHub() {
             '<p><b>5.</b> 重启服务器</p>' +
             '<p style="margin-top:12px"><b>线上地址：</b></p>' +
             '<div style="background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px;margin-top:6px">' +
-            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();navigator.clipboard.writeText(this.value)" ' +
             'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
             '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制</p>' +
             '</div>' +
@@ -13406,7 +13491,7 @@ function deployToGitHub() {
             '<p>提交记录: <code style="background:var(--bg-s);padding:2px 6px;border-radius:4px;font-size:11px">' + (data.commit||'').substring(0,12) + '</code></p>' +
             '<p style="margin-top:8px">约 1-2 分钟后生效，请稍后访问：</p>' +
             '<div style="background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px;margin-top:8px">' +
-            '<input type="text" value="' + data.url + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            '<input type="text" value="' + data.url + '" readonly onclick="this.select();navigator.clipboard.writeText(this.value)" ' +
             'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
             '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制到剪贴板</p>' +
             '</div>' +
@@ -13420,7 +13505,7 @@ function deployToGitHub() {
           html: '<div style="padding:16px;font-size:13px;line-height:1.8;color:var(--red)">' +
             '<p>' + (data.error || '未知错误') + '</p>' +
             '<div style="margin-top:12px;background:var(--bg-s);border:1px solid var(--br);border-radius:8px;padding:10px">' +
-            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();document.navigator.clipboard.writeText(this.value)" ' +
+            '<input type="text" value="' + statusData.pagesUrl + '" readonly onclick="this.select();navigator.clipboard.writeText(this.value)" ' +
             'style="width:100%;border:none;background:transparent;color:var(--blue);font-size:14px;cursor:pointer;outline:none" />' +
             '<p style="font-size:11px;color:var(--t3);margin-top:4px">点击地址可复制</p>' +
             '</div>' +
@@ -13452,7 +13537,7 @@ function deployToGitHub() {
     (function(){
       var items=[];
       for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.length>2)items.push({key:k,value:v});}
-      if(items.length===0)return;
+      if(items.length<=5)return;
       fetch(SERVER_URL+'/api/localstorage/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items})}).catch(function(){});
     })();
 
