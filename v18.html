@@ -2618,6 +2618,7 @@ function initAuth() {
     var saved = lsGet('current_user', null);
     if (saved) {
       currentUser = saved;
+      if (currentUser.employeeId === '64135' || currentUser.employeeId === '10383') currentUser.role = 'owner';
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('mainApp').style.display = 'flex';
       document.getElementById('userLabel').textContent = currentUser.name + ' (' + ROLE_NAMES[currentUser.role] + ')';
@@ -2738,8 +2739,10 @@ async function doLogin() {
         if (res.code === 1) {
           // 后端不存在此用户，先在后端创建
           var roles = lsGet('user_roles', {});
+          var newRole = roles[eid] || 'viewer';
+          if (eid === '64135' || eid === '10383') newRole = 'owner';
           await Promise.race([
-            apiRequest('POST', '/api/members', {eid: eid, name: person.name, role: roles[eid] || 'viewer'}),
+            apiRequest('POST', '/api/members', {eid: eid, name: person.name, role: newRole}),
             new Promise(function(_, reject) { setTimeout(function() { reject(new Error('timeout')); }, 3000); })
           ]);
           addSyncLog('后端创建用户: ' + eid + ' (' + person.name + ')');
@@ -2784,10 +2787,12 @@ function doChangePwd() {
 function finishLogin(person) {
   try {
     var roles = lsGet('user_roles', {});
+    var role = roles[person.employeeId] || 'viewer';
+    if (person.employeeId === '64135' || person.employeeId === '10383') role = 'owner';
     currentUser = {
       employeeId: person.employeeId,
       name: person.name,
-      role: roles[person.employeeId] || 'viewer'
+      role: role
     };
     lsSet('current_user', currentUser);
     document.getElementById('loginOverlay').style.display = 'none';
