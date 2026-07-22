@@ -2204,6 +2204,16 @@ function lsGet(key, def) {
 }
 function lsSet(key, val) {
   try { localStorage.setItem('v9_' + key, JSON.stringify(val)); } catch(e) {}
+  var criticalKeys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','msg_templates'];
+  if (SERVER_CONFIG.mode === 'online' && criticalKeys.indexOf(key) !== -1) {
+    try {
+      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({items:[{key:'v9_'+key,value:JSON.stringify(val)}]})
+      }).catch(function(){});
+    } catch(e) {}
+  }
 }
 
 function mergeData(builtIn, localKey) {
@@ -7842,9 +7852,9 @@ function renderAutoTaskList() {
     list = list.filter(function(t) { return t.status === atStatus; });
   }
   var page = getPage('autotask');
-  var pageSize = 10;
+  var pageSize = 9999;
   var total = list.length;
-  var pageData = list.slice((page-1)*pageSize, page*pageSize);
+  var pageData = list;
   
   var h = '<div class="page-enter">';
   h += '<div class="pt">🤖 自动化任务 <span class="bdg">共 ' + total + ' 个</span></div>';
@@ -7900,7 +7910,6 @@ function renderAutoTaskList() {
     });
   }
   h += '</tbody></table></div></div>';
-  h += renderPagination(total, page, pageSize, 'autoTaskPageChange');
   h += '</div>';
   return h;
 }
@@ -13556,6 +13565,77 @@ function deployToGitHub() {
       if(restored>0){console.log('[restore] total: '+restored);try{refresh();}catch(e){}}
     });
   },1200);
+})();
+
+// ========== 数据防护机制 ==========
+(function dataProtection(){
+  var CRITICAL_KEYS = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','msg_templates'];
+  var lastChecksum = '';
+
+  function getLsChecksum(){
+    var s = '';
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && k.indexOf('v9_')===0){ s += k + ':' + localStorage.getItem(k) + ';'; }
+    }
+    return s;
+  }
+
+  function syncAllToServer(){
+    if(SERVER_CONFIG.mode !== 'online') return;
+    try{
+      var items = [];
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        var v = localStorage.getItem(k);
+        if(v && v.length > 2) items.push({key:k,value:v});
+      }
+      if(items.length <= 5) return;
+      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({items:items})
+      }).catch(function(){});
+    }catch(e){}
+  }
+
+  // 1. 每次操作后自动同步已在 lsSet 中实现
+
+  // 2. 定时自动保存（每30秒）
+  setInterval(function(){
+    var checksum = getLsChecksum();
+    if(checksum !== lastChecksum){
+      lastChecksum = checksum;
+      syncAllToServer();
+    }
+  }, 30000);
+
+  // 3. 页面关闭前自动导出备份
+  window.addEventListener('beforeunload', function(){
+    try{
+      var data = {};
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf('v9_')===0){ data[k] = localStorage.getItem(k); }
+      }
+      var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      var now = new Date();
+      var ts = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + String(now.getSeconds()).padStart(2,'0');
+      a.download = 'smart-manufacturing-backup-' + ts + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }catch(e){}
+  });
+
+  // 4. 页面打开时强制全量同步（约2秒后）
+  setTimeout(function(){
+    syncAllToServer();
+  }, 2000);
 })();
 
 </script>
