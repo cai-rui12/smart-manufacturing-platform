@@ -2193,7 +2193,7 @@ function lsSet(key, val) {
   var criticalKeys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','msg_templates'];
   if (typeof SERVER_CONFIG !== "undefined" && SERVER_CONFIG && SERVER_CONFIG.mode === "online" && criticalKeys.indexOf(key) !== -1) {
     try {
-      fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
+      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({items:[{key:'v9_'+key,value:JSON.stringify(val)}]})
@@ -13432,7 +13432,7 @@ function manualSyncNow() {
         if (v && v.length > 2) items.push({key: k, value: v});
       }
       if (items.length > 0 && SERVER_CONFIG.mode === 'online') {
-        var uploadRes = await fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
+        var uploadRes = await fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({items: items})
@@ -13676,7 +13676,7 @@ function connectRealtimeSync(){
         if(v && v.length > 2) items.push({key:k,value:v});
       }
       if(items.length <= 5) return;
-      fetch(SERVER_CONFIG ? SERVER_CONFIG.url : "" + '/api/localstorage/sync', {
+      fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({items:items})
