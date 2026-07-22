@@ -1631,9 +1631,7 @@ var SERVER_URL_CANDIDATES = [
   'http://localhost:3000'
 ];
 
-// 从GitHub读取最新的隧道URL（动态，每次服务器重启后会自动更新）
-var CONFIG_URL = 'https://cai-rui12.github.io/smart-manufacturing-platform/server-config.json';
-
+// 云服务器已部署，不再需要动态隧道URL
 async function tryConnectServer(url, timeoutMs) {
   try {
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -1649,28 +1647,16 @@ async function tryConnectServer(url, timeoutMs) {
 async function detectServer() {
   updateSyncStatusBadge('syncing', '连接中...');
 
-  // 1. 先从GitHub配置文件获取最新隧道URL
-  var dynamicUrl = null;
-  try {
-    var configRes = await fetch(CONFIG_URL, {cache:'no-store'});
-    if (configRes.ok) {
-      var config = await configRes.json();
-      if (config.tunnel_url) { dynamicUrl = config.tunnel_url; }
-    }
-  } catch(e) {}
-
-  // 2. 构建候选URL列表（动态隧道URL最优先）
+  // 直接使用固定候选URL列表（云服务器IP优先）
   var candidates = [];
-  if (dynamicUrl) candidates.push(dynamicUrl);
   var savedUrl = localStorage.getItem('v13_server_url');
-  if (savedUrl && candidates.indexOf(savedUrl) === -1) candidates.push(savedUrl);
-  // 3. 添加固定候选URL（去重）
+  if (savedUrl) candidates.push(savedUrl);
   for (var i = 0; i < SERVER_URL_CANDIDATES.length; i++) {
     if (candidates.indexOf(SERVER_URL_CANDIDATES[i]) === -1) {
       candidates.push(SERVER_URL_CANDIDATES[i]);
     }
   }
-  
+
   updateSyncStatusBadge('syncing', '连接中...');
   
   // 依次尝试每个候选URL
@@ -13590,40 +13576,81 @@ function deployToGitHub() {
 
 
 (function SERVER_DATA_RESTORE(){
+  // V18.5: 页面加载时，优先从服务器拉取全量数据覆盖localStorage，确保多终端一致
   setTimeout(function(){
     if(typeof SERVER_URL==='undefined'||!SERVER_URL)return;
-    var restored=0;
-    var tasks=[];
-
-    // 1. Restore push_groups from dedicated API
-    tasks.push(fetch(SERVER_URL+'/api/push-groups').then(function(r){return r.json()}).then(function(g){
-      if(g&&Array.isArray(g)&&g.length>0){var l=lsGet('push_groups',[]);if(l.length<g.length){lsSet('push_groups',JSON.stringify(g));restored++;console.log('[restore] push_groups: '+g.length);}}
-    }).catch(function(){}));
-
-    // 2. Sync current localStorage TO server first (save desktop data for mobile)
+    console.log('[restore] 开始从服务器恢复数据...');
+    // 1. 先将本地数据上传到服务器（保存本地最新修改）
     (function(){
       var items=[];
       for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.length>2)items.push({key:k,value:v});}
-      if(items.length<=5)return;
-      fetch(SERVER_URL+'/api/localstorage/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items})}).catch(function(){});
+      if(items.length>2){
+        fetch(SERVER_URL+'/api/localstorage/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items})}).catch(function(){});
+      }
     })();
-
-    // 3. Restore ls_ data from server
-    tasks.push(fetch(SERVER_URL+'/api/localstorage/sync').then(function(r){return r.json()}).then(function(res){
+    // 2. 从服务器下载数据，直接覆盖localStorage（确保多终端一致）
+    fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
       if(!res||!res.data)return;
+      var count=0;
       Object.keys(res.data).forEach(function(key){
-        try{var sv=res.data[key];var lv=lsGet(key);
-          if(!lv||lv==='null'||lv==='[]'){if(sv&&sv!=='null'&&sv!=='[]'){lsSet(key,sv);restored++;}}
-          else if(sv&&sv.charAt(0)==='['){try{if(JSON.parse(sv).length>JSON.parse(lv).length){lsSet(key,sv);restored++;}}catch(e){}}
-        }catch(e){}
+        var sv=res.data[key];
+        if(sv && sv!=='null' && sv!=='undefined'){
+          try{JSON.parse(sv);localStorage.setItem(key, sv);count++;}catch(e){}
+        }
       });
-    }).catch(function(){}));
-
-    Promise.all(tasks.map(function(t){return t.catch(function(){})})).then(function(){
-      if(restored>0){console.log('[restore] total: '+restored);try{refresh();}catch(e){}}
+      console.log('[restore] 从服务器恢复了 '+count+' 条数据');
+      try{refresh();}catch(e){}
+    }).catch(function(e){
+      console.log('[restore] 从服务器恢复数据失败，使用本地数据:', e.message);
     });
-  },1200);
+    // 3. 连接WebSocket实时同步
+    connectRealtimeSync();
+  }, 800);
 })();
+
+// ========== V18.5 实时同步 - WebSocket连接 ==========
+function connectRealtimeSync(){
+  if(typeof SERVER_URL==='undefined'||!SERVER_URL)return;
+  var wsUrl = SERVER_URL.replace(/^http/, 'ws');
+  try{
+    var ws = new WebSocket(wsUrl);
+    var reconnectTimer = null;
+    var heartbeatTimer = null;
+    ws.onopen = function(){
+      console.log('[ws] 实时同步已连接');
+      heartbeatTimer = setInterval(function(){
+        try{ws.send(JSON.stringify({type:'ping'}));}catch(e){}
+      }, 30000);
+    };
+    ws.onmessage = function(evt){
+      try{
+        var msg = JSON.parse(evt.data);
+        if(msg.type === 'pong') return;
+        console.log('[ws] 收到变更通知:', msg.type);
+        if(msg.type === 'sync' || msg.type === 'data-update' || msg.type === 'push-groups-update' || msg.type === 'config-update'){
+          fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
+            if(!res||!res.data)return;
+            Object.keys(res.data).forEach(function(key){
+              var sv=res.data[key];
+              if(sv && sv!=='null' && sv!=='undefined'){
+                try{JSON.parse(sv);localStorage.setItem(key, sv);}catch(e){}
+              }
+            });
+            try{refresh();}catch(e){}
+          }).catch(function(){});
+        }
+      }catch(e){}
+    };
+    ws.onclose = function(){
+      console.log('[ws] 连接断开，5秒后重连');
+      clearInterval(heartbeatTimer);
+      reconnectTimer = setTimeout(connectRealtimeSync, 5000);
+    };
+    ws.onerror = function(){ws.close();};
+  }catch(e){
+    console.log('[ws] WebSocket不可用:', e.message);
+  }
+}
 
 // ========== 数据防护机制 ==========
 (function dataProtection(){
