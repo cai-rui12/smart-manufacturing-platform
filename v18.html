@@ -536,7 +536,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 </div>
 <div class="mo" id="mo"><div class="md"><div class="md-h"><h3 id="mt"></h3><button class="md-x" onclick="closeMo()">&times;</button></div><div class="md-b" id="mb"></div><div class="md-f" id="mf"></div></div></div>
 <script>
-function quickLogin(){try{var p={employeeId:'64135',name:'蔡瑞',role:'owner'};document.getElementById('loginOverlay').style.display='none';document.getElementById('mainApp').style.display='flex';document.getElementById('userLabel').textContent='蔡瑞 (所有者)';var r=document.getElementById('sidebar');if(r)r.style.display='flex';var m=document.getElementById('mainContent');if(m)m.style.display='flex';curPage='home';if(typeof refresh==='function')refresh();else setTimeout(function(){location.reload()},500)}catch(e){alert('Error:'+e.message)}}
+function quickLogin(){try{var p={employeeId:'64135',name:'蔡瑞',role:'owner'};currentUser=p;lsSet('current_user',p);document.getElementById('loginOverlay').style.display='none';document.getElementById('mainApp').style.display='flex';document.getElementById('userLabel').textContent='蔡瑞 (所有者)';var r=document.getElementById('sidebar');if(r)r.style.display='flex';var m=document.getElementById('mainContent');if(m)m.style.display='flex';curPage='home';if(typeof refresh==='function')refresh();else setTimeout(function(){location.reload()},500)}catch(e){alert('Error:'+e.message)}}
 // =========================================
 // V18 - 数据定义 (所有数据使用英文key)
 // =========================================
