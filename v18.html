@@ -80,7 +80,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<script>var BUILD_VERSION="V18.7-202607221400";if(document.__bv&&document.__bv!==BUILD_VERSION){localStorage.clear();location.reload(true);}document.__bv=BUILD_VERSION;</script>
+<script>var BUILD_VERSION="V18.7-202607221500";if(document.__bv&&document.__bv!==BUILD_VERSION){localStorage.clear();location.reload(true);}document.__bv=BUILD_VERSION;</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -2206,7 +2206,7 @@ function lsGet(key, def) {
 }
 function lsSet(key, val) {
   try { localStorage.setItem('v9_' + key, JSON.stringify(val)); } catch(e) {}
-  var criticalKeys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','msg_templates'];
+  var criticalKeys = ['local_tasks','local_daily','local_projects','local_equips','local_improves','local_docs','local_scripts','local_maintains','local_repairs','local_autotasks','local_weekly','local_monthly','local_equip_accepts','local_spares','local_member_applies','people_obj','members','push_groups','push_bindings','push_history','push_templates','msg_templates','user_roles','passwords','current_user','app_config','auto_task_logs','auto_task_templates','app_config_v2','local_kpi','local_milestones','local_improve_stats','local_skill_matrix','local_org_members','local_culture','local_strategy','local_whitepaper','local_cost_control','local_energy','local_safety','local_dashboard','local_equip_dashboard','local_decision_track','local_work_overview'];
   if (typeof SERVER_CONFIG !== 'undefined' && SERVER_CONFIG && SERVER_CONFIG.mode === 'online' && criticalKeys.indexOf(key) !== -1) {
     try {
       fetch(SERVER_CONFIG.url + '/api/localstorage/sync', {
@@ -2637,8 +2637,13 @@ function initAuth() {
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('mainApp').style.display = 'flex';
       document.getElementById('userLabel').textContent = currentUser.name + ' (' + ROLE_NAMES[currentUser.role] + ')';
-      refresh();
-    detectServer();
+      detectServer();
+      // V18.7: 先加载服务器数据，再渲染页面
+      showLoadingOverlay('正在同步服务器数据...');
+      loadServerDataFirst().then(function() {
+        hideLoadingOverlay();
+        refresh();
+      });
       // V17: Start auto-ping for online/offline detection
       startAutoPing();
     }
@@ -2814,7 +2819,12 @@ function finishLogin(person) {
     document.getElementById('mainApp').style.display = 'flex';
     document.getElementById('userLabel').textContent = person.name + ' (' + ROLE_NAMES[currentUser.role] + ')';
     curPage = 'home';
-    refresh();
+    // V18.7: 登录后先加载服务器数据，再渲染
+    showLoadingOverlay('正在同步服务器数据...');
+    loadServerDataFirst().then(function() {
+      hideLoadingOverlay();
+      refresh();
+    });
   } catch(e) { console.error('finishLogin error:', e); }
 }
 
@@ -13601,92 +13611,113 @@ function deployToGitHub() {
 }
 
 
-(function SERVER_DATA_RESTORE(){
-  // V18.5: 页面加载时，优先从服务器拉取全量数据覆盖localStorage，确保多终端一致
-  setTimeout(function(){
-    if(typeof SERVER_URL==='undefined'||!SERVER_URL)return;
-    console.log('[restore] 开始从服务器恢复数据...');
-    // 1. 先将本地数据上传到服务器（保存本地最新修改）
-    (function(){
-      var items=[];
-      for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);var v=localStorage.getItem(k);if(v&&v.length>2)items.push({key:k,value:v});}
-      if(items.length>2){
-        fetch(SERVER_URL+'/api/localstorage/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:items})}).catch(function(){});
-      }
-    })();
-    // 2. 从服务器下载数据，直接覆盖localStorage（确保多终端一致）
-    fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
-      if(!res||!res.data)return;
-      var serverData = res.data.data || res.data;
-      var count=0;
-      Object.keys(serverData).forEach(function(key){
-        var sv=serverData[key];
-        if(sv && sv!=='null' && sv!=='undefined' && sv!=='[]' && sv!=='{}' && sv!=='""'){
-          try{JSON.parse(sv);}catch(e){return;}
-          var localKey = key;
-          if (key.indexOf('ls_v9_') === 0) localKey = key.substring(3); // ls_v9_xxx → v9_xxx
-          else if (key.indexOf('ls_') === 0) localKey = 'v9_' + key.substring(3); // ls_xxx → v9_xxx
-          else if (key.indexOf('v9_') !== 0) localKey = 'v9_' + key; // xxx → v9_xxx
-          localStorage.setItem(localKey, sv);count++;
-        }
-      });
-      console.log('[restore] 从服务器恢复了 '+count+' 条数据');
-      try{refresh();}catch(e){}
-    }).catch(function(e){
-      console.log('[restore] 从服务器恢复数据失败，使用本地数据:', e.message);
-    });
-    // 3. 连接WebSocket实时同步
-    connectRealtimeSync();
-  }, 800);
-})();
+// ========== V18.7 服务器数据加载 - 阻塞渲染，服务器为唯一数据源 ==========
+var _serverDataLoaded = false;
+var _serverDataPromise = null;
 
-// ========== V18.5 实时同步 - WebSocket连接 ==========
-function connectRealtimeSync(){
-  if(typeof SERVER_URL==='undefined'||!SERVER_URL)return;
+function showLoadingOverlay(msg) {
+  var overlay = document.getElementById('loadingOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.innerHTML = '<div style="text-align:center"><div class="loading-spinner"></div><div id="loadingMsg" style="margin-top:16px;color:#94a3b8;font-size:14px">' + (msg || '加载中...') + '</div></div>';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:99999;transition:opacity 0.3s';
+    var style = document.createElement('style');
+    style.textContent = '.loading-spinner{width:40px;height:40px;border:3px solid #334155;border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+  overlay.style.opacity = '1';
+  var msgEl = document.getElementById('loadingMsg');
+  if (msgEl) msgEl.textContent = msg || '加载中...';
+}
+
+function hideLoadingOverlay() {
+  var overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    setTimeout(function() { overlay.style.display = 'none'; }, 300);
+  }
+}
+
+function loadServerDataFirst() {
+  if (_serverDataPromise) return _serverDataPromise;
+  _serverDataPromise = new Promise(function(resolve) {
+    if (typeof SERVER_URL === 'undefined' || !SERVER_URL) {
+      console.log('[data] 无服务器连接，使用本地缓存');
+      _serverDataLoaded = true;
+      resolve(false);
+      return;
+    }
+    console.log('[data] 从服务器加载数据...');
+    fetch(SERVER_URL + '/api/localstorage/sync', { method: 'GET' })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (!res || !res.data) { resolve(false); return; }
+        var serverData = res.data.data || res.data;
+        var count = 0;
+        Object.keys(serverData).forEach(function(key) {
+          var sv = serverData[key];
+          if (sv && sv !== 'null' && sv !== 'undefined' && sv !== '[]' && sv !== '{}' && sv !== '""') {
+            try { JSON.parse(sv); } catch(e) { return; }
+            var localKey = key;
+            if (key.indexOf('ls_v9_') === 0) localKey = key.substring(3);
+            else if (key.indexOf('ls_') === 0) localKey = 'v9_' + key.substring(3);
+            else if (key.indexOf('v9_') !== 0) localKey = 'v9_' + key;
+            localStorage.setItem(localKey, sv);
+            count++;
+          }
+        });
+        console.log('[data] 从服务器加载了 ' + count + ' 条数据');
+        _serverDataLoaded = true;
+        resolve(true);
+      })
+      .catch(function(e) {
+        console.log('[data] 服务器加载失败，使用本地缓存:', e.message);
+        _serverDataLoaded = true;
+        resolve(false);
+      });
+  });
+  return _serverDataPromise;
+}
+
+// ========== V18.7 实时同步 - WebSocket连接（服务器广播变更） ==========
+function connectRealtimeSync() {
+  if (typeof SERVER_URL === 'undefined' || !SERVER_URL) return;
   var wsUrl = SERVER_URL.replace(/^http/, 'ws');
-  try{
+  try {
     var ws = new WebSocket(wsUrl);
     var reconnectTimer = null;
     var heartbeatTimer = null;
-    ws.onopen = function(){
+    ws.onopen = function() {
       console.log('[ws] 实时同步已连接');
-      heartbeatTimer = setInterval(function(){
-        try{ws.send(JSON.stringify({type:'ping'}));}catch(e){}
+      heartbeatTimer = setInterval(function() {
+        try { ws.send(JSON.stringify({ type: 'ping' })); } catch(e) {}
       }, 30000);
     };
-    ws.onmessage = function(evt){
-      try{
+    ws.onmessage = function(evt) {
+      try {
         var msg = JSON.parse(evt.data);
-        if(msg.type === 'pong') return;
+        if (msg.type === 'pong') return;
         console.log('[ws] 收到变更通知:', msg.type);
-        if(msg.type === 'sync' || msg.type === 'data-update' || msg.type === 'push-groups-update' || msg.type === 'config-update'){
-          fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
-            if(!res||!res.data)return;
-            var serverData = res.data.data || res.data;
-            Object.keys(serverData).forEach(function(key){
-              var sv=serverData[key];
-              if(sv && sv!=='null' && sv!=='undefined' && sv!=='[]' && sv!=='{}' && sv!=='""'){
-                try{JSON.parse(sv);}catch(e){return;}
-                var localKey = key;
-                if (key.indexOf('ls_v9_') === 0) localKey = key.substring(3); // ls_v9_xxx → v9_xxx
-                else if (key.indexOf('ls_') === 0) localKey = 'v9_' + key.substring(3); // ls_xxx → v9_xxx
-                else if (key.indexOf('v9_') !== 0) localKey = 'v9_' + key; // xxx → v9_xxx
-                localStorage.setItem(localKey, sv);
-              }
-            });
-            try{refresh();}catch(e){}
-          }).catch(function(){});
+        if (msg.type === 'sync' || msg.type === 'data-update' || msg.type === 'push-groups-update' || msg.type === 'config-update') {
+          _serverDataPromise = null;
+          loadServerDataFirst().then(function() {
+            try { refresh(); } catch(e) {}
+          });
         }
-      }catch(e){}
+      } catch(e) {}
     };
-    ws.onclose = function(){
+    ws.onclose = function() {
       console.log('[ws] 连接断开，5秒后重连');
       clearInterval(heartbeatTimer);
       reconnectTimer = setTimeout(connectRealtimeSync, 5000);
     };
-    ws.onerror = function(){ws.close();};
-  }catch(e){
+    ws.onerror = function() { try { ws.close(); } catch(e) {} };
+  } catch(e) {
     console.log('[ws] WebSocket不可用:', e.message);
+    setTimeout(connectRealtimeSync, 5000);
   }
 }
 
