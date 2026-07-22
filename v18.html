@@ -80,12 +80,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<script>var BUILD_VERSION="V18.6-202607221306";if(document.__bv&&document.__bv!==BUILD_VERSION){localStorage.clear();location.reload(true);}document.__bv=BUILD_VERSION;</script>
+<script>var BUILD_VERSION="V18.7-202607221400";if(document.__bv&&document.__bv!==BUILD_VERSION){localStorage.clear();location.reload(true);}document.__bv=BUILD_VERSION;</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V18.6-202607221306</title>
+<title>智能制造组管理平台 V18.7-202607221400</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1342,8 +1342,20 @@ function registerModule(mod) {
   } else {
     MODULE_REGISTRY.push(mod);
   }
-  // Add to menu if not built-in
+  // Add to menu if not built-in and not already in menu
   if (!mod.builtIn) {
+    // Check if already exists anywhere in menu tree
+    function findInMenu(items, id) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === id) return true;
+        if (items[i].children && findInMenu(items[i].children, id)) return true;
+      }
+      return false;
+    }
+    if (findInMenu(M, mod.id)) {
+      showToast('模块 "' + mod.name + '" 菜单项已存在', 'warn');
+      return;
+    }
     var menuEntry = {id: mod.id, label: (mod.icon || '📦') + ' ' + mod.name, icon: mod.icon || '📦'};
     if (mod.parentId) {
       var parent = M.find(function(m){ return m.id === mod.parentId; });
@@ -13597,11 +13609,17 @@ function deployToGitHub() {
     // 2. 从服务器下载数据，直接覆盖localStorage（确保多终端一致）
     fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
       if(!res||!res.data)return;
+      var serverData = res.data.data || res.data;
       var count=0;
-      Object.keys(res.data).forEach(function(key){
-        var sv=res.data[key];
-        if(sv && sv!=='null' && sv!=='undefined'){
-          try{JSON.parse(sv);localStorage.setItem(key, sv);count++;}catch(e){}
+      Object.keys(serverData).forEach(function(key){
+        var sv=serverData[key];
+        if(sv && sv!=='null' && sv!=='undefined' && sv!=='[]' && sv!=='{}' && sv!=='""'){
+          try{JSON.parse(sv);}catch(e){return;}
+          var localKey = key;
+          if (key.indexOf('ls_v9_') === 0) localKey = key.substring(3); // ls_v9_xxx → v9_xxx
+          else if (key.indexOf('ls_') === 0) localKey = 'v9_' + key.substring(3); // ls_xxx → v9_xxx
+          else if (key.indexOf('v9_') !== 0) localKey = 'v9_' + key; // xxx → v9_xxx
+          localStorage.setItem(localKey, sv);count++;
         }
       });
       console.log('[restore] 从服务器恢复了 '+count+' 条数据');
@@ -13636,10 +13654,16 @@ function connectRealtimeSync(){
         if(msg.type === 'sync' || msg.type === 'data-update' || msg.type === 'push-groups-update' || msg.type === 'config-update'){
           fetch(SERVER_URL+'/api/localstorage/sync',{method:'GET'}).then(function(r){return r.json()}).then(function(res){
             if(!res||!res.data)return;
-            Object.keys(res.data).forEach(function(key){
-              var sv=res.data[key];
-              if(sv && sv!=='null' && sv!=='undefined'){
-                try{JSON.parse(sv);localStorage.setItem(key, sv);}catch(e){}
+            var serverData = res.data.data || res.data;
+            Object.keys(serverData).forEach(function(key){
+              var sv=serverData[key];
+              if(sv && sv!=='null' && sv!=='undefined' && sv!=='[]' && sv!=='{}' && sv!=='""'){
+                try{JSON.parse(sv);}catch(e){return;}
+                var localKey = key;
+                if (key.indexOf('ls_v9_') === 0) localKey = key.substring(3); // ls_v9_xxx → v9_xxx
+                else if (key.indexOf('ls_') === 0) localKey = 'v9_' + key.substring(3); // ls_xxx → v9_xxx
+                else if (key.indexOf('v9_') !== 0) localKey = 'v9_' + key; // xxx → v9_xxx
+                localStorage.setItem(localKey, sv);
               }
             });
             try{refresh();}catch(e){}
