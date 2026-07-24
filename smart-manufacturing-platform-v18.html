@@ -2293,6 +2293,50 @@ var _remoteEquipPurchase = null;
 var _remoteEquipPlan = null;
 var _serverDataLoaded = false;
 
+// 项目数据归一化：将飞书原始字段（项目名称/状态/进度/开始日期/结束日期等）映射为标准字段，
+// 确保 renderProjectList / openProjectDetail 读取的 name/status/progress/startDate/endDate 等字段存在。
+// 避免飞书缓存数据格式不匹配导致项目列表为空或详情/甘特图无法打开。
+function normalizeProjectRecords(arr) {
+  if (!Array.isArray(arr)) return arr;
+  function _p(v) {
+    if (!v) return '';
+    if (typeof v === 'object') {
+      if (Array.isArray(v)) return v.map(function(x){ return typeof x === 'object' ? (x.name||x.text||'') : String(x); }).filter(Boolean).join(', ');
+      return v.name || v.text || v.value || '';
+    }
+    return String(v);
+  }
+  function _num(v) {
+    if (typeof v === 'number') return v;
+    if (v === 0 || v === '0') return 0;
+    if (!v) return 0;
+    var n = parseFloat(String(v).replace('%','').trim());
+    return isNaN(n) ? 0 : n;
+  }
+  return arr.map(function(row) {
+    if (!row || typeof row !== 'object') return row;
+    var o = {};
+    for (var k in row) { if (Object.prototype.hasOwnProperty.call(row, k)) o[k] = row[k]; }
+    o.id = o.id || row['编号'] || row['项目编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8);
+    o.name = o.name || row['项目名称'] || row['名称'] || '';
+    o.manager = o.manager || _p(row['项目经理']) || _p(row['负责人']) || '';
+    o.status = o.status || row['状态'] || row['项目状态'] || '进行中';
+    if (typeof o.progress !== 'number') o.progress = _num(row['进度'] || row['完成率'] || o.progress || 0);
+    o.startDate = o.startDate || row['开始日期'] || row['开始时间'] || '';
+    o.endDate = o.endDate || row['结束日期'] || row['结束时间'] || row['截止日期'] || '';
+    if (typeof o.budget !== 'number') o.budget = _num(row['预算'] || row['预算金额'] || o.budget || 0);
+    o.members = o.members || _p(row['项目成员']) || _p(row['成员']) || '';
+    o.description = o.description || row['项目描述'] || row['描述'] || '';
+    o.leadType = o.leadType || row['负责人类型'] || '';
+    o.nextPlan = o.nextPlan || row['后续计划'] || '';
+    o.risks = o.risks || row['风险'] || row['风险与问题'] || '';
+    o.lastUpdate = o.lastUpdate || row['最后更新'] || row['更新时间'] || '';
+    if (!o.relatedProjects) o.relatedProjects = [];
+    if (!o.subSteps) o.subSteps = [];
+    return o;
+  });
+}
+
 async function loadServerData() {
   if (!window._serverUrl || _serverDataLoaded) return;
   try {
@@ -2325,7 +2369,7 @@ async function loadServerData() {
       _remoteTasks = baseResults[0].data;
     }
     if (baseResults[1] && baseResults[1].code === 0 && Array.isArray(baseResults[1].data)) {
-      _remoteProjects = baseResults[1].data;
+      _remoteProjects = normalizeProjectRecords(baseResults[1].data);
     }
     if (baseResults[2] && baseResults[2].code === 0 && Array.isArray(baseResults[2].data)) {
       _remoteSpecials = baseResults[2].data;
@@ -2342,10 +2386,61 @@ async function loadServerData() {
         var records = resp.data.records || [];
         if (records.length > 0) {
           // 按key映射到对应的远程变量
+          // 飞书人员字段提取为字符串（可能是对象或数组）
+          function _extractPerson(v) {
+            if (!v) return '';
+            if (typeof v === 'object') {
+              if (Array.isArray(v)) {
+                return v.map(function(p) { return typeof p === 'object' ? (p.name || p.text || '') : String(p); }).filter(Boolean).join(', ');
+              }
+              return v.name || v.text || v.value || '';
+            }
+            return String(v);
+          }
           switch(key) {
-            case 'daily_reports': _remoteDailyReports = records; break;
-            case 'weekly_reports': _remoteWeeklyReports = records; break;
-            case 'monthly_reports': _remoteMonthlyReports = records; break;
+            case 'daily_reports': _remoteDailyReports = records.map(function(row) {
+              return {
+                id: row['编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8),
+                date: row['日期'] || row['汇报日期'] || row['date'] || '',
+                reporter: _extractPerson(row['汇报人']) || row['reporter'] || '',
+                status: row['状态'] || row['status'] || '正常',
+                workHours: row['工时'] || row['工作时长'] || row['workHours'] || '',
+                content: row['今日工作'] || row['工作内容'] || row['内容'] || row['content'] || '',
+                dept: row['部门'] || row['dept'] || '',
+                plan: row['明日计划'] || row['计划'] || row['plan'] || '',
+                problem: row['问题'] || row['问题反馈'] || row['problem'] || '',
+                _raw: row
+              };
+            }); break;
+            case 'weekly_reports': _remoteWeeklyReports = records.map(function(row) {
+              return {
+                id: row['编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8),
+                week: row['周次'] || row['周'] || row['week'] || '',
+                reporter: _extractPerson(row['汇报人']) || row['reporter'] || '',
+                weekStartDate: row['周开始日期'] || row['开始日期'] || row['weekStartDate'] || '',
+                weekEndDate: row['周结束日期'] || row['结束日期'] || row['weekEndDate'] || '',
+                time: row['提交时间'] || row['时间'] || row['time'] || '',
+                status: row['状态'] || row['status'] || '未提交',
+                hours: row['工时'] || row['工作时长'] || row['hours'] || 0,
+                rate: row['完成率'] || row['rate'] || '',
+                summary: row['本周总结'] || row['周总结'] || row['总结'] || row['summary'] || '',
+                _raw: row
+              };
+            }); break;
+            case 'monthly_reports': _remoteMonthlyReports = records.map(function(row) {
+              return {
+                id: row['编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8),
+                month: row['月份'] || row['月'] || row['month'] || '',
+                name: row['报告名称'] || row['名称'] || row['name'] || '',
+                author: _extractPerson(row['编制人']) || _extractPerson(row['汇报人']) || row['author'] || '',
+                time: row['提交时间'] || row['时间'] || row['time'] || '',
+                status: row['状态'] || row['status'] || '草稿',
+                performance: row['绩效'] || row['performance'] || '',
+                targetRate: row['目标达成率'] || row['达成率'] || row['targetRate'] || '',
+                summary: row['本月总结'] || row['月总结'] || row['总结'] || row['summary'] || '',
+                _raw: row
+              };
+            }); break;
             case 'equipment_list': _remoteEquips = records; break;
             case 'docs_library': _remoteDocs = records; break;
             case 'scripts_library': _remoteScripts = records; break;
@@ -2356,6 +2451,7 @@ async function loadServerData() {
             case 'equip_accept': _remoteEquipAccepts = records; break;
             case 'equip_purchase': _remoteEquipPurchase = records; break;
             case 'equip_plan': _remoteEquipPlan = records; break;
+            case 'projects': _remoteProjects = normalizeProjectRecords(records); break;
           }
           // 保存到localStorage
           try { localStorage.setItem('server_cache_' + key, JSON.stringify(records)); localStorage.setItem('server_cache_' + key + '_time', Date.now()); } catch(e) {}
@@ -2390,7 +2486,7 @@ async function loadServerData() {
       var cached = localStorage.getItem('server_tasks');
       if (cached) _remoteTasks = JSON.parse(cached);
       cached = localStorage.getItem('server_projects');
-      if (cached) _remoteProjects = JSON.parse(cached);
+      if (cached) _remoteProjects = normalizeProjectRecords(JSON.parse(cached));
       cached = localStorage.getItem('server_specials');
       if (cached) _remoteSpecials = JSON.parse(cached);
       // 恢复缓存数据
@@ -2523,6 +2619,14 @@ function getAllEquips() {
   if (_remoteEquipAccepts && _remoteEquipAccepts.length > 0) {
     return _remoteEquipAccepts.map(function(row) {
       var resp = row['责任人'] || row['主管'] || '';
+      // 处理飞书人员字段返回对象的情况
+      if (resp && typeof resp === 'object') {
+        if (Array.isArray(resp)) {
+          resp = resp.map(function(p) { return typeof p === 'object' ? (p.name || p.text || '') : String(p); }).filter(Boolean).join(', ');
+        } else {
+          resp = resp.name || resp.text || resp.value || JSON.stringify(resp);
+        }
+      }
       var category = '主线设备';
       if (resp === '蔡瑞') category = '自动化设备';
       else if (resp === '黄广生') category = '自动物流设备';
@@ -3148,7 +3252,7 @@ function openMo(cfg) {
   modalData = cfg.data || null;
   document.getElementById('mt').textContent = cfg.title || '详情';
   document.getElementById('mb').innerHTML = cfg.html || '';
-  document.getElementById('mf').innerHTML = (cfg.footer || '') + '<button class="btn bo" onclick="closeMo()">关闭</button>';
+  document.getElementById('mf').innerHTML = (cfg.footer && cfg.footer.trim() ? cfg.footer + ' ' : '') + '<button class="btn bo" onclick="closeMo()">关闭</button>';
   var mdEl = document.querySelector('#mo > .md');
   if (mdEl) {
     mdEl.style.resize = 'both';
@@ -4572,6 +4676,10 @@ function renderPersonalTask(personName) {
   if (pFilter) {
     tasks = tasks.filter(function(t){ return t.priority === pFilter; });
   }
+  var sFilter = pageState['task_sfilter'] || '';
+  if (sFilter) {
+    tasks = tasks.filter(function(t){ return t.status === sFilter; });
+  }
 
   // 3. 视图模式
   if (typeof window._taskViewMode === 'undefined') window._taskViewMode = 'list';
@@ -4606,10 +4714,10 @@ function renderPersonalTask(personName) {
 
   // KPI卡片
   h += '<div class="kpi-row">';
-  h += '<div class="kpi-card"><div class="kpi-value">' + totalCount + '</div><div class="kpi-label">全部任务</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + doingCount + '</div><div class="kpi-label">进行中</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + doneCount + '</div><div class="kpi-label">已完成</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value">' + stuckCount + '</div><div class="kpi-label">已停滞</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="pageState[\'task_sfilter\']=\'\';refresh()"><div class="kpi-value">' + totalCount + '</div><div class="kpi-label">全部任务</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="pageState[\'task_sfilter\']=\'进行中\';refresh()"><div class="kpi-value">' + doingCount + '</div><div class="kpi-label">进行中</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="pageState[\'task_sfilter\']=\'已完成\';refresh()"><div class="kpi-value">' + doneCount + '</div><div class="kpi-label">已完成</div></div>';
+  h += '<div class="kpi-card" style="cursor:pointer" onclick="pageState[\'task_sfilter\']=\'已停滞\';refresh()"><div class="kpi-value">' + stuckCount + '</div><div class="kpi-label">已停滞</div></div>';
   h += '</div>';
 
   // 工具栏：搜索、筛选、视图切换、按钮
@@ -4660,10 +4768,10 @@ function renderPersonalTask(personName) {
         h += '<td style="font-size:12px">' + (t.taskCategory || t.taskSummary || t.taskDetail || t.taskSituation || '-') + '</td>';
         h += '<td>';
         h += '<button class="btn-sm bo" onclick="event.stopPropagation();openTaskDetail(\'' + t.id + '\')">查看</button>';
-        if (hasPermission('task-manage','edit')) {
+        if (hasPermission('task-manage','edit') || (currentUser.name && t.owner === currentUser.name)) {
           h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editTask(\'' + t.id + '\')">编辑</button>';
         }
-        if (hasPermission('task-manage','del')) {
+        if (hasPermission('task-manage','del') || (currentUser.name && t.owner === currentUser.name)) {
           h += ' <button class="btn-sm dg" onclick="event.stopPropagation();deleteTask(\'' + t.id + '\')">删除</button>';
         }
         h += '</td></tr>';
@@ -4724,10 +4832,10 @@ function renderPersonalTask(personName) {
         // 操作按钮
         h += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
         h += '<button class="btn-sm bo" onclick="event.stopPropagation();openTaskDetail(\'' + t.id + '\')">查看</button>';
-        if (hasPermission('task-manage','edit')) {
+        if (hasPermission('task-manage','edit') || (currentUser.name && t.owner === currentUser.name)) {
           h += '<button class="btn-sm bp" onclick="event.stopPropagation();editTask(\'' + t.id + '\')">编辑</button>';
         }
-        if (hasPermission('task-manage','del')) {
+        if (hasPermission('task-manage','del') || (currentUser.name && t.owner === currentUser.name)) {
           h += '<button class="btn-sm dg" onclick="event.stopPropagation();deleteTask(\'' + t.id + '\')">删除</button>';
         }
         h += '</div>';
@@ -6560,7 +6668,7 @@ function renderEquipList(filterFn, title) {
       h += '<td>' + e.process + '</td>';
       h += '<td><span class="t ' + getStatusClass(e.status) + '">' + e.status + '</span></td>';
       h += '<td>' + e.installDate + '</td>';
-      h += '<td>' + e.group + '</td>';
+      h += '<td>' + (typeof e.group === 'object' ? (e.group?.name || e.group?.text || JSON.stringify(e.group)) : (e.group || '-')) + '</td>';
       h += '<td>' + (e.floor || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openEquipDetail(\'' + e.id + '\')">查看</button>';
       if (hasPermission('equip-manage','edit')) {
@@ -6628,7 +6736,8 @@ function openEquipDetail(id) {
   h += '<div class="info-item"><div class="ii-label">验收状态</div><div class="ii-value"><span class="t ' + getStatusClass(e.status) + '">' + e.status + '</span></div></div>';
   h += '<div class="info-item"><div class="ii-label">是否超期</div><div class="ii-value">' + (e.overdue || '-') + '</div></div>';
   h += '<div class="info-item"><div class="ii-label">到货日期</div><div class="ii-value">' + (e.installDate || '-') + '</div></div>';
-  h += '<div class="info-item"><div class="ii-label">责任人</div><div class="ii-value">' + (e.group || '-') + '</div></div>';
+  var groupDisplay = typeof e.group === 'object' ? (e.group?.name || e.group?.text || '-') : (e.group || '-');
+  h += '<div class="info-item"><div class="ii-label">责任人</div><div class="ii-value">' + groupDisplay + '</div></div>';
   h += '<div class="info-item"><div class="ii-label">楼层</div><div class="ii-value">' + (e.floor || '-') + '</div></div>';
   h += '<div class="info-item"><div class="ii-label">供应商</div><div class="ii-value">' + (e.supplier || '-') + '</div></div>';
   h += '<div class="info-item"><div class="ii-label">设备型号</div><div class="ii-value">' + (e.model || '-') + '</div></div>';
