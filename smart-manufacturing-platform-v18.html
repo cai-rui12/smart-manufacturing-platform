@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<script>var BUILD_VERSION="V20.0-202607242230";if(document.__bv&&document.__bv!==BUILD_VERSION){location.reload(true);}document.__bv=BUILD_VERSION;</script>
+<script>var BUILD_VERSION="V20.1-202607250400";if(document.__bv&&document.__bv!==BUILD_VERSION){location.reload(true);}document.__bv=BUILD_VERSION;</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V20.0-202607242230</title>
+<title>智能制造组管理平台 V20.1-202607250400</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2534,38 +2534,53 @@ function getAllSpecials() {
   } catch(e) {}
   return SPECIAL_PROJECTS || [];
 }
+// Helper: convert any Feishu field value (string/object/array) to plain string
+function _toStr(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (Array.isArray(v)) {
+    return v.map(function(p) {
+      if (typeof p === 'object') return (p.name || p.text || p.value || '');
+      return String(p);
+    }).filter(Boolean).join(', ');
+  }
+  if (typeof v === 'object') {
+    // Feishu person field: [{id, name, en_name}]
+    if (v.name) return v.name;
+    if (v.text) return v.text;
+    if (v.value) return v.value;
+    // Feishu rich text field: [{type, text, ...}]
+    if (v.content) return v.content;
+    return JSON.stringify(v);
+  }
+  return String(v);
+}
+
 function getAllEquips() {
   // 优先使用验收清单数据（设备管理的数据来源是验收清单）
   if (_remoteEquipAccepts && _remoteEquipAccepts.length > 0) {
     return _remoteEquipAccepts.map(function(row) {
-      var resp = row['责任人'] || row['主管'] || '';
-      // 处理飞书人员字段返回对象的情况
-      if (resp && typeof resp === 'object') {
-        if (Array.isArray(resp)) {
-          resp = resp.map(function(p) { return typeof p === 'object' ? (p.name || p.text || '') : String(p); }).filter(Boolean).join(', ');
-        } else {
-          resp = resp.name || resp.text || resp.value || JSON.stringify(resp);
-        }
-      }
+      var resp = _toStr(row['责任人'] || row['主管'] || '');
       var category = '主线设备';
       if (resp === '蔡瑞') category = '自动化设备';
       else if (resp === '黄广生') category = '自动物流设备';
       return {
-        id: row['固定资产编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8),
-        equipNo: row['固定资产编号'] || row['序号'] || '',
-        name: row['设备名称及自动化设备配置'] || row['设备名称'] || row['名称'] || '未命名设备',
-        process: row['工序'] || row['试板单责任部门'] || row['部门'] || '',
-        responsibilityDept: row['试板单责任部门'] || row['部门'] || '',
-        status: row['验收完成情况'] || row['状态'] || '正常',
-        installDate: row['到货日期'] || row['安装日期'] || row['日期'] || '',
+        id: _toStr(row['固定资产编号'] || row['序号'] || row._record_id || String(Math.random()).slice(2,8)),
+        equipNo: _toStr(row['固定资产编号'] || row['序号'] || ''),
+        name: _toStr(row['设备名称及自动化设备配置'] || row['设备名称'] || row['名称'] || '未命名设备'),
+        process: _toStr(row['工序'] || row['试板单责任部门'] || row['部门'] || ''),
+        responsibilityDept: _toStr(row['试板单责任部门'] || row['部门'] || ''),
+        status: _toStr(row['验收完成情况'] || row['状态'] || '正常'),
+        installDate: _toStr(row['到货日期'] || row['安装日期'] || row['日期'] || ''),
         group: resp,
         category: category,
-        location: row['位置/区域'] || row['位置'] || row['安装位置'] || '',
-        floor: row['楼层'] || '',
-        overdue: row['是否超期'] || '',
-        supplier: row['供应商'] || '',
-        phase: row['期别'] || '',
-        model: row['设备型号'] || '',
+        location: _toStr(row['位置/区域'] || row['位置'] || row['安装位置'] || ''),
+        floor: _toStr(row['楼层'] || ''),
+        overdue: _toStr(row['是否超期'] || ''),
+        supplier: _toStr(row['供应商'] || ''),
+        phase: _toStr(row['期别'] || ''),
+        model: _toStr(row['设备型号'] || ''),
         _raw: row
       };
     });
@@ -3493,9 +3508,9 @@ function renderHome() {
     var hour = now.getHours();
     var greeting = hour < 6 ? '凌晨好' : hour < 12 ? '早上好' : hour < 14 ? '中午好' : hour < 18 ? '下午好' : '晚上好';
     h += '<div class="welcome-banner">';
-    h += '<h2>' + greeting + '，' + currentUser.name + ' 👋</h2>';
+    h += '<h2>' + greeting + '，' + _toStr(currentUser.name||'用户') + ' 👋</h2>';
     h += '<p>' + (cfg.slogan || '智能制造，精益求精') + '</p>';
-    h += '<div class="wb-time">' + dateStr + ' | 部门：设备部 | 角色：' + ROLE_NAMES[currentUser.role] + '</div>';
+    h += '<div class="wb-time">' + dateStr + ' | 部门：设备部 | 角色：' + (ROLE_NAMES[currentUser.role] || '未知') + '</div>';
     h += '<div class="wb-icon">⚙️</div>';
     h += '</div>';
   }
@@ -3507,7 +3522,7 @@ function renderHome() {
   var equips = getAllEquips();
   var improves = getAllImproves();
   var doneTasks = tasks.filter(function(t){ return t.status === '已完成'; }).length;
-  var acceptedEquips = equips.filter(function(e){ return (e.status||'').indexOf('完成') !== -1; }).length;
+  var acceptedEquips = equips.filter(function(e){ return _toStr(e.status||'').indexOf('已完成') !== -1; }).length;
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card" onclick="goToPage(\'task-all-list\')"><div class="kpi-value">' + tasks.length + '</div><div class="kpi-label">全部任务</div><div class="kpi-sub">已完成 ' + doneTasks + ' 个</div></div>';
   h += '<div class="kpi-card" onclick="goToPage(\'daily-today\')"><div class="kpi-value">' + reports.length + '</div><div class="kpi-label">日报总数</div><div class="kpi-sub">本月提交 ' + reports.filter(function(r){return r.date && r.date.startsWith(new Date().getFullYear()+'-'+(new Date().getMonth()+1).toString().padStart(2,'0'))}).length + ' 篇</div></div>';
@@ -3569,10 +3584,10 @@ function renderHome() {
     h += '<div class="ct">📰 最新动态</div>';
     var activities = [];
     tasks.slice(0, 3).forEach(function(t) {
-      activities.push({icon:'✅', title:'任务更新：' + t.desc + ' - ' + t.status, time: t.endDate});
+      activities.push({icon:'✅', title:'任务更新：' + _toStr(t.desc||'') + ' - ' + _toStr(t.status||''), time: _toStr(t.endDate||'')});
     });
     improves.slice(0, 3).forEach(function(imp) {
-      activities.push({icon:'💡', title:'改善提案：' + imp.title + ' - ' + imp.proposer, time: imp.date});
+      activities.push({icon:'💡', title:'改善提案：' + _toStr(imp.title||'') + ' - ' + _toStr(imp.proposer||''), time: _toStr(imp.date||'')});
     });
     reports.slice(0, 2).forEach(function(r) {
       activities.push({icon:'📝', title:'日报提交：' + (r.reporter||'未知') + ' 提交了' + (r.date||'') + '日报', time: (r.date||'')});
@@ -3580,7 +3595,7 @@ function renderHome() {
     activities.sort(function(a,b){ return b.time > a.time ? 1 : -1; });
     h += '<ul class="activity-list">';
     activities.slice(0, 5).forEach(function(a) {
-      h += '<li><div class="al-icon">' + a.icon + '</div><div class="al-content"><div class="al-title">' + a.title + '</div><div class="al-time">' + a.time + '</div></div></li>';
+      h += '<li><div class="al-icon">' + a.icon + '</div><div class="al-content"><div class="al-title">' + _toStr(a.title||'') + '</div><div class="al-time">' + _toStr(a.time||'') + '</div></div></li>';
     });
     h += '</ul></div>';
   }
@@ -6498,9 +6513,9 @@ function renderEquipList(filterFn, title) {
 
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + list.length + '</div><div class="kpi-label">当前显示</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + list.filter(function(e){var s=e.acceptStatus||e.status||'';return s.indexOf('完成')!==-1||s==='已验收';}).length + '</div><div class="kpi-label">已验收</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + list.filter(function(e){var s=e.acceptStatus||e.status||'';return s.indexOf('未完成')!==-1||s==='未验收';}).length + '</div><div class="kpi-label">未验收</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--re)">' + list.filter(function(e){return (e.overdue||'')==='超期';}).length + '</div><div class="kpi-label">超期</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + list.filter(function(e){var s=_toStr(e.acceptStatus||e.status||'');return s.indexOf('已完成')!==-1||s==='已验收';}).length + '</div><div class="kpi-label">已验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + list.filter(function(e){var s=_toStr(e.acceptStatus||e.status||'');return s.indexOf('未完成')!==-1||s==='未验收';}).length + '</div><div class="kpi-label">未验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--rd)">' + list.filter(function(e){return _toStr(e.overdue||'')==='超期';}).length + '</div><div class="kpi-label">超期</div></div>';
   h += '</div>';
 
   h += '<div class="bg">';
@@ -6567,7 +6582,7 @@ function renderEquipList(filterFn, title) {
       h += '<td>' + (e.process||'-') + '</td>';
       h += '<td><span class="t ' + getStatusClass(e.status||'') + '">' + (e.status||'-') + '</span></td>';
       h += '<td>' + (e.installDate||'-') + '</td>';
-      h += '<td>' + (typeof e.group === 'object' ? (e.group?.name || e.group?.text || JSON.stringify(e.group)) : (e.group || '-')) + '</td>';
+      h += '<td>' + _toStr(e.group || '-') + '</td>';
       h += '<td>' + (e.floor || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openEquipDetail(\'' + e.id + '\')">查看</button>';
       if (hasPermission('equip-manage','edit')) {
@@ -6734,27 +6749,27 @@ var EQUIP_ACCEPT_DEFAULTS = [
 function getAllEquipAccepts() {
   if (_remoteEquipAccepts && _remoteEquipAccepts.length > 0) {
     return _remoteEquipAccepts.map(function(row) {
-      var rawStatus = row['验收完成情况'] || row['状态'] || '';
+      var rawStatus = _toStr(row['验收完成情况'] || row['状态'] || '');
       var status = '待验收';
-      if (rawStatus.indexOf('完成') !== -1) status = '已验收';
+      if (rawStatus.indexOf('已完成') !== -1) status = '已验收';
       else if (rawStatus.indexOf('未完成') !== -1) status = '待验收';
       else if (rawStatus === '已验收' || rawStatus === '待验收') status = rawStatus;
       return {
-        id: row['序号'] || row['固定资产编号'] || row._record_id || String(Math.random()).slice(2,8),
-        name: row['设备名称及自动化设备配置'] || row['设备名称'] || row['名称'] || '未命名设备',
-        no: row['设备编号'] || row['固定资产编号'] || '',
-        vendor: row['供应商'] || '',
-        date: row['到货日期'] || row['验收完成日期'] || row['日期'] || '',
-        inspector: row['责任人'] || row['主管'] || '',
+        id: _toStr(row['序号'] || row['固定资产编号'] || row._record_id || String(Math.random()).slice(2,8)),
+        name: _toStr(row['设备名称及自动化设备配置'] || row['设备名称'] || row['名称'] || '未命名设备'),
+        no: _toStr(row['设备编号'] || row['固定资产编号'] || ''),
+        vendor: _toStr(row['供应商'] || ''),
+        date: _toStr(row['到货日期'] || row['验收完成日期'] || row['日期'] || ''),
+        inspector: _toStr(row['责任人'] || row['主管'] || ''),
         result: status === '已验收' ? '合格' : '',
         status: status,
-        remark: row['超期未完成验收情况说明'] || row['备注'] || '',
-        acceptDate: row['验收完成日期'] || row['设备开箱验收单完成日期'] || '',
-        overdue: row['是否超期'] || '',
-        floor: row['楼层'] || '',
-        process: row['工序'] || '',
-        model: row['设备型号'] || '',
-        phase: row['期别'] || '',
+        remark: _toStr(row['超期未完成验收情况说明'] || row['备注'] || ''),
+        acceptDate: _toStr(row['验收完成日期'] || row['设备开箱验收单完成日期'] || ''),
+        overdue: _toStr(row['是否超期'] || ''),
+        floor: _toStr(row['楼层'] || ''),
+        process: _toStr(row['工序'] || ''),
+        model: _toStr(row['设备型号'] || ''),
+        phase: _toStr(row['期别'] || ''),
         _raw: row
       };
     });
