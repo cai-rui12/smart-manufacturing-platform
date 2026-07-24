@@ -2533,15 +2533,37 @@ function getAllMonthlyReports() {
 }
 // 项目数据版本号，每次更新REAL_PROJECTS中的subSteps数据时递增
 var PROJECT_DATA_VERSION = 19;
+function _mergeRichFields(rp) {
+  // 将REAL_PROJECTS中的subSteps/relatedProjects/devices等丰富字段合并到服务器项目数据
+  var localP = null;
+  for (var i = 0; i < REAL_PROJECTS.length; i++) {
+    if (String(REAL_PROJECTS[i].id) === String(rp.id)) { localP = REAL_PROJECTS[i]; break; }
+  }
+  if (localP) {
+    if (!rp.subSteps || rp.subSteps.length === 0) rp.subSteps = localP.subSteps || [];
+    if (!rp.relatedProjects || rp.relatedProjects.length === 0) rp.relatedProjects = localP.relatedProjects || [];
+    if (!rp.nextPlan) rp.nextPlan = localP.nextPlan || '';
+    if (!rp.risks) rp.risks = localP.risks || '';
+    if (!rp.leadType) rp.leadType = localP.leadType || '';
+    if (!rp.updateHistory) rp.updateHistory = localP.updateHistory || [];
+    if (!rp.feishuDoc) rp.feishuDoc = localP.feishuDoc || '';
+    if (!rp.description) rp.description = localP.description || '';
+    if (!rp.lastUpdate) rp.lastUpdate = localP.lastUpdate || '';
+    if (!rp.members) rp.members = localP.members || '';
+    if (!rp.progressHistory) rp.progressHistory = localP.progressHistory || [];
+  }
+  return rp;
+}
 function getAllProjects() {
-  // 优先使用服务器数据
+  // 优先使用服务器数据，但合并REAL_PROJECTS中的subSteps等丰富字段
   if (_remoteProjects && _remoteProjects.length > 0) {
-    try { localStorage.setItem('server_projects', JSON.stringify(_remoteProjects)); } catch(e) {}
-    return _remoteProjects;
+    var _mergedRemote = _remoteProjects.map(function(rp) { return _mergeRichFields(rp); });
+    try { localStorage.setItem('server_projects', JSON.stringify(_mergedRemote)); } catch(e) {}
+    return _mergedRemote;
   }
   try {
     var _sp = localStorage.getItem('server_projects');
-    if (_sp) { var _parsed = JSON.parse(_sp); if (_parsed.length > 0) return _parsed; }
+    if (_sp) { var _parsed = JSON.parse(_sp); if (_parsed.length > 0) { _parsed = _parsed.map(function(rp) { return _mergeRichFields(rp); }); return _parsed; } }
   } catch(e) {}
   // 数据迁移：如果localStorage中的项目缺少subSteps但REAL_PROJECTS有，强制迁移
   // 版本号检查：如果REAL_PROJECTS版本号大于localStorage中的版本号，强制刷新subSteps数据
@@ -3785,16 +3807,16 @@ function renderDailyReportList(filterFn, title) {
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>编号</th><th>日期</th><th>汇报人</th><th>状态</th><th>工时</th><th>今日工作</th><th>操作</th></tr></thead><tbody>';
   if (list.length === 0) {
-    h += '<tr><td colspan="14"style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+    h += '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
   } else {
     pageData.forEach(function(r) {
       h += '<tr onclick="openDailyDetail(\'' + r.id + '\')">';
-      h += '<td>' + r.id + '</td>';
-      h += '<td>' + r.date + '</td>';
-      h += '<td>' + r.reporter + '</td>';
-      h += '<td><span class="t ' + getStatusClass(r.status) + '">' + r.status + '</span></td>';
+      h += '<td>' + (r.id||'-') + '</td>';
+      h += '<td>' + (r.date||'-') + '</td>';
+      h += '<td>' + (r.reporter||'-') + '</td>';
+      h += '<td><span class="t ' + getStatusClass(r.status||'') + '">' + (r.status||'-') + '</span></td>';
       h += '<td>' + (r.workHours || '-') + 'h</td>';
-      h += '<td style="max-width:300px" class="text-overflow-ellipsis">' + (r.content || '').substring(0, 50) + '...</td>';
+      h += '<td style="max-width:300px" class="text-overflow-ellipsis">' + ((r.content || '').length > 50 ? (r.content || '').substring(0, 50) + '...' : (r.content || '-')) + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openDailyDetail(\'' + r.id + '\')">查看</button>';
       if (hasPermission('work-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editDaily(\'' + r.id + '\')">编辑</button>';
@@ -4137,12 +4159,12 @@ function renderWeeklyReport() {
   } else {
     pageData.forEach(function(w) {
       h += '<tr onclick="openWeeklyDetail(\'' + w.id + '\')">';
-      h += '<td>' + w.id + '</td>';
-      h += '<td>' + w.week + '</td>';
-      h += '<td>' + w.reporter + '</td>';
-      h += '<td>' + (w.weekStartDate || '') + ' ~ ' + (w.weekEndDate || '') + '</td>';
+      h += '<td>' + (w.id||'-') + '</td>';
+      h += '<td>' + (w.week||'-') + '</td>';
+      h += '<td>' + (w.reporter||'-') + '</td>';
+      h += '<td>' + ((w.weekStartDate||'') && (w.weekEndDate||'') ? (w.weekStartDate||'') + ' ~ ' + (w.weekEndDate||'') : '-') + '</td>';
       h += '<td>' + (w.time || '-') + '</td>';
-      h += '<td><span class="t ' + (w.status==='已提交'?'tg':'tr') + '">' + w.status + '</span></td>';
+      h += '<td><span class="t ' + (w.status==='已提交'?'tg':'tr') + '">' + (w.status||'-') + '</span></td>';
       h += '<td>' + (w.hours || 0) + 'h</td>';
       h += '<td>' + (w.rate || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openWeeklyDetail(\'' + w.id + '\')">查看</button>';
@@ -4346,12 +4368,12 @@ function renderMonthlyReport() {
   } else {
     pageData.forEach(function(m) {
       h += '<tr onclick="openMonthlyDetail(\'' + m.id + '\')">';
-      h += '<td>' + m.id + '</td>';
-      h += '<td>' + m.month + '</td>';
-      h += '<td>' + m.name + '</td>';
-      h += '<td>' + m.author + '</td>';
-      h += '<td>' + m.time + '</td>';
-      h += '<td><span class="t ' + (m.status==='已发布'?'tg': m.status==='审核中'?'to':'tx') + '">' + m.status + '</span></td>';
+      h += '<td>' + (m.id||'-') + '</td>';
+      h += '<td>' + (m.month||'-') + '</td>';
+      h += '<td>' + (m.name||'-') + '</td>';
+      h += '<td>' + (m.author||'-') + '</td>';
+      h += '<td>' + (m.time||'-') + '</td>';
+      h += '<td><span class="t ' + (m.status==='已发布'?'tg': m.status==='审核中'?'to':'tx') + '">' + (m.status||'-') + '</span></td>';
       h += '<td>' + (m.performance || '-') + '</td>';
       h += '<td>' + (m.targetRate || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openMonthlyDetail(\'' + m.id + '\')">查看</button>';
@@ -6663,11 +6685,11 @@ function renderEquipList(filterFn, title) {
   } else {
     pageData.forEach(function(e) {
       h += '<tr onclick="openEquipDetail(\'' + e.id + '\')">';
-      h += '<td>' + e.equipNo + '</td>';
-      h += '<td>' + e.name + '</td>';
-      h += '<td>' + e.process + '</td>';
-      h += '<td><span class="t ' + getStatusClass(e.status) + '">' + e.status + '</span></td>';
-      h += '<td>' + e.installDate + '</td>';
+      h += '<td>' + (e.equipNo||'-') + '</td>';
+      h += '<td>' + (e.name||'-') + '</td>';
+      h += '<td>' + (e.process||'-') + '</td>';
+      h += '<td><span class="t ' + getStatusClass(e.status||'') + '">' + (e.status||'-') + '</span></td>';
+      h += '<td>' + (e.installDate||'-') + '</td>';
       h += '<td>' + (typeof e.group === 'object' ? (e.group?.name || e.group?.text || JSON.stringify(e.group)) : (e.group || '-')) + '</td>';
       h += '<td>' + (e.floor || '-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openEquipDetail(\'' + e.id + '\')">查看</button>';
@@ -7486,10 +7508,14 @@ function renderImproveList(filterFn, title) {
   var all = getAllImproves();
   var list = filterFn ? all.filter(filterFn) : all;
   var search = getSearch('improve');
+  var improveCat = lsGet('improve_category', '');
   if (search) {
     list = list.filter(function(i) {
       return (i.title||'').indexOf(search) !== -1 || (i.proposer||'').indexOf(search) !== -1 || (i.dept||'').indexOf(search) !== -1;
     });
+  }
+  if (improveCat) {
+    list = list.filter(function(i) { return (i.category||'') === improveCat; });
   }
   var page = getPage('improve');
   var pageSize = 10;
@@ -7507,7 +7533,7 @@ function renderImproveList(filterFn, title) {
   h += '</div>';
   h += '<div class="bg">';
   h += '<input class="fi" style="width:240px" placeholder="搜索改善..." value="' + search + '" oninput="setSearch(\'improve\',this.value);refresh()">';
-  h += '<select class="fi" style="width:140px" onchange="refresh()"><option value="">全部分类</option><option>设备改善</option><option>软件改善</option><option>流程改善</option><option>工艺改善</option><option>管理改善</option></select>';
+  h += '<select class="fi" style="width:140px" onchange="lsSet(\'improve_category\',this.value);setPage(\'improve\',1);refresh()"><option value="">全部分类</option><option value="设备改善"' + (improveCat==='设备改善'?' selected':'') + '>设备改善</option><option value="软件改善"' + (improveCat==='软件改善'?' selected':'') + '>软件改善</option><option value="流程改善"' + (improveCat==='流程改善'?' selected':'') + '>流程改善</option><option value="工艺改善"' + (improveCat==='工艺改善'?' selected':'') + '>工艺改善</option><option value="管理改善"' + (improveCat==='管理改善'?' selected':'') + '>管理改善</option></select>';
   if (hasPermission('improve-manage','create')) {
     h += '<button class="btn bp" onclick="createImprove()">&#10133; 新建改善</button>';
   }
@@ -7524,14 +7550,14 @@ function renderImproveList(filterFn, title) {
   } else {
     pageData.forEach(function(i) {
       h += '<tr onclick="openImproveDetail(\'' + i.id + '\')">';
-      h += '<td>' + i.id + '</td>';
-      h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + i.title + '</td>';
-      h += '<td>' + i.proposer + '</td>';
-      h += '<td>' + i.dept + '</td>';
-      h += '<td><span class="t tb">' + i.category + '</span></td>';
-      h += '<td>' + i.date + '</td>';
-      h += '<td><span class="t ' + getStatusClass(i.status) + '">' + i.status + '</span></td>';
-      h += '<td style="max-width:120px" class="text-overflow-ellipsis">' + i.effect + '</td>';
+      h += '<td>' + (i.id||'-') + '</td>';
+      h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + (i.title||'-') + '</td>';
+      h += '<td>' + (i.proposer||'-') + '</td>';
+      h += '<td>' + (i.dept||'-') + '</td>';
+      h += '<td><span class="t tb">' + (i.category||'-') + '</span></td>';
+      h += '<td>' + (i.date||'-') + '</td>';
+      h += '<td><span class="t ' + getStatusClass(i.status||'') + '">' + (i.status||'-') + '</span></td>';
+      h += '<td style="max-width:120px" class="text-overflow-ellipsis">' + (i.effect||'-') + '</td>';
       h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();openImproveDetail(\'' + i.id + '\')">查看</button>';
       if (hasPermission('improve-manage','edit')) {
         h += ' <button class="btn-sm bp" onclick="event.stopPropagation();editImprove(\'' + i.id + '\')">编辑</button>';
@@ -8124,7 +8150,7 @@ function renderPeopleList() {
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>工号</th><th>姓名</th><th>部门</th><th>岗位</th><th>组别</th><th>上级</th><th>电话</th><th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(p) {
-    h += '<tr><td>' + p.employeeId + '</td><td>' + p.name + '</td><td>' + p.dept + '</td><td>' + p.position + '</td><td>' + p.group + '</td>';
+    h += '<tr><td>' + (p.employeeId||'-') + '</td><td>' + (p.name||'-') + '</td><td>' + (p.dept||'-') + '</td><td>' + (p.position||'-') + '</td><td>' + (p.group||'-') + '</td>';
     h += '<td>' + (p.supervisor || '-') + '</td><td>' + (p.phone || '-') + '</td>';
     h += '<td><button class="btn-sm bo" onclick="viewPersonDetail(\'' + p.employeeId + '\')">详情</button></td></tr>';
   });
@@ -8274,17 +8300,21 @@ function renderDocLibrary() {
   h += '</div>';
   h += '<div class="cd" style="padding:0"><div class="table-responsive"><table class="dt">';
   h += '<thead><tr><th>文档名称</th><th>类型</th><th>分类</th><th>日期</th><th>标签</th><th>描述</th><th>操作</th></tr></thead><tbody>';
+  if (list.length === 0) {
+    h += '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--t3)">暂无数据</td></tr>';
+  } else {
   pageData.forEach(function(d) {
     var typeClass = d.type === '多维表格' ? 't ts' : 't tp';
-    h += '<tr><td>' + d.name + '</td><td><span class="' + typeClass + '">' + d.type + '</span></td><td>' + d.category + '</td><td>' + d.date + '</td>';
+    h += '<tr><td>' + (d.name||'-') + '</td><td><span class="' + typeClass + '">' + (d.type||'-') + '</span></td><td>' + (d.category||'-') + '</td><td>' + (d.date||'-') + '</td>';
     h += '<td style="max-width:150px"><div class="badge-group">';
     (d.tags || '').split(',').slice(0, 3).forEach(function(t) {
       if (t) h += '<span class="t tb">' + t + '</span>';
     });
     h += '</div></td>';
-    h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + d.desc + '</td>';
+    h += '<td style="max-width:200px" class="text-overflow-ellipsis">' + (d.desc||'-') + '</td>';
     h += '<td><button class="btn-sm bo" onclick="event.stopPropagation();viewDocDetail(\'' + d.id + '\')">查看</button> <button class="btn-sm bo" onclick="event.stopPropagation();downloadDoc(\'' + d.id + '\')">下载</button></td></tr>';
   });
+  }
   h += '</tbody></table></div></div>';
   h += renderPagination(total, page, pageSize, 'docPageChange');
   h += '</div>';
@@ -9412,7 +9442,7 @@ function renderMemberManage() {
   var list = all;
   if (search) {
     list = all.filter(function(p) {
-      return p.name.indexOf(search) !== -1 || p.employeeId.indexOf(search) !== -1 || p.position.indexOf(search) !== -1;
+      return (p.name||'').indexOf(search) !== -1 || (p.employeeId||'').indexOf(search) !== -1 || (p.position||'').indexOf(search) !== -1;
     });
   }
   var page = getPage('members');
@@ -9448,7 +9478,7 @@ function renderMemberManage() {
   h += '<th>操作</th></tr></thead><tbody>';
   pageData.forEach(function(p) {
     var role = roles[p.employeeId] || 'viewer';
-    h += '<tr><td>' + p.employeeId + '</td><td>' + p.name + '</td><td>' + p.dept + '</td><td>' + p.position + '</td>';
+    h += '<tr><td>' + (p.employeeId||'-') + '</td><td>' + (p.name||'-') + '</td><td>' + (p.dept||'-') + '</td><td>' + (p.position||'-') + '</td>';
     h += '<td><span class="t ' + (role==='owner'?'tr':role==='admin'?'to':role==='editor'?'tb':'tx') + '">' + ROLE_NAMES[role] + '</span></td>';
     if (isOwner && showPasswords) {
       h += '<td><code style="font-size:11px;background:#f0f0f0;padding:2px 6px;border-radius:3px">' + (passwords[p.employeeId] || '123456') + '</code></td>';
