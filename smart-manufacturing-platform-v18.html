@@ -1,91 +1,13 @@
-﻿<!--
-================================================================================
-  智能制造组管理平台 V18 - 网页内审报告
-  审审日期: 2026-07-19
-  审审范围: V15前端代码全面内审
-================================================================================
-
-【审审结论：总体合格，存在中低风险项需关注】
-
-一、交互按钮功能完整性检查
-  [通过] 大部分按钮均绑定了实际功能（onclick事件）
-  [低风险] markCycleTaskDone() - 仅弹Toast提示，未实际修改任务状态（第444行）
-  [低风险] refreshData('daily') - 日报刷新分支为空操作（第8952行），缺少实际数据重载逻辑
-  [中风险] importAllData() 按钮与 exportAllData() 按钮图标相同（均为&#128190;），
-          用户无法通过图标区分导入/导出功能（第421-422行）
-
-二、API调用错误处理
-  [通过] apiRequest() 函数有完整的 try-catch 和超时处理（第1102-1125行）
-  [通过] 后端所有API端点均有 try-catch 包裹
-  [低风险] detectServer() 中 fetch CONFIG_URL 失败被静默吞掉（第1156行），
-          用户无法感知配置文件加载失败
-  [低风险] connectToServer() 中超时设置为8秒，但其他API调用超时仅5秒，
-          可能导致连接测试超时但后续API调用失败的不一致体验
-  [低风险] 同步状态 badge 有两个 onclick 属性（第420行），第二个覆盖了第一个，
-          showConnectionInfo() 实际未被调用
-
-三、角色权限检查
-  [通过] canAccessPage() 实现了基于角色的页面级访问控制（第1899行）
-  [通过] OWNER_IDS=['64135'], ADMIN_IDS=['70163','60714'] 强制修正逻辑正确（第1756行）
-  [中风险] feishu-config 页面（飞书配置）未加入 viewer 的阻止列表，
-          viewer 角色可访问敏感的飞书token和表映射配置
-  [中风险] msg-push 页面（消息推送）未加入 viewer 的阻止列表，
-          viewer 可发送消息到群组
-  [低风险] 权限检查仅基于前端角色判断，后端API缺少角色权限中间件
-          （/api/config POST 未校验调用者角色）
-  [低风险] EDITOR_IDS 硬编码在前端（第623行），无法通过界面动态管理
-
-四、数据验证
-  [通过] 登录表单验证工号和密码非空（第1796行）
-  [通过] 后端 authenticateUser 对密码进行明文比较
-  [中风险] 密码以明文存储在 localStorage（passwords对象），存在XSS窃取风险
-  [中风险] doChangePwd() 未验证新密码长度（前端loginOverlay中要求至少6位，
-          但 doChangePwd 函数未做长度校验）
-  [低风险] 表单提交（submitFormModal）的 required 字段验证仅检查非空，
-          未做格式校验（如URL格式、数字范围等）
-  [低风险] 飞书PersonalBaseToken硬编码在前端代码中（第6557行），
-          虽然在独立文件中但前端可见
-
-五、移动端适配
-  [通过] 有 @media(max-width:768px) 响应式断点（第329行）
-  [通过] 侧边栏在移动端收缩为50px图标模式
-  [通过] 表格使用 table-responsive 实现横向滚动
-  [中风险] 模态框(mo)使用固定 padding-top:80px，在小屏设备上可能遮挡内容
-  [中风险] g2/g3/g4 网格在移动端均变为单列，但部分页面使用内联grid未适配
-  [低风险] login-box 的 max-width:440px 在极小屏幕(<360px)上可能溢出
-  [低风险] 打印样式隐藏了侧边栏和头部，但未隐藏模态框的遮罩层
-
-六、性能优化
-  [通过] 图表实例在页面切换时正确销毁（第8886行）
-  [通过] 使用 setTimeout(initCharts, 100) 避免渲染阻塞
-  [中风险] 全量 refresh() 每次都重新渲染整个页面内容（innerHTML替换），
-          对于大型列表页面（如设备管理279台设备）可能造成卡顿
-  [中风险] PEOPLE_OBJ 数组直接内嵌在HTML中（约1500+行数据定义），
-          增大了首屏加载体积，建议按需加载
-  [低风险] syncLocalToServer() 串行同步8种数据类型，可考虑并行处理
-  [低风险] localStorage 读写频繁（每次 refresh 读取多个 key），
-          可考虑批量读取后缓存
-
-七、其他发现
-  [低风险] 第420行有两个 onclick 属性，HTML规范中后者会覆盖前者
-  [低风险] showMsg() 和 showToast() 是两个独立的提示函数，建议统一
-  [低风险] 部分页面ID如 kpi-contract 和 strategy-2026 均映射到
-          renderKpiPage('kpi-downtime')，可能不是预期行为
-  [信息] 前端代码约9000行，建议后续考虑模块化拆分
-  [信息] 后端 session 存储在内存Map中，服务器重启后所有会话失效
-
-================================================================================
--->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<script>var BUILD_VERSION="V18.19-202607242030";if(document.__bv&&document.__bv!==BUILD_VERSION){location.reload(true);}document.__bv=BUILD_VERSION;</script>
+<script>var BUILD_VERSION="V20.0-202607242230";if(document.__bv&&document.__bv!==BUILD_VERSION){location.reload(true);}document.__bv=BUILD_VERSION;</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>智能制造组管理平台 V18.19-202607242030</title>
+<title>智能制造组管理平台 V20.0-202607242230</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js?v=14"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -477,6 +399,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none}
 .modal-body label{display:block;font-size:13px;color:#94a3b8;margin-bottom:4px}
 .modal-body input,.modal-body textarea,.modal-body select{width:100%;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:8px 12px;color:#e2e8f0;font-size:13px;box-sizing:border-box;margin-bottom:8px}
 .modal-footer{display:flex;justify-content:flex-end;gap:8px}
+.text-overflow-ellipsis{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;display:inline-block;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -645,17 +568,6 @@ function clearAutoTaskLogs() {
 // =========================================
 // 决策跟踪详情
 // =========================================
-function viewDecisionDetail(item, time, owner, status, finish) {
-  var h = '<div class="info-grid">';
-  h += '<div class="info-item"><div class="ii-label">决策事项</div><div class="ii-value">' + item + '</div></div>';
-  h += '<div class="info-item"><div class="ii-label">决策时间</div><div class="ii-value">' + time + '</div></div>';
-  h += '<div class="info-item"><div class="ii-label">责任人</div><div class="ii-value">' + owner + '</div></div>';
-  h += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + getStatusClass(status) + '">' + status + '</span></div></div>';
-  h += '<div class="info-item"><div class="ii-label">完成时间</div><div class="ii-value">' + finish + '</div></div>';
-  h += '</div>';
-  openMo({title:'决策详情', html:h});
-}
-
 function showToast(msg, type) {
   if (!msg) msg = '操作完成';
   type = type || 'info';
@@ -1397,14 +1309,6 @@ function registerModule(mod) {
   showToast('模块 "' + mod.name + '" 已注册', 'success');
 }
 
-function unregisterModule(modId) {
-  var idx = MODULE_REGISTRY.findIndex(function(m){ return m.id === modId; });
-  if (idx >= 0 && !MODULE_REGISTRY[idx].builtIn) {
-    MODULE_REGISTRY.splice(idx, 1);
-    showToast('模块已注销', 'success');
-  }
-}
-
 function getRegisteredModules() { return MODULE_REGISTRY; }
 
 // =========================================
@@ -1627,13 +1531,6 @@ function setServerUrl(url) {
   SERVER_URL = url;
   localStorage.setItem('v13_server_url', url || '');
   localStorage.setItem('v13_server_enabled', (!!url).toString());
-  updateSyncStatusBadge();
-}
-
-function setServerEnabled(enabled) {
-  SERVER_CONFIG.enabled = enabled;
-  SERVER_CONFIG.mode = enabled ? 'online' : 'offline';
-  localStorage.setItem('v13_server_enabled', (enabled).toString());
   updateSyncStatusBadge();
 }
 
@@ -2551,6 +2448,7 @@ function _mergeRichFields(rp) {
     if (!rp.lastUpdate) rp.lastUpdate = localP.lastUpdate || '';
     if (!rp.members) rp.members = localP.members || '';
     if (!rp.progressHistory) rp.progressHistory = localP.progressHistory || [];
+    if (rp.progress === undefined || rp.progress === null || rp.progress === 0) rp.progress = localP.progress || 0;
   }
   return rp;
 }
@@ -2803,7 +2701,6 @@ function getWebhooks() {
   return DEFAULT_WEBHOOKS;
 }
 function saveWebhooks(arr) { lsSet('webhooks', arr); }
-function getPushHistory() { return lsGet('push_history', DEFAULT_PUSH_HISTORY); }
 function savePushHistory(arr) { lsSet('push_history', arr); }
 function getMsgTemplates() { return lsGet('msg_templates', MSG_TEMPLATES); }
 function getPermissionMatrix() { return lsGet('permission_matrix', DEFAULT_PERMISSION_MATRIX); }
@@ -3678,7 +3575,7 @@ function renderHome() {
       activities.push({icon:'💡', title:'改善提案：' + imp.title + ' - ' + imp.proposer, time: imp.date});
     });
     reports.slice(0, 2).forEach(function(r) {
-      activities.push({icon:'📝', title:'日报提交：' + r.reporter + ' 提交了' + r.date + '日报', time: r.date});
+      activities.push({icon:'📝', title:'日报提交：' + (r.reporter||'未知') + ' 提交了' + (r.date||'') + '日报', time: (r.date||'')});
     });
     activities.sort(function(a,b){ return b.time > a.time ? 1 : -1; });
     h += '<ul class="activity-list">';
@@ -5384,16 +5281,6 @@ function buildProjectPushCard(p, type, remark) {
   return {config:{wide_screen_mode:true},header:{title:{tag:'plain_text',content:'项目推送：' + (p.name||'')}},elements:elements};
 }
 
-function sendFeishuCard(webhook, card, callback) {
-  var body = JSON.stringify({msg_type:'interactive',card:card});
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', webhook, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = function() { callback && callback(xhr.status >= 200 && xhr.status < 300); };
-  xhr.onerror = function() { callback && callback(false); };
-  xhr.send(body);
-}
-
 function createProject() {
   var today = new Date().toISOString().slice(0,10);
   var peopleNames = PEOPLE_OBJ.map(function(p){return p.name;});
@@ -6029,16 +5916,6 @@ function deleteProject(id) {
   refresh();
 }
 
-function quickUpdateProgress(id, currentProgress) {
-  var html = '<div class="form-field"><label>项目进度 (%)</label>';
-  html += '<div style="display:flex;align-items:center;gap:12px">';
-  html += '<input type="range" id="qprogress_slider" min="0" max="100" step="5" value="' + currentProgress + '" oninput="document.getElementById(\'qprogress_val\').value=this.value" style="flex:1">';
-  html += '<input type="number" id="qprogress_val" class="fi" style="width:80px" min="0" max="100" value="' + currentProgress + '" oninput="document.getElementById(\'qprogress_slider\').value=this.value">';
-  html += '<span style="color:var(--t3);font-weight:600">%</span>';
-  html += '</div></div>';
-  openMo({title:'更新进度 - ' + id, html:html, footer:'<button class="btn bp" onclick="doQuickUpdateProgress(\'' + id + '\')">保存</button>'});
-}
-
 function doQuickUpdateProgress(id) {
   var val = parseInt(document.getElementById('qprogress_val').value) || 0;
   if (val < 0 || val > 100) { showToast('进度必须在0-100之间', 'error'); return; }
@@ -6621,8 +6498,8 @@ function renderEquipList(filterFn, title) {
 
   h += '<div class="kpi-row">';
   h += '<div class="kpi-card"><div class="kpi-value">' + list.length + '</div><div class="kpi-label">当前显示</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + list.filter(function(e){return (e.status||'').indexOf('完成')!==-1;}).length + '</div><div class="kpi-label">已验收</div></div>';
-  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + list.filter(function(e){return (e.status||'').indexOf('未完成')!==-1;}).length + '</div><div class="kpi-label">未验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--gn)">' + list.filter(function(e){var s=e.acceptStatus||e.status||'';return s.indexOf('完成')!==-1||s==='已验收';}).length + '</div><div class="kpi-label">已验收</div></div>';
+  h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--or)">' + list.filter(function(e){var s=e.acceptStatus||e.status||'';return s.indexOf('未完成')!==-1||s==='未验收';}).length + '</div><div class="kpi-label">未验收</div></div>';
   h += '<div class="kpi-card"><div class="kpi-value" style="color:var(--re)">' + list.filter(function(e){return (e.overdue||'')==='超期';}).length + '</div><div class="kpi-label">超期</div></div>';
   h += '</div>';
 
@@ -9064,329 +8941,6 @@ var DEFAULT_DAILY_REPORT_TEMPLATE = '{{日期}} 智能制造组日报\n\n' +
   '  - **{{小组名称}}**{{#if 保养完成}} 保养{{保养完成}}/{{保养计划}}台{{/if}}{{#if 事项完成}} 事项{{事项完成}}/{{事项计划}}项{{/if}}{{#if 投诉项数}} 投诉{{投诉项数}}项{{/if}}\n' +
   '{{/each}}';
 
-function renderMsgPush() {
-  var webhooks = getWebhooks();
-  var templates = getMsgTemplates();
-  var history = getPushHistory();
-  
-  var h = '<div class="page-enter">';
-  h += '<div class="pt">📨 消息推送 <span class="bdg">多群组消息推送</span></div>';
-  
-  // Tab切换
-  h += '<div class="nav-tabs">';
-  h += '<div class="nav-tab ' + (currentMsgTab==='editor'?'active':'') + '" onclick="switchMsgTab(\'editor\')">消息编辑器</div>';
-  h += '<div class="nav-tab ' + (currentMsgTab==='templates'?'active':'') + '" onclick="switchMsgTab(\'templates\')">消息模板</div>';
-  h += '<div class="nav-tab ' + (currentMsgTab==='history'?'active':'') + '" onclick="switchMsgTab(\'history\')">推送历史</div>';
-  h += '</div>';
-  
-  if (currentMsgTab === 'editor') {
-    h += '<div class="g2">';
-    // 左侧：群组选择
-    h += '<div class="cd">';
-    h += '<div class="ct" style="display:flex;align-items:center;justify-content:space-between">';
-    h += '<span>📢 推送群组 (' + webhooks.length + ')</span>';
-    h += '<button class="btn-sm bp" onclick="addWebhook()">+ 新增</button>';
-    h += '</div>';
-    h += '<div style="margin-bottom:8px">';
-    h += '<button class="btn-sm bo" onclick="selectAllWebhooks(true)">全选</button> ';
-    h += '<button class="btn-sm bo" onclick="selectAllWebhooks(false)">全不选</button>';
-    h += '</div>';
-    webhooks.forEach(function(w) {
-      var checked = (selectedWebhooks||[]).indexOf(w.id) !== -1;
-      h += '<div class="webhook-card">';
-      h += '<input type="checkbox" ' + (checked?'checked':'') + ' onchange="toggleWebhook(\'' + w.id + '\')" style="margin-right:8px">';
-      h += '<div style="flex:1">';
-      h += '<div class="wh-name">' + w.name + ' <span class="t tb">' + w.type + '</span></div>';
-      h += '<div class="wh-url">' + w.url + '</div>';
-      h += '</div>';
-      h += '<button class="btn-sm dg" onclick="deleteWebhook(\'' + w.id + '\')">删除</button>';
-      h += '</div>';
-    });
-    h += '</div>';
-    
-    // 右侧：消息编辑器
-    h += '<div class="cd">';
-    h += '<div class="ct">✏️ 消息编辑器</div>';
-    h += '<div class="form-field"><label>消息类型</label>';
-    h += '<select class="fi" id="msgType"><option>文本消息</option><option>富文本消息</option><option>交互式卡片</option></select>';
-    h += '</div>';
-    h += '<div class="form-field"><label>消息标题</label><input class="fi" id="msgTitle" placeholder="请输入消息标题"></div>';
-    h += '<div class="form-field"><label>消息内容</label><textarea class="fi" id="msgContent" rows="6" placeholder="请输入消息内容，支持 {{变量}} 替换"></textarea></div>';
-    h += '<div class="form-field"><label>选择模板</label>';
-    h += '<select class="fi" id="msgTemplateSelect" onchange="useMsgTemplate(this.value)">';
-    h += '<option value="">-- 选择模板 --</option>';
-    templates.forEach(function(t) {
-      h += '<option value="' + t.id + '">' + t.name + '</option>';
-    });
-    h += '</select></div>';
-    h += '<div class="form-field"><label>消息预览</label><div class="msg-preview" id="msgPreview">消息预览区域</div></div>';
-    h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
-    h += '<button class="btn bo" onclick="previewMsg()">预览</button>';
-    h += '<button class="btn bp" onclick="sendMsg()">📤 发送消息</button>';
-    h += '</div>';
-    h += '</div>';
-    h += '</div>';
-  } else if (currentMsgTab === 'templates') {
-    h += '<div class="cd">';
-    h += '<div class="ct" style="display:flex;align-items:center;justify-content:space-between">';
-    h += '<span>📋 消息模板 (' + templates.length + ')</span>';
-    h += '<button class="btn-sm bp" onclick="createMsgTemplate()">+ 新增模板</button>';
-    h += '</div>';
-    h += '<div class="g2">';
-    templates.forEach(function(t) {
-      var typeLabel = {text:'文本',richtext:'富文本',card:'卡片'}[t.type] || t.type;
-      h += '<div class="fc">';
-      h += '<h4 style="font-size:14px;margin-bottom:6px">' + t.name + ' <span class="t tb" style="font-size:10px">' + typeLabel + '</span></h4>';
-      if (t.title) h += '<div style="font-size:12px;color:var(--t);font-weight:500;margin-bottom:4px">' + t.title + '</div>';
-      h += '<p style="font-size:12px;color:var(--t2);line-height:1.5;white-space:pre-wrap">' + (t.content || '').substring(0, 80) + '...</p>';
-      if (t.variables && t.variables.length) {
-        h += '<div style="margin-top:6px;display:flex;gap:3px;flex-wrap:wrap">';
-        t.variables.forEach(function(v){ h += '<span class="t tx" style="font-size:10px">{{' + v + '}}</span>'; });
-        h += '</div>';
-      }
-      h += '<div style="margin-top:10px;display:flex;gap:6px">';
-      h += '<button class="btn-sm bp" onclick="useMsgTemplate(\'' + t.id + '\');switchMsgTab(\'editor\')">使用</button>';
-      h += '<button class="btn-sm bo" onclick="editMsgTemplate(\'' + t.id + '\')">编辑</button>';
-      h += '<button class="btn-sm dg" onclick="deleteMsgTemplate(\'' + t.id + '\')">删除</button>';
-      h += '</div>';
-      h += '</div>';
-    });
-    h += '</div></div>';
-  } else if (currentMsgTab === 'history') {
-    h += '<div class="cd">';
-    h += '<div class="ct" style="display:flex;align-items:center;justify-content:space-between">';
-    h += '<span>📜 推送历史 (最近20条)</span>';
-    h += '<button class="btn-sm bo" onclick="clearPushHistory()">清空历史</button>';
-    h += '</div>';
-    h += '<table class="dt"><thead><tr><th>时间</th><th>目标群组</th><th>类型</th><th>状态</th><th>内容摘要</th><th>操作</th></tr></thead><tbody>';
-    history.forEach(function(h2) {
-      h += '<tr><td>' + h2.time + '</td><td>' + h2.target + '</td><td><span class="t tb">' + h2.type + '</span></td>';
-      h += '<td><span class="t ' + (h2.status==='成功'?'tg':'tr') + '">' + h2.status + '</span></td>';
-      h += '<td style="max-width:250px" class="text-overflow-ellipsis">' + h2.content + '</td>';
-      h += '<td><button class="btn-sm bo" onclick="viewPushHistoryDetail(\'' + h2.id + '\')">详情</button> <button class="btn-sm bo" onclick="resendPush(\'' + h2.id + '\')">重发</button></td></tr>';
-    });
-    h += '</tbody></table></div>';
-  }
-  
-  h += '</div>';
-  return h;
-}
-
-function switchMsgTab(tab) {
-  currentMsgTab = tab;
-  refresh();
-}
-
-function toggleWebhook(id) {
-  var idx = (selectedWebhooks||[]).indexOf(id);
-  if (idx >= 0) selectedWebhooks.splice(idx, 1);
-  else selectedWebhooks.push(id);
-}
-
-function selectAllWebhooks(select) {
-  var webhooks = getWebhooks();
-  if (select) {
-    selectedWebhooks = webhooks.map(function(w){ return w.id; });
-  } else {
-    selectedWebhooks = [];
-  }
-  refresh();
-}
-
-function addWebhook() {
-  submitFormModal({
-    title: '新增群组Webhook',
-    fields: [
-      {key:'name', label:'群组名称', type:'text', required:true, placeholder:'如：智能制造组全员'},
-      {key:'type', label:'类型', type:'select', options:['飞书','企业微信','钉钉','邮件'], value:'飞书'},
-      {key:'url', label:'Webhook URL', type:'text', required:true, placeholder:'https://...'}
-    ],
-    onSave: function(data) {
-      var webhooks = getWebhooks();
-      data.id = 'WH' + String(webhooks.length + 1).padStart(3, '0');
-      webhooks.push(data);
-      saveWebhooks(webhooks);
-    },
-    onAfter: function() { refresh(); }
-  });
-}
-
-function deleteWebhook(id) {
-  if (!confirm('确定删除此Webhook？')) return;
-  var webhooks = getWebhooks().filter(function(w){ return w.id !== id; });
-  saveWebhooks(webhooks);
-  selectedWebhooks = selectedWebhooks.filter(function(wid){ return wid !== id; });
-  refresh();
-}
-
-function createMsgTemplate() {
-  try {
-    submitFormModal({
-      title: '新增消息模板',
-      showSaveAndNew: true,
-      fields: [
-        {key:'name', label:'模板名称', type:'text', required:true, placeholder:'请输入模板名称'},
-        {key:'type', label:'模板类型', type:'select', options:['text','richtext','card'], value:'text'},
-        {key:'title', label:'消息标题', type:'text', placeholder:'请输入消息标题'},
-        {key:'content', label:'消息内容', type:'textarea', rows:4, required:true, placeholder:'请输入消息内容，支持 {{变量名}} 替换'},
-        {key:'variables', label:'变量列表', type:'text', placeholder:'多个变量用逗号分隔，如：name,date,content'}
-      ],
-      onSave: function(data) {
-        var templates = getMsgTemplates();
-        var maxNum = 0;
-        templates.forEach(function(t) {
-          var m = String(t.id).match(/MT(\d+)/);
-          if (m) maxNum = Math.max(maxNum, parseInt(m[1]));
-        });
-        data.id = 'MT' + String(maxNum + 1).padStart(3, '0');
-        if (data.variables) {
-          data.variables = data.variables.split(/[,，]/).map(function(v){return v.trim();}).filter(function(v){return v;});
-        } else {
-          data.variables = [];
-        }
-        templates.push(data);
-        saveMsgTemplates(templates);
-      },
-      onAfter: function() { refresh(); }
-    });
-  } catch(e) { showToast('新增模板失败: ' + e.message, 'error'); }
-}
-
-function editMsgTemplate(id) {
-  try {
-    var templates = getMsgTemplates();
-    var t = templates.find(function(x){ return x.id === id; });
-    if (!t) return;
-    submitFormModal({
-      title: '编辑消息模板 - ' + id,
-      fields: [
-        {key:'name', label:'模板名称', type:'text', value:t.name, required:true},
-        {key:'type', label:'模板类型', type:'select', options:['text','richtext','card'], value:t.type},
-        {key:'title', label:'消息标题', type:'text', value:t.title || ''},
-        {key:'content', label:'消息内容', type:'textarea', rows:4, value:t.content || '', required:true},
-        {key:'variables', label:'变量列表', type:'text', value:(t.variables || []).join(',')}
-      ],
-      onSave: function(data) {
-        var temps = getMsgTemplates();
-        var idx = temps.findIndex(function(x){ return x.id === id; });
-        data.id = id;
-        if (data.variables) {
-          data.variables = data.variables.split(/[,，]/).map(function(v){return v.trim();}).filter(function(v){return v;});
-        } else {
-          data.variables = [];
-        }
-        if (idx >= 0) temps[idx] = data;
-        else temps.push(data);
-        saveMsgTemplates(temps);
-      },
-      onAfter: function() { refresh(); }
-    });
-  } catch(e) { showToast('编辑模板失败: ' + e.message, 'error'); }
-}
-
-function deleteMsgTemplate(id) {
-  try {
-    if (!confirm('确定删除此消息模板？')) return;
-    var templates = getMsgTemplates().filter(function(t){ return t.id !== id; });
-    saveMsgTemplates(templates);
-    refresh();
-  } catch(e) { showToast('删除模板失败: ' + e.message, 'error'); }
-}
-
-function useMsgTemplate(id) {
-  var templates = getMsgTemplates();
-  var t = templates.find(function(x){ return x.id === id; });
-  if (!t) return;
-  var titleEl = document.getElementById('msgTitle');
-  var contentEl = document.getElementById('msgContent');
-  if (titleEl) titleEl.value = t.name;
-  if (contentEl) contentEl.value = t.content;
-  previewMsg();
-}
-
-function previewMsg() {
-  var title = document.getElementById('msgTitle') ? document.getElementById('msgTitle').value : '';
-  var content = document.getElementById('msgContent') ? document.getElementById('msgContent').value : '';
-  var preview = document.getElementById('msgPreview');
-  if (preview) {
-    preview.innerHTML = '<b>' + (title || '无标题') + '</b><br><br>' + (content || '无内容').replace(/\n/g, '<br>');
-  }
-}
-
-function sendMsg() {
-  if (selectedWebhooks.length === 0) {
-    showToast('请至少选择一个推送群组！', 'warn');
-    return;
-  }
-  var title = document.getElementById('msgTitle') ? document.getElementById('msgTitle').value : '';
-  var content = document.getElementById('msgContent') ? document.getElementById('msgContent').value : '';
-  if (!content) {
-    showToast('请输入消息内容！', 'warn');
-    return;
-  }
-  var webhooks = getWebhooks();
-  var targetNames = webhooks.filter(function(w){ return (selectedWebhooks||[]).indexOf(w.id) !== -1; }).map(function(w){ return w.name; }).join('、');
-  
-  // 记录历史
-  var history = getPushHistory();
-  var now = new Date();
-  var timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
-  history.unshift({
-    id: 'PH' + Date.now(),
-    time: timeStr,
-    target: targetNames,
-    type: title || '自定义消息',
-    status: '成功',
-    content: content.substring(0, 50)
-  });
-  savePushHistory(history.slice(0, 50));
-  
-  showToast('消息已推送至 ' + selectedWebhooks.length + ' 个群组！\n目标：' + targetNames, 'info'); refresh();
-}
-
-function viewPushHistoryDetail(id) {
-  try {
-    var history = getPushHistory();
-    var h = history.find(function(x){ return x.id === id; });
-    if (!h) return;
-    var html = '<div class="info-grid">';
-    html += '<div class="info-item"><div class="ii-label">推送时间</div><div class="ii-value">' + h.time + '</div></div>';
-    html += '<div class="info-item"><div class="ii-label">目标群组</div><div class="ii-value">' + h.target + '</div></div>';
-    html += '<div class="info-item"><div class="ii-label">消息类型</div><div class="ii-value"><span class="t tb">' + h.type + '</span></div></div>';
-    html += '<div class="info-item"><div class="ii-label">状态</div><div class="ii-value"><span class="t ' + (h.status==='成功'?'tg':'tr') + '">' + h.status + '</span></div></div>';
-    html += '</div>';
-    html += '<div class="form-field" style="margin-top:12px"><label>消息内容</label><div style="padding:10px;background:#f7f8fa;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-wrap">' + h.content + '</div></div>';
-    openMo({title:'推送详情', html:html});
-  } catch(e) { showToast('查看详情失败: ' + e.message, 'error'); }
-}
-
-function resendPush(id) {
-  try {
-    var history = getPushHistory();
-    var h = history.find(function(x){ return x.id === id; });
-    if (!h) return;
-    if (!confirm('确定重发此消息？\n目标：' + h.target + '\n类型：' + h.type)) return;
-    var now = new Date();
-    var timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
-    history.unshift({
-      id: 'PH' + Date.now(),
-      time: timeStr,
-      target: h.target,
-      type: h.type,
-      status: '成功',
-      content: h.content
-    });
-    savePushHistory(history.slice(0, 50));
-    showToast('重发成功！', 'success');
-    refresh();
-  } catch(e) { showToast('重发失败: ' + e.message, 'error'); }
-}
-
-function clearPushHistory() {
-  if (!confirm('确定清空推送历史？')) return;
-  savePushHistory([]);
-  refresh();
-}
 
 // =========================================
 // V10 - 成员管理 + 权限配置
@@ -10207,259 +9761,6 @@ function changeSyncInterval() {
 // =========================================
 // V16 - 日报推送配置页面
 // =========================================
-function renderReportPushConfig() {
-  var cfg = getReportPushConfig();
-  if (!cfg.template) cfg.template = DEFAULT_DAILY_REPORT_TEMPLATE;
-
-  var h = '<div class="page-enter">';
-  h += '<div class="pt">消息推送配置 <span class="bdg">日报定时推送</span></div>';
-
-  // 配置说明
-  h += '<div class="cd" style="border-left:4px solid var(--blue)">';
-  h += '<div class="ct">配置说明</div>';
-  h += '<div style="font-size:12px;color:var(--t2);line-height:1.8">';
-  h += '配置日报定时推送到飞书群。设置 Webhook URL、消息模板、推送时间和开关后，';
-  h += '后端将按设定时间自动发送日报到指定飞书群。<br>';
-  h += '消息模板支持以下变量：';
-  h += '</div>';
-  h += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">';
-  var vars = ['{{日期}}','{{小组名称}}','{{应到人数}}','{{实到人数}}','{{请假人数}}','{{出勤率}}',
-    '{{计划保养台数}}','{{已完成保养台数}}','{{计划事项数}}','{{完成事项数}}','{{投诉项数}}',
-    '{{服务单明细}}','{{其他事项}}','{{总应到}}','{{总实到}}','{{总请假}}','{{总出勤率}}',
-    '{{保养完成}}','{{保养计划}}','{{事项完成}}','{{事项计划}}'];
-  vars.forEach(function(v) {
-    h += '<span class="t tb" style="font-size:10px;cursor:pointer" onclick="insertTemplateVar(\'' + v + '\')">' + v + '</span>';
-  });
-  h += '</div></div>';
-
-  // 1. Webhook URL
-  h += '<div class="cd">';
-  h += '<div class="ct">飞书Bot Webhook URL</div>';
-  h += '<div class="form-field"><label>Webhook 地址</label>';
-  h += '<input class="fi" id="rpcWebhookUrl" value="' + (cfg.webhookUrl || '') + '" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx">';
-  h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">在飞书群设置中添加自定义机器人，获取 Webhook 地址</div>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:8px">';
-  h += '<button class="btn bo" onclick="testReportPushWebhook()">测试连接</button>';
-  h += '</div>';
-  h += '<div id="rpcWebhookTestResult" style="margin-top:8px;font-size:12px"></div>';
-  h += '</div>';
-
-  // 2. 消息模板
-  h += '<div class="cd">';
-  h += '<div class="ct">消息模板</div>';
-  h += '<div style="display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--br2)">';
-  h += '<div style="flex:1"><div style="font-weight:500;font-size:13px">使用自定义模板</div><div style="font-size:11px;color:var(--t3);margin-top:2px">关闭则使用后端默认的飞书交互卡片格式</div></div>';
-  h += '<label class="sw"><input type="checkbox" id="rpcUseCustomTemplate"' + (cfg.useCustomTemplate ? ' checked' : '') + '><span class="sl"></span></label>';
-  h += '</div>';
-  h += '<div class="form-field"><label>日报消息模板</label>';
-  h += '<textarea class="fi" id="rpcTemplate" rows="12" style="font-family:monospace;font-size:12px;line-height:1.6" placeholder="输入消息模板，支持 {{变量}} 插入">' + escapeHtml(cfg.template) + '</textarea>';
-  h += '<div style="font-size:11px;color:var(--t3);margin-top:4px">点击上方变量标签可快速插入到模板光标位置。支持 {{#each}} {{/each}} 循环语法。</div>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:8px">';
-  h += '<button class="btn bo" onclick="resetReportTemplate()">恢复默认模板</button>';
-  h += '<button class="btn bo" onclick="previewReportPushTemplate()">预览效果</button>';
-  h += '</div>';
-  h += '<div id="rpcTemplatePreview" style="margin-top:8px"></div>';
-  h += '</div>';
-
-  // 3. 推送时间
-  h += '<div class="cd">';
-  h += '<div class="ct">推送时间设置</div>';
-  h += '<div class="form-field"><label>每日推送时间</label>';
-  h += '<div style="display:flex;align-items:center;gap:12px">';
-  h += '<input type="time" class="fi" id="rpcPushTime" value="' + (cfg.pushTime || '18:00') + '" style="width:160px">';
-  h += '<span style="font-size:12px;color:var(--t2)">（后端 cron 定时任务将在此时触发推送）</span>';
-  h += '</div></div>';
-  h += '</div>';
-
-  // 4. 推送开关
-  h += '<div class="cd">';
-  h += '<div class="ct">推送开关</div>';
-  h += '<div style="display:flex;align-items:center;padding:10px 0">';
-  h += '<div style="flex:1"><div style="font-weight:500;font-size:13px">启用日报定时推送</div><div style="font-size:11px;color:var(--t3);margin-top:2px">启用后，后端将在设定时间自动生成并推送日报</div></div>';
-  h += '<label class="sw"><input type="checkbox" id="rpcEnabled"' + (cfg.enabled ? ' checked' : '') + '><span class="sl"></span></label>';
-  h += '</div>';
-  h += '</div>';
-
-  // 5. 操作按钮
-  h += '<div style="display:flex;gap:8px;justify-content:flex-end">';
-  h += '<button class="btn bo" onclick="resetReportPushConfig()">恢复默认配置</button>';
-  h += '<button class="btn bp" onclick="saveReportPushConfig()">保存配置</button>';
-  h += '</div>';
-
-  h += '</div>';
-  return h;
-}
-
-function insertTemplateVar(varName) {
-  var ta = document.getElementById('rpcTemplate');
-  if (!ta) return;
-  var start = ta.selectionStart;
-  var end = ta.selectionEnd;
-  var text = ta.value;
-  ta.value = text.substring(0, start) + varName + text.substring(end);
-  ta.selectionStart = ta.selectionEnd = start + varName.length;
-  ta.focus();
-}
-
-function escapeHtml(str) {
-  if (str == null || str === undefined) return '';
-  str = String(str);
-  return str.replace(/&/g, '&').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function testReportPushWebhook() {
-  var url = document.getElementById('rpcWebhookUrl').value.trim();
-  var resultEl = document.getElementById('rpcWebhookTestResult');
-  if (!url) {
-    resultEl.innerHTML = '<span style="color:var(--rd)">请先输入 Webhook URL</span>';
-    return;
-  }
-  resultEl.innerHTML = '<span style="color:var(--or)">测试中...</span>';
-  if (SERVER_CONFIG.mode === 'online') {
-    apiRequest('POST', '/api/bot/send', {
-      webhook_url: url,
-      text: '[智能制造平台] Webhook 连接测试 - ' + new Date().toLocaleString('zh-CN')
-    }).then(function(res) {
-      if (res.code === 0) {
-        resultEl.innerHTML = '<span style="color:var(--gn)">连接测试成功！消息已发送到飞书群</span>';
-        showToast('测试消息发送成功', 'success');
-      } else {
-        resultEl.innerHTML = '<span style="color:var(--rd)">发送失败: ' + (res.msg || '未知错误') + '</span>';
-        showToast('测试失败: ' + res.msg, 'error');
-      }
-    });
-  } else {
-    // 离线模式：直接 fetch
-    fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        msg_type: 'text',
-        content: { text: '[智能制造平台] Webhook 连接测试 - ' + new Date().toLocaleString('zh-CN') }
-      })
-    }).then(function(r) { return r.json(); }).then(function(json) {
-      if (json.code === 0 || json.StatusCode === 0) {
-        resultEl.innerHTML = '<span style="color:var(--gn)">连接测试成功！</span>';
-        showToast('测试消息发送成功', 'success');
-      } else {
-        resultEl.innerHTML = '<span style="color:var(--rd)">发送失败: ' + (json.msg || JSON.stringify(json)) + '</span>';
-      }
-    }).catch(function(e) {
-      resultEl.innerHTML = '<span style="color:var(--rd)">网络错误: ' + e.message + '</span>';
-    });
-  }
-}
-
-function resetReportTemplate() {
-  if (!confirm('确定恢复为默认模板？当前自定义模板将丢失。')) return;
-  var ta = document.getElementById('rpcTemplate');
-  if (ta) ta.value = DEFAULT_DAILY_REPORT_TEMPLATE;
-  showToast('模板已恢复为默认', 'success');
-}
-
-function previewReportPushTemplate() {
-  var template = document.getElementById('rpcTemplate').value;
-  var previewEl = document.getElementById('rpcTemplatePreview');
-  if (!template) {
-    previewEl.innerHTML = '<span style="color:var(--or)">模板为空</span>';
-    return;
-  }
-  // 简单替换变量为示例值进行预览
-  var preview = template
-    .replace(/\{\{日期\}\}/g, new Date().toLocaleDateString('zh-CN', {year:'numeric',month:'2-digit',day:'2-digit',weekday:'long'}))
-    .replace(/\{\{总应到\}\}/g, '32')
-    .replace(/\{\{总实到\}\}/g, '30')
-    .replace(/\{\{总请假\}\}/g, '2')
-    .replace(/\{\{总出勤率\}\}/g, '93.8')
-    .replace(/\{\{保养完成\}\}/g, '8')
-    .replace(/\{\{保养计划\}\}/g, '10')
-    .replace(/\{\{事项完成\}\}/g, '15')
-    .replace(/\{\{事项计划\}\}/g, '18')
-    .replace(/\{\{投诉项数\}\}/g, '1')
-    .replace(/\{\{小组名称\}\}/g, '自动化一组')
-    .replace(/\{\{应到人数\}\}/g, '8')
-    .replace(/\{\{实到人数\}\}/g, '7')
-    .replace(/\{\{请假人数\}\}/g, '1')
-    .replace(/\{\{出勤率\}\}/g, '87.5')
-    .replace(/\{\{计划保养台数\}\}/g, '3')
-    .replace(/\{\{已完成保养台数\}\}/g, '2')
-    .replace(/\{\{计划事项数\}\}/g, '5')
-    .replace(/\{\{完成事项数\}\}/g, '4')
-    .replace(/\{\{服务单明细\}\}/g, '处理A线伺服报警')
-    .replace(/\{\{其他事项\}\}/g, '参加安全培训')
-    .replace(/\{\{#each [^}]+\}\}/g, '')
-    .replace(/\{\{\/each\}\}/g, '')
-    .replace(/\{\{#if [^}]+\}\}/g, '')
-    .replace(/\{\{\/if\}\}/g, '');
-
-  previewEl.innerHTML = '<div style="margin-top:8px"><div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:6px">预览效果（示例数据）：</div>' +
-    '<div class="msg-preview" style="white-space:pre-wrap;font-family:inherit">' + escapeHtml(preview) + '</div></div>';
-}
-
-function saveReportPushConfig() {
-  var cfg = {
-    webhookUrl: document.getElementById('rpcWebhookUrl').value.trim(),
-    template: document.getElementById('rpcTemplate').value,
-    pushTime: document.getElementById('rpcPushTime').value || '18:00',
-    enabled: document.getElementById('rpcEnabled').checked,
-    useCustomTemplate: document.getElementById('rpcUseCustomTemplate').checked
-  };
-
-  // 验证
-  if (cfg.enabled && !cfg.webhookUrl) {
-    showToast('启用推送时必须填写 Webhook URL', 'warn');
-    return;
-  }
-
-  // 保存到 localStorage
-  saveReportPushConfigLocal(cfg);
-
-  // 同步到后端
-  if (SERVER_CONFIG.mode === 'online') {
-    apiRequest('POST', '/api/report-config', cfg).then(function(res) {
-      if (res.code === 0) {
-        showToast('推送配置已保存（本地+服务器）', 'success');
-      } else {
-        showToast('配置已保存到本地，服务器同步失败: ' + (res.msg || ''), 'warn');
-      }
-    });
-  } else {
-    showToast('推送配置已保存到本地（离线模式，未同步到服务器）', 'success');
-  }
-}
-
-function resetReportPushConfig() {
-  if (!confirm('确定恢复为默认推送配置？当前配置将丢失。')) return;
-  var cfg = JSON.parse(JSON.stringify(DEFAULT_REPORT_PUSH_CONFIG));
-  cfg.template = DEFAULT_DAILY_REPORT_TEMPLATE;
-  saveReportPushConfigLocal(cfg);
-  if (SERVER_CONFIG.mode === 'online') {
-    apiRequest('POST', '/api/report-config', cfg);
-  }
-  refresh();
-  showToast('推送配置已恢复默认', 'success');
-}
-
-async function loadReportPushConfigFromServer() {
-  if (SERVER_CONFIG.mode !== 'online') return;
-  try {
-    var res = await apiRequest('GET', '/api/report-config');
-    if (res.code === 0 && res.data) {
-      // 如果服务器有配置且本地没有，用服务器的覆盖
-      var local = getReportPushConfig();
-      if (!local.webhookUrl && res.data.webhookUrl) {
-        saveReportPushConfigLocal(res.data);
-      }
-    }
-  } catch(e) {
-    console.error('[推送配置] 从服务器加载配置失败:', e);
-  }
-}
-
-// 页面加载时尝试从服务器拉取推送配置
-setTimeout(loadReportPushConfigFromServer, 3000);
 
 // =========================================
 // V13 - 数据备份
@@ -12804,7 +12105,8 @@ function renderPage(id) {
     if (id === 'kpi-scrap') return renderKpiPage('kpi-scrap');
     if (id === 'kpi-energy') return renderKpiPage('kpi-energy');
     if (id === 'kpi-safety') return renderKpiPage('kpi-safety');
-    if (id === 'kpi-contract' || id === 'strategy-2026') return renderKpiPage('kpi-downtime');
+    if (id === 'kpi-contract') return renderKpiPage('kpi-contract');
+  if (id === 'strategy-2026') return renderKpiPage('strategy-2026');
     if (id === 'wp-smart-maint') return renderWhitepaper('wp-smart-maint');
     if (id === 'wp-cost-ctrl') return renderWhitepaper('wp-cost-ctrl');
     if (id === 'wp-train') return renderWhitepaper('wp-train');
@@ -12926,16 +12228,15 @@ function initCharts() {
 // =========================================
 function refreshData(type) {
   try {
-    if (type === 'daily') {
-      localData = lsGet('local_daily', []);
-    } else if (type === 'weekly') {
-      lsSet('local_weekly', lsGet('local_weekly', []));
-    } else if (type === 'monthly') {
-      lsSet('local_monthly', lsGet('local_monthly', []));
-    }
-    showToast('数据已刷新', 'success');
-    refresh();
-  } catch(e) { console.error('refreshData error:', e); }
+    _serverDataLoaded = false;
+    loadServerData().then(function() {
+      refresh();
+      showToast('数据已从服务器刷新', 'success');
+    }).catch(function() {
+      refresh();
+      showToast('数据已刷新（本地缓存）', 'success');
+    });
+  } catch(e) { console.error('refreshData error:', e); refresh(); }
 }
 
 // =========================================
@@ -13025,53 +12326,6 @@ function doRegisterModule() {
   registerModule({id:id, name:name, icon:icon, version:version, parentId:parentId || null, enabled:true, builtIn:false});
 }
 
-function renderSchedulePushPage() {
-  var config = lsGet('schedule_push_config', {
-    dailyTime: '18:00', dailyEnabled: true, dailyTemplate: '智能制造日报推送\n\n{date}\n\n【项目进度汇总】\n{projects}\n\n{footer}',
-    weeklyTime: '周五 17:00', weeklyEnabled: false, weeklyTemplate: '',
-    projectPushEnabled: true, projectPushCron: '每周一 09:00',
-    groups: ['智能制造组']
-  });
-  var h = '<div class="page-enter"><h3>定时推送配置</h3>';
-  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">配置定时向飞书群组推送项目进度数据的自动化任务。由于飞书API审批受限，采用Bot Webhook方式直接推送。</p>';
-  
-  // 推送方案说明
-  h += '<div class="card" style="margin-bottom:16px;padding:16px">';
-  h += '<h4 style="margin-bottom:8px">自动化方案说明</h4>';
-  h += '<div style="font-size:13px;color:#94a3b8;line-height:1.8">';
-  h += '<p><b style="color:#34c724">数据来源：</b>平台本地项目数据（10个智能制造专项）</p>';
-  h += '<p><b style="color:#34c724">推送通道：</b>飞书Bot Webhook（已验证可用）</p>';
-  h += '<p><b style="color:#34c724">推送方式：</b>平台页面打开时自动检查是否到推送时间，或手动触发</p>';
-  h += '<p><b style="color:#34c724">无需审批：</b>不依赖飞书API权限，不调用bitable接口</p>';
-  h += '</div></div>';
-  
-  // 手动推送按钮
-  h += '<div class="card" style="margin-bottom:16px;padding:16px">';
-  h += '<h4 style="margin-bottom:12px">手动推送</h4>';
-  h += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
-  h += '<button class="btn" onclick="manualPush(\'project_summary\')" style="background:#3b82f6">推送项目进度汇总</button>';
-  h += '<button class="btn" onclick="manualPush(\'project_detail\')" style="background:#60a5fa">推送项目详情（含子步骤）</button>';
-  h += '<button class="btn" onclick="manualPush(\'risk_alert\')" style="background:#f59e0b">推送风险预警</button>';
-  h += '<button class="btn" onclick="manualPush(\'daily_report\')" style="background:#34c724">推送日报模板</button>';
-  h += '</div></div>';
-  
-  // 项目进度一览
-  h += '<div class="card" style="padding:16px">';
-  h += '<h4 style="margin-bottom:12px">当前项目进度数据预览</h4>';
-  var projects = getAllProjects();
-  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>编号</th><th>项目</th><th>负责人</th><th>进度</th><th>状态</th></tr></thead><tbody>';
-  for (var i = 0; i < projects.length; i++) {
-    var p = projects[i];
-    var barColor = p.progress >= 100 ? '#34c724' : p.progress >= 80 ? '#f59e0b' : p.progress >= 50 ? '#3b82f6' : '#ef4444';
-    h += '<tr><td>' + escapeHtml(p.id || '') + '</td><td>' + escapeHtml(p.name || '') + '</td><td>' + escapeHtml(p.manager || '') + '</td>';
-    h += '<td><div style="display:flex;align-items:center;gap:8px"><div style="background:#334155;border-radius:4px;height:8px;flex:1"><div style="background:' + barColor + ';height:8px;border-radius:4px;width:' + Math.min(p.progress||0,100) + '%"></div></div><span style="font-size:11px;color:#94a3b8">' + (p.progress||0) + '%</span></div></td>';
-    h += '<td>' + escapeHtml(p.status || '') + '</td></tr>';
-  }
-  h += '</tbody></table></div>';
-  
-  h += '</div>';
-  return h;
-}
 
 function manualPush(type) {
   var groups = lsGet('push_groups', []);
@@ -13153,104 +12407,6 @@ function manualPush(type) {
   }).catch(function(e){showToast('推送失败: ' + e.message, 'error')});
 }
 
-function renderTemplateLibraryPage() {
-  var templates = lsGet('push_global_templates', []);
-  if (templates.length === 0) {
-    templates = [
-      {id:'tpl_1', name:'项目进度汇总', category:'项目', content:'## {{projectName}} ({{projectId}})\n\n**进度：** {{progress}}%\n**状态：** {{status}}\n**负责人：** {{manager}}\n\n{{#if nextPlan}}**后续计划：**\n{{nextPlan}}\n{{/if}}', enabled:true},
-      {id:'tpl_2', name:'项目详细报告', category:'项目', content:'## 项目详细报告 - {{projectName}}\n\n**进度：** {{progress}}% | **状态：** {{status}}\n**负责人：** {{manager}} ({{leadType}})\n**开始：** {{startDate}} | **结束：** {{endDate}}\n**预算：** {{budget}}\n\n{{#if description}}**描述：**\n{{description}}\n{{/if}}\n{{#if subSteps}}**子工序：**\n{{#each subSteps}}- {{name}}: {{done}}/{{total}} ({{rate}}%)\n{{/each}}\n{{/if}}', enabled:true},
-      {id:'tpl_3', name:'风险预警', category:'项目', content:'## ⚠ 风险预警 - {{projectName}}\n\n**风险与问题：**\n{{risks}}\n\n**当前进度：** {{progress}}% | **状态：** {{status}}\n**负责人：** {{manager}}\n\n请关注并及时处理。', enabled:true},
-      {id:'tpl_4', name:'日报汇总', category:'报告', content:'## 日报汇总 - {{date}}\n\n{{content}}', enabled:true},
-      {id:'tpl_5', name:'周报汇总', category:'报告', content:'## 周报汇总 - {{weekRange}}\n\n{{content}}', enabled:true}
-    ];
-    lsSet('push_global_templates', templates);
-  }
-  var h = '<div class="page-enter">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3>模板库</h3>';
-  h += '<button class="btn" style="font-size:13px;padding:6px 16px" onclick="addGlobalTemplate()">+ 新增模版</button></div>';
-  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">管理推送消息模版。支持变量插值，可在推送消息时选择使用。</p>';
-  // 分类筛选
-  var categories = [];
-  for (var ci = 0; ci < templates.length; ci++) { if (categories.indexOf(templates[ci].category) < 0) categories.push(templates[ci].category); }
-  h += '<div style="display:flex;gap:8px;margin-bottom:16px">';
-  h += '<button class="btn" style="font-size:11px;padding:3px 10px;background:#3b82f6;color:#fff" onclick="filterTemplates(\'all\')">全部</button>';
-  for (var ci2 = 0; ci2 < categories.length; ci2++) {
-    h += '<button class="btn" style="font-size:11px;padding:3px 10px" onclick="filterTemplates(\'' + categories[ci2] + '\')">' + escapeHtml(categories[ci2]) + '</button>';
-  }
-  h += '</div>';
-  // 模板列表
-  h += '<div id="template_list">';
-  for (var ti = 0; ti < templates.length; ti++) {
-    var t = templates[ti];
-    h += '<div class="tpl-item" data-category="' + t.category + '" style="background:#1e293b;border:1px solid #334155;border-radius:8px;padding:16px;margin-bottom:12px">';
-    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-    h += '<div><b style="color:#e2e8f0;font-size:14px">' + escapeHtml(t.name) + '</b> <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(96,165,250,0.1);color:#60a5fa;margin-left:8px">' + escapeHtml(t.category) + '</span>';
-    if (t.enabled) h += ' <span style="font-size:10px;color:#34c724">● 启用</span>';
-    else h += ' <span style="font-size:10px;color:#64748b">● 停用</span>';
-    h += '</div>';
-    h += '<div style="display:flex;gap:6px"><button class="btn" style="font-size:11px;padding:3px 10px" onclick="editGlobalTemplate(\'' + t.id + '\')">编辑</button><button class="btn" style="font-size:11px;padding:3px 10px;color:#ef4444" onclick="deleteGlobalTemplate(\'' + t.id + '\')">删除</button><button class="btn" style="font-size:11px;padding:3px 10px" onclick="previewGlobalTemplate(\'' + t.id + '\')">预览</button></div>';
-    h += '</div>';
-    h += '<pre style="background:#0f172a;border-radius:6px;padding:8px;font-size:12px;color:#cbd5e1;white-space:pre-wrap;max-height:80px;overflow-y:auto;line-height:1.5">' + escapeHtml(t.content) + '</pre>';
-    h += '</div>';
-  }
-  h += '</div></div>';
-  return h;
-}
-
-function renderPushManagePage() {
-  var pushGroups = lsGet('push_groups', [
-    {id:'g1', name:'智能制造组', webhookUrl:'https://open.feishu.cn/open-apis/bot/v2/hook/387f367e-fc03-49f5-b403-3e9836c7274c', enabled:true, types:['daily','weekly','project','equipment']},
-    {id:'g2', name:'管理层汇报群', webhookUrl:'', enabled:false, types:['weekly','monthly','project']}
-  ]);
-  var pushTypes = [
-    {key:'daily', label:'日报推送', desc:'每日工作汇报自动推送'},
-    {key:'weekly', label:'周报推送', desc:'每周工作汇总推送'},
-    {key:'monthly', label:'月报推送', desc:'月度数据统计推送'},
-    {key:'project', label:'项目进度推送', desc:'项目里程碑和进度变更推送'},
-    {key:'equipment', label:'设备异常推送', desc:'设备故障/维修超时告警'},
-    {key:'improvement', label:'改善提案推送', desc:'改善提案审批和实施通知'},
-    {key:'custom', label:'自定义推送', desc:'用户手动触发的即时消息'}
-  ];
-  
-  var h = '<div class="page-enter">';
-  h += '<h3>推送管理</h3>';
-  h += '<p style="color:#94a3b8;font-size:13px;margin-bottom:16px">管理推送群组和推送类型配置。由管理员定义哪些消息推送到哪个群组。</p>';
-  
-  // 群组管理
-  h += '<div style="margin-bottom:24px">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-  h += '<h4>推送群组</h4>';
-  h += '<button class="btn" onclick="showAddPushGroup()" style="font-size:13px;padding:6px 16px">+ 添加群组</button>';
-  h += '</div>';
-  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>群组名称</th><th>Webhook URL</th><th>状态</th><th>推送类型</th><th>操作</th></tr></thead><tbody>';
-  for (var gi = 0; gi < pushGroups.length; gi++) {
-    var g = pushGroups[gi];
-    var statusColor = g.enabled ? '#34c724' : '#64748b';
-    var typeLabels = [];
-    for (var ti = 0; ti < pushTypes.length; ti++) {
-      if (g.types && g.types.indexOf && g.types.indexOf(pushTypes[ti].key) >= 0) typeLabels.push(pushTypes[ti].label);
-    }
-    h += '<tr><td><b>' + escapeHtml(g.name) + '</b></td>';
-    h += '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (g.webhookUrl ? escapeHtml(g.webhookUrl.substring(0, 40)) + '...' : '<span style="color:#64748b">未配置</span>') + '</td>';
-    h += '<td><span style="color:' + statusColor + '">● ' + (g.enabled ? '启用' : '停用') + '</span></td>';
-    h += '<td style="font-size:11px;color:#94a3b8">' + typeLabels.join(', ') + '</td>';
-    h += '<td><button class="btn" style="font-size:11px;padding:3px 10px" onclick="editPushGroup(\'' + g.id + '\')">编辑</button> <button class="btn" style="font-size:11px;padding:3px 10px;color:#ef4444" onclick="deletePushGroup(\'' + g.id + '\')">删除</button> <button class="btn" style="font-size:11px;padding:3px 10px" onclick="testPushGroup(\'' + g.id + '\')">测试</button></td>';
-    h += '</tr>';
-  }
-  h += '</tbody></table></div>';
-  
-  // 推送类型说明
-  h += '<div>';
-  h += '<h4>推送类型说明</h4>';
-  h += '<table class="dt" style="width:100%;font-size:13px"><thead><tr><th>类型</th><th>说明</th></tr></thead><tbody>';
-  for (var pi = 0; pi < pushTypes.length; pi++) {
-    h += '<tr><td><b>' + pushTypes[pi].label + '</b></td><td>' + pushTypes[pi].desc + '</td></tr>';
-  }
-  h += '</tbody></table></div>';
-  
-  h += '</div>';
-  return h;
-}
 
 function addGlobalTemplate() {
   var html = '<div class="modal-overlay" id="tplEditModal" onclick="if(event.target===this)this.remove()">';
@@ -13332,106 +12488,6 @@ function filterTemplates(category) {
   }
 }
 
-function showAddPushGroup() {
-  var html = '<div class="modal-overlay" id="pushGroupModal" onclick="if(event.target===this)this.remove()">';
-  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>添加推送群组</h3><button onclick="document.getElementById(\'pushGroupModal\').remove()">✕</button></div>';
-  html += '<div class="modal-body">';
-  html += '<div style="margin-bottom:8px"><label>群组名称</label><input id="pg_name" style="width:100%" placeholder="例如：智能制造组"></div>';
-  html += '<div style="margin-bottom:8px"><label>Webhook URL</label><input id="pg_url" style="width:100%" placeholder="飞书群机器人Webhook地址"></div>';
-  html += '<div style="margin-bottom:8px"><label>推送类型（多选）</label>';
-  var types = ['daily','weekly','monthly','project','equipment','improvement','custom'];
-  var typeNames = {daily:'日报',weekly:'周报',monthly:'月报',project:'项目进度',equipment:'设备异常',improvement:'改善提案',custom:'自定义'};
-  for (var i = 0; i < types.length; i++) {
-    html += '<label style="margin-right:12px;font-size:13px"><input type="checkbox" value="' + types[i] + '" class="pg_type"> ' + typeNames[types[i]] + '</label>';
-  }
-  html += '</div>';
-  html += '</div><div class="modal-footer"><button class="btn" onclick="savePushGroup()">保存</button></div></div></div>';
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-function editPushGroup(id) {
-  var groups = lsGet('push_groups', []);
-  var g = groups.find(function(g){return g.id===id});
-  if (!g) return;
-  var html = '<div class="modal-overlay" id="pushGroupModal" onclick="if(event.target===this)this.remove()">';
-  html += '<div class="modal" style="max-width:500px"><div class="modal-header"><h3>编辑推送群组</h3><button onclick="document.getElementById(\'pushGroupModal\').remove()">✕</button></div>';
-  html += '<div class="modal-body">';
-  html += '<div style="margin-bottom:8px"><label>群组名称</label><input id="pg_name" style="width:100%" value="' + escapeHtml(g.name) + '"></div>';
-  html += '<div style="margin-bottom:8px"><label>Webhook URL</label><input id="pg_url" style="width:100%" value="' + escapeHtml(g.webhookUrl || '') + '" placeholder="飞书群机器人Webhook地址"></div>';
-  html += '<div style="margin-bottom:8px"><label>推送类型（多选）</label>';
-  var types = ['daily','weekly','monthly','project','equipment','improvement','custom'];
-  var typeNames = {daily:'日报',weekly:'周报',monthly:'月报',project:'项目进度',equipment:'设备异常',improvement:'改善提案',custom:'自定义'};
-  for (var i = 0; i < types.length; i++) {
-    var checked = g.types && g.types.indexOf(types[i]) >= 0 ? ' checked' : '';
-    html += '<label style="margin-right:12px;font-size:13px"><input type="checkbox" value="' + types[i] + '" class="pg_type"' + checked + '> ' + typeNames[types[i]] + '</label>';
-  }
-  html += '</div>';
-  html += '<div style="margin-bottom:8px"><label>启用状态</label><select id="pg_enabled" style="width:100%"><option value="true"' + (g.enabled ? ' selected' : '') + '>启用</option><option value="false"' + (!g.enabled ? ' selected' : '') + '>停用</option></select></div>';
-  html += '</div><div class="modal-footer"><button class="btn" onclick="saveEditPushGroup(\'' + id + '\')">保存</button></div></div></div>';
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-function saveEditPushGroup(id) {
-  var name = document.getElementById('pg_name').value.trim();
-  var url = document.getElementById('pg_url').value.trim();
-  if (!name) { showToast('请输入群组名称', 'error'); return; }
-  var checks = document.querySelectorAll('.pg_type');
-  var types = [];
-  for (var i = 0; i < checks.length; i++) { if (checks[i].checked) types.push(checks[i].value); }
-  var enabled = document.getElementById('pg_enabled').value === 'true';
-  var groups = lsGet('push_groups', []);
-  for (var j = 0; j < groups.length; j++) {
-    if (groups[j].id === id) {
-      groups[j].name = name;
-      groups[j].webhookUrl = url;
-      groups[j].types = types;
-      groups[j].enabled = enabled;
-      break;
-    }
-  }
-  lsSet('push_groups', groups);
-  document.getElementById('pushGroupModal').remove();
-  showToast('群组已更新');
-  goToPage('push-manage');
-}
-
-function savePushGroup() {
-  var name = document.getElementById('pg_name').value.trim();
-  var url = document.getElementById('pg_url').value.trim();
-  if (!name) { showToast('请输入群组名称', 'error'); return; }
-  var checks = document.querySelectorAll('.pg_type');
-  var types = [];
-  for (var i = 0; i < checks.length; i++) { if (checks[i].checked) types.push(checks[i].value); }
-  var groups = lsGet('push_groups', []);
-  groups.push({id:'g'+Date.now(), name:name, webhookUrl:url, enabled:true, types:types});
-  lsSet('push_groups', groups);
-  document.getElementById('pushGroupModal').remove();
-  showToast('群组已添加');
-  goToPage('push-manage');
-}
-
-function deletePushGroup(id) {
-  if (!confirm('确认删除该推送群组？')) return;
-  var groups = lsGet('push_groups', []);
-  groups = groups.filter(function(g){return g.id!==id});
-  lsSet('push_groups', groups);
-  showToast('已删除');
-  goToPage('push-manage');
-}
-
-function testPushGroup(id) {
-  var groups = lsGet('push_groups', []);
-  var g = groups.find(function(g){return g.id===id});
-  if (!g || !g.webhookUrl) { showToast('该群组未配置Webhook URL', 'error'); return; }
-  showToast('正在发送测试消息...');
-  fetch(g.webhookUrl, {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({msg_type:'text', content:{text:'[智能制造管理平台] 推送测试 - 群组"' + g.name + '"配置正常'}})
-  }).then(function(r){return r.json()}).then(function(j){
-    if(j.code===0) showToast('测试消息发送成功');
-    else showToast('发送失败: '+j.msg, 'error');
-  }).catch(function(e){showToast('发送失败: '+e.message, 'error')});
-}
 
 // =========================================
 // V18 - 统一推送中心（集中管理所有推送群组、关联配置、模板、历史）
@@ -15602,7 +14658,6 @@ function syncFeishuBitableData(source) {
     .catch(function(e){resolve({success:false, error:e.message, count:0})});
   });
 }
-
 
 
 // ========== V18.7 服务器数据加载 - 阻塞渲染，服务器为唯一数据源 ==========
